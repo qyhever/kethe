@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
 import { hasTokens } from '../api/token'
-import { Brand } from '../components/Brand'
 import { Icon } from '../components/Icon'
 
 export function NotFoundPage() {
@@ -11,7 +10,7 @@ export function NotFoundPage() {
   return (
     <section className="not-found-screen" aria-labelledby="not-found-title">
       <Link aria-label="返回 Kethe Clip" className="not-found-brand" to={destination}>
-        <Brand subtitle="personal clipboard" title="Kethe Clip" />
+        返回
       </Link>
 
       <div className="not-found-visual" aria-hidden="true">

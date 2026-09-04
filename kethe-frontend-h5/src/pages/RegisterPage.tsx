@@ -1,12 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, Link, useNavigate } from 'react-router-dom'
 import { login, register, sendRegistrationCode } from '../api/auth'
 import { hasTokens, setTokens } from '../api/token'
-import { Brand } from '../components/Brand'
-import { Icon } from '../components/Icon'
-import { Toast } from '../components/Toast'
-import { getErrorMessage } from '../utils/text'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -17,13 +13,7 @@ export function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [verifyCode, setVerifyCode] = useState('')
   const [verifyCountdown, setVerifyCountdown] = useState(0)
-  const [toast, setToast] = useState('')
   const [submitting, setSubmitting] = useState(false)
-
-  const showToast = useCallback((message: string) => {
-    setToast(message)
-    window.setTimeout(() => setToast((current) => (current === message ? '' : current)), 2200)
-  }, [])
 
   useEffect(() => {
     if (!verifyCountdown) return
@@ -40,7 +30,7 @@ export function RegisterPage() {
   const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (registerPassword !== confirmPassword) {
-      showToast('两次密码不一致')
+      // showToast('两次密码不一致')
       return
     }
     setSubmitting(true)
@@ -54,10 +44,11 @@ export function RegisterPage() {
       })
       const tokens = await login({ email, password: registerPassword })
       setTokens(tokens)
-      showToast('注册成功，已登录')
+      // showToast('注册成功，已登录')
       navigate('/clipboard', { replace: true })
     } catch (error) {
-      showToast(getErrorMessage(error))
+      console.log('error: ', error);
+      // showToast(getErrorMessage(error))
     } finally {
       setSubmitting(false)
     }
@@ -69,9 +60,10 @@ export function RegisterPage() {
     try {
       await sendRegistrationCode(email)
       setVerifyCountdown(60)
-      showToast('验证码已发送')
+      // showToast('验证码已发送')
     } catch (error) {
-      showToast(getErrorMessage(error))
+      console.log('error: ', error);
+      // showToast(getErrorMessage(error))
     } finally {
       setSubmitting(false)
     }
@@ -81,7 +73,7 @@ export function RegisterPage() {
     <>
       <section className="login-screen">
         <form className="panel login-card" onSubmit={handleRegister}>
-          <Brand subtitle="create clipboard account" title="注册账号" />
+          {/* <Brand subtitle="create clipboard account" title="注册账号" /> */}
           <div className="field">
             <label htmlFor="registerEmail">邮箱</label>
             <input id="registerEmail" type="email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} required value={email} />
@@ -113,7 +105,7 @@ export function RegisterPage() {
           </div>
           <div className="composer-actions">
             <button className="primary" disabled={submitting} type="submit">
-              <Icon name="userPlus" />
+              {/* <Icon name="userPlus" /> */}
               {submitting ? '提交中' : '注册并登录'}
             </button>
           </div>
@@ -125,7 +117,6 @@ export function RegisterPage() {
           </p>
         </form>
       </section>
-      <Toast message={toast} />
     </>
   )
 }
