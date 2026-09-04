@@ -1,0 +1,130 @@
+.version-update-notification {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  max-width: 24rem;
+  padding: 1rem;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%);
+}
+
+.version-update-notification__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.version-update-notification__icon-wrapper,
+.version-update-notification__close {
+  flex-shrink: 0;
+}
+
+.version-update-notification__update-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #3b82f6;
+}
+
+.version-update-notification__body {
+  flex: 1 1 0%;
+}
+
+.version-update-notification__title {
+  margin: 0;
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+}
+
+.version-update-notification__version-info {
+  margin-top: 0.25rem;
+  color: #111827;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.version-update-notification__version-title {
+  font-weight: 700;
+}
+
+.version-update-notification__version-details,
+.version-update-notification__message {
+  color: #4b5563;
+}
+
+.version-update-notification__message {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.version-update-notification__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.version-update-notification__button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+}
+
+.version-update-notification__button--primary {
+  color: #fff;
+  background-color: #2563eb;
+}
+
+.version-update-notification__button--primary:hover {
+  background-color: #1d4ed8;
+}
+
+.version-update-notification__button--secondary {
+  color: #374151;
+  background-color: #fff;
+  border-color: #d1d5db;
+}
+
+.version-update-notification__button--secondary:hover {
+  background-color: #f9fafb;
+}
+
+.version-update-notification__button--primary:focus,
+.version-update-notification__button--secondary:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #3b82f6;
+}
+
+.version-update-notification__button--ignore {
+  padding-right: 0.75rem;
+  padding-left: 0.75rem;
+  color: #9ca3af;
+  border: 0;
+}
+
+.version-update-notification__button--ignore:hover,
+.version-update-notification__close:hover {
+  color: #4b5563;
+}
+
+.version-update-notification__close {
+  padding: 0;
+  color: #9ca3af;
+  background: transparent;
+}
+
+.version-update-notification__close-icon {
+  display: block;
+  width: 16px;
+  height: 14px;
+}

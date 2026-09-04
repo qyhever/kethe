@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Keshe logo mark">
+  <defs>
+    <linearGradient id="blackGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111111"/>
+      <stop offset="1" stop-color="#242424"/>
+    </linearGradient>
+    <linearGradient id="grayGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8A8A8A"/>
+      <stop offset="1" stop-color="#A7A7A7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- left K-like form -->
+  <path fill="url(#blackGrad)" d="M93 74h67v153L295 74h78L223 239l82 1 14 14v32h-65v36h-53l-41-46v162H93V74zm67 165 57 64v-44l-57-20z"/>
+
+  <!-- right mirrored / joining form -->
+  <path fill="url(#grayGrad)" d="M419 163h-68v145H246v18h34L160 438h78l113-118v118h68V163z"/>
+</svg>
