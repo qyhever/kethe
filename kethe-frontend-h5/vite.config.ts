@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath } from 'url'
 import metaPlugin, { getBuildHash } from './build/meta.ts'
 import dayjs from 'dayjs'
+import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode, command }) => {
@@ -71,6 +72,7 @@ export default defineConfig(({ mode, command }) => {
         },
       }),
       metaPlugin(),
+      tailwindcss(),
     ],
     server: {
       proxy: {
