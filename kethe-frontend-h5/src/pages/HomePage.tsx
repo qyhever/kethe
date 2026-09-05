@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { CategoryIcon, type CategoryIconName } from '../components/CategoryIcon/CategoryIcon'
 import { Navbar } from '../components/Navbar'
 import { Tabbar, type TabId } from '../components/Tarbar'
@@ -362,7 +363,7 @@ function TransactionGroupView({ group }: { group: TransactionGroup }) {
   )
 }
 
-function RecentTransactions() {
+function RecentTransactions({ onViewMore }: { onViewMore: () => void }) {
   return (
     <section className="recent-card" aria-labelledby="recent-title">
       <header className="recent-card__header">
@@ -377,7 +378,7 @@ function RecentTransactions() {
           <TransactionGroupView group={group} key={group.label} />
         ))}
       </div>
-      <button className="recent-card__more" type="button">
+      <button className="recent-card__more" type="button" onClick={onViewMore}>
         <span>查看更多流水</span>
         <ChevronRight aria-hidden="true" size={18} strokeWidth={2.1} />
       </button>
@@ -386,6 +387,7 @@ function RecentTransactions() {
 }
 
 export function HomePage() {
+  const navigate = useNavigate()
   const [selectedMonth, setSelectedMonth] = useState(monthOptions[0])
   const toast = useToast()
 
@@ -417,7 +419,7 @@ export function HomePage() {
             <PeriodSummaryCard key={summary.label} summary={summary} />
           ))}
         </section>
-        <RecentTransactions />
+        <RecentTransactions onViewMore={() => navigate('/flow')} />
         <div className="home-scroll-spacer" aria-hidden="true" />
       </main>
       <Tabbar onTabClick={handleTabClick} />
