@@ -1,10 +1,17 @@
-
+import { Navbar } from "../components/Navbar";
+import { Tabbar } from "../components/Tarbar";
 
 export function HomePage() {
 
   return (
-    <div className="p-4">
-      home
+    <div>
+      <Navbar />
+      {
+        Array.from({ length: 100 }, (_, i) => (
+          <div key={i}>{i + 1}</div>
+        ))
+      }
+      <Tabbar />
     </div>
   )
 }

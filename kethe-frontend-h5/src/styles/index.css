@@ -12,7 +12,9 @@
 }
 
 html {
-  min-width: 320px;
+  min-width: 375px;
+  max-width: 750px;
+  margin: 0 auto;
 }
 
 body {

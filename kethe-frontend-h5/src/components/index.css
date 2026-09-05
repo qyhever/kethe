@@ -1,0 +1,129 @@
+
+.tabbar-container {
+  height: var(--tabbar-full-height);
+  padding-bottom: var(--safe-bottom);
+}
+
+.tabbar {
+  position: fixed;
+  z-index: 99;
+  left: 50%;
+  right: auto;
+  bottom: 0;
+  width: min(100%, 750px);
+  height: var(--tabbar-height);
+  transform: translateX(-50%);
+  padding: 0 0 var(--safe-bottom);
+  box-sizing: border-box;
+  background: var(--tabbar-bg);
+  border-top: 1px solid rgba(224, 224, 224, 0.9);
+  font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+.tabbar-inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  height: var(--tabbar-height);
+}
+
+.tabbar-item {
+  appearance: none;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-text-regular);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.tabbar-item svg,
+.tabbar-add svg {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.tabbar-item.is-active {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.tabbar-item:active {
+  transform: scale(0.96);
+}
+
+.tabbar-item:focus-visible,
+.tabbar-add:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: -2px;
+}
+
+.tabbar-center {
+  position: relative;
+  height: var(--tabbar-height);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.tabbar-add {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  color: #ffffff;
+  background: var(--color-primary);
+  transform: translate(-50%, calc(-50% - 22px));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.18s ease, transform 0.18s ease;
+}
+
+.tabbar-add:hover {
+  background: var(--color-primary-focus);
+}
+
+.tabbar-add:active {
+  background: var(--color-primary);
+  transform: translate(-50%, calc(-50% - 22px)) scale(0.93);
+}
+
+.tabbar-add-label {
+  position: absolute;
+  bottom: 5px;
+  color: var(--color-text-regular);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.12px;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabbar-item,
+  .tabbar-add {
+    transition: none;
+  }
+}

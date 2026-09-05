@@ -1,3 +1,18 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+:root {
+  --tabbar-height: 49px;
+  --tabbar-full-height: 74px;
+  --tabbar-bg: rgba(245, 245, 247, 0.94);
+
+  --color-text-primary: #1d1d1f;
+  --color-text-regular: #7a7a7a;
+  --color-text-secondary: #999999;
+  --color-text-placeholder: #cccccc;
+
+  --color-primary: #1469f7;
+  --color-primary-focus: #0071e3;
+
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
