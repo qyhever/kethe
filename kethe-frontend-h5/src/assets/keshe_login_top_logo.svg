@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" width="160" height="120">
+  <defs>
+    <linearGradient id="leafA" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#7DB3FF"/>
+      <stop offset="1" stop-color="#176BF3"/>
+    </linearGradient>
+    <linearGradient id="leafB" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#B7D4FF"/>
+      <stop offset="1" stop-color="#4B91F7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- left leaf -->
+  <path d="M42 47
+           C26 35, 24 18, 31 10
+           C47 11, 61 24, 61 39
+           C61 48, 55 54, 48 55
+           C46 52, 44 49, 42 47Z"
+        fill="url(#leafB)"/>
+  <path d="M31 10 C41 21, 48 34, 48 55"
+        fill="none" stroke="#5A9AF8" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- right leaf -->
+  <path d="M78 52
+           C78 26, 96 4, 118 2
+           C121 23, 110 49, 87 61
+           C84 59, 81 56, 78 52Z"
+        fill="url(#leafA)"/>
+  <path d="M118 2 C103 19, 92 37, 87 61"
+        fill="none" stroke="#176BF3" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- center stem -->
+  <path d="M74 66 C77 55, 84 47, 93 39"
+        fill="none" stroke="#176BF3" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- wordmark -->
+  <text x="80" y="100"
+        text-anchor="middle"
+        font-size="30"
+        font-weight="700"
+        font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display','PingFang SC','Helvetica Neue',Arial,sans-serif"
+        fill="#1D2734">刻合</text>
+</svg>

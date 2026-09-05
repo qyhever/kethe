@@ -1,18 +1,34 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, Link, useNavigate } from 'react-router-dom'
+import { LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
 import { login, register, sendRegistrationCode } from '../api/auth'
 import { hasTokens, setTokens } from '../api/token'
+import { AuthField } from '../components/Auth/AuthField'
+import { AuthScaffold } from '../components/Auth/AuthScaffold'
+import { useToast } from '../components/Toast'
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : '操作失败，请稍后重试'
+}
+
+function getDefaultProfile(email: string) {
+  const emailName = email.trim().split('@')[0] || 'user'
+  return {
+    username: emailName,
+    nickname: emailName,
+  }
+}
 
 export function RegisterPage() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [email, setEmail] = useState('')
-  const [username, setUsername] = useState('')
-  const [nickname, setNickname] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordVisible, setPasswordVisible] = useState(false)
   const [verifyCode, setVerifyCode] = useState('')
   const [verifyCountdown, setVerifyCountdown] = useState(0)
+  const [sendingCode, setSendingCode] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -24,31 +40,26 @@ export function RegisterPage() {
   }, [verifyCountdown])
 
   if (hasTokens()) {
-    return <Navigate replace to="/clipboard" />
+    return <Navigate replace to="/home" />
   }
 
   const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (registerPassword !== confirmPassword) {
-      // showToast('两次密码不一致')
-      return
-    }
     setSubmitting(true)
     try {
+      const profile = getDefaultProfile(email)
       await register({
-        username,
-        nickname,
+        ...profile,
         email,
         password: registerPassword,
         verificationCode: verifyCode,
       })
       const tokens = await login({ email, password: registerPassword })
       setTokens(tokens)
-      // showToast('注册成功，已登录')
-      navigate('/clipboard', { replace: true })
+      toast.success('注册成功')
+      navigate('/home', { replace: true })
     } catch (error) {
-      console.log('error: ', error)
-      // showToast(getErrorMessage(error))
+      toast.error(getErrorMessage(error))
     } finally {
       setSubmitting(false)
     }
@@ -56,67 +67,82 @@ export function RegisterPage() {
 
   const sendVerifyCode = async () => {
     if (verifyCountdown > 0 || !email.trim()) return
-    setSubmitting(true)
+    setSendingCode(true)
     try {
       await sendRegistrationCode(email)
       setVerifyCountdown(60)
-      // showToast('验证码已发送')
+      toast.success('验证码已发送')
     } catch (error) {
-      console.log('error: ', error)
-      // showToast(getErrorMessage(error))
+      toast.error(getErrorMessage(error))
     } finally {
-      setSubmitting(false)
+      setSendingCode(false)
     }
   }
 
   return (
-    <>
-      <section className="login-screen">
-        <form className="panel login-card" onSubmit={handleRegister}>
-          {/* <Brand subtitle="create clipboard account" title="注册账号" /> */}
-          <div className="field">
-            <label htmlFor="registerEmail">邮箱</label>
-            <input id="registerEmail" type="email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} required value={email} />
+    <AuthScaffold variant="register">
+      <form className="auth-form" onSubmit={handleRegister}>
+        <div className="auth-form__fields">
+          <AuthField
+            icon={Mail}
+            id="registerEmail"
+            type="email"
+            autoComplete="off"
+            aria-label="邮箱"
+            placeholder="请输入邮箱"
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            value={email}
+          />
+          <div>
+            <AuthField
+              icon={LockKeyhole}
+              id="registerPassword"
+              type={passwordVisible ? 'text' : 'password'}
+              autoComplete="off"
+              aria-label="设置密码"
+              minLength={8}
+              placeholder="设置密码"
+              onChange={(event) => setRegisterPassword(event.target.value)}
+              onTogglePassword={() => setPasswordVisible((visible) => !visible)}
+              passwordVisible={passwordVisible}
+              required
+              value={registerPassword}
+            />
+            <p className="auth-form__hint">密码需包含至少 8 位字符，建议包含字母、数字和符号</p>
           </div>
-          <div className="field">
-            <label htmlFor="username">用户名</label>
-            <input id="username" autoComplete="username" onChange={(event) => setUsername(event.target.value)} required value={username} />
-          </div>
-          <div className="field">
-            <label htmlFor="nickname">昵称</label>
-            <input id="nickname" onChange={(event) => setNickname(event.target.value)} required value={nickname} />
-          </div>
-          <div className="field">
-            <label htmlFor="verifyCode">验证码</label>
-            <div className="verify-row">
-              <input id="verifyCode" inputMode="numeric" maxLength={6} onChange={(event) => setVerifyCode(event.target.value)} placeholder="6 位验证码" required value={verifyCode} />
-              <button className="ghost" disabled={verifyCountdown > 0 || submitting} onClick={sendVerifyCode} type="button">
-                {verifyCountdown > 0 ? `${verifyCountdown}s` : '发送验证码'}
+          <AuthField
+            icon={ShieldCheck}
+            id="verifyCode"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            aria-label="验证码"
+            maxLength={6}
+            pattern="[0-9]{6}"
+            placeholder="请输入验证码"
+            onChange={(event) => setVerifyCode(event.target.value.replace(/\D/g, ''))}
+            required
+            value={verifyCode}
+            trailing={
+              <button
+                className="auth-field__trailing"
+                disabled={verifyCountdown > 0 || sendingCode || !email.trim()}
+                onClick={sendVerifyCode}
+                type="button"
+              >
+                {sendingCode ? '发送中…' : verifyCountdown > 0 ? `${verifyCountdown}s 后重发` : '发送验证码'}
               </button>
-            </div>
-          </div>
-          <div className="field">
-            <label htmlFor="registerPassword">密码</label>
-            <input id="registerPassword" type="password" autoComplete="new-password" onChange={(event) => setRegisterPassword(event.target.value)} required value={registerPassword} />
-          </div>
-          <div className="field">
-            <label htmlFor="confirmPassword">确认密码</label>
-            <input id="confirmPassword" type="password" autoComplete="new-password" onChange={(event) => setConfirmPassword(event.target.value)} required value={confirmPassword} />
-          </div>
-          <div className="composer-actions">
-            <button className="primary" disabled={submitting} type="submit">
-              {/* <Icon name="userPlus" /> */}
-              {submitting ? '提交中' : '注册并登录'}
-            </button>
-          </div>
-          <p className="auth-switch">
-            已有账号？
-            <Link className="link-button" to="/login">
-              返回登录
-            </Link>
-          </p>
-        </form>
-      </section>
-    </>
+            }
+          />
+        </div>
+        <button className="auth-form__submit" disabled={submitting} type="submit">
+          {submitting ? '注册中…' : '注册'}
+        </button>
+        <p className="auth-form__switch">
+          已有账号？
+          <Link to="/login">去登录</Link>
+        </p>
+      </form>
+    </AuthScaffold>
   )
 }

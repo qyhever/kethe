@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 240" width="430" height="240" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="hill1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#DDEBFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#C9E0FF" stop-opacity="0.75"/>
+    </linearGradient>
+    <linearGradient id="hill2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#BED9FF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#E5F1FF" stop-opacity="0.8"/>
+    </linearGradient>
+    <linearGradient id="hill3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#EAF3FF" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#F7FAFF" stop-opacity="0.95"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#D8E9FF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#D8E9FF" stop-opacity="0.35"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="265" cy="78" r="38" fill="url(#sun)"/>
+
+  <path d="M0 98
+           C40 112, 70 80, 104 82
+           C150 85, 178 130, 225 141
+           C270 152, 305 122, 338 105
+           C366 90, 396 96, 430 116
+           L430 240 L0 240 Z"
+        fill="url(#hill1)"/>
+
+  <path d="M0 132
+           C45 104, 80 95, 120 111
+           C165 128, 194 168, 245 172
+           C294 176, 326 149, 362 133
+           C389 121, 409 128, 430 143
+           L430 240 L0 240 Z"
+        fill="url(#hill2)"/>
+
+  <path d="M0 170
+           C46 157, 89 151, 132 164
+           C178 179, 211 202, 261 199
+           C312 196, 350 175, 390 175
+           C405 175, 418 178, 430 184
+           L430 240 L0 240 Z"
+        fill="url(#hill3)"/>
+</svg>
