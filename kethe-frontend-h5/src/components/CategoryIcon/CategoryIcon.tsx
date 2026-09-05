@@ -1,16 +1,16 @@
 
-import FoodIcon from './icons/food.svg'
-import TransportIcon from './icons/transport.svg'
-import ShoppingIcon from './icons/shopping.svg'
-import HousingIcon from './icons/housing.svg'
-import EntertainmentIcon from './icons/entertainment.svg'
-import MedicalIcon from './icons/medical.svg'
-import EducationIcon from './icons/education.svg'
-import GiftIcon from './icons/gift.svg'
-import CommunicationIcon from './icons/communication.svg'
-import SubscriptionIcon from './icons/subscription.svg'
-import FinanceIcon from './icons/finance.svg'
-import OtherIcon from './icons/other.svg'
+import FoodIcon from './icons/food.svg?raw'
+import TransportIcon from './icons/transport.svg?raw'
+import ShoppingIcon from './icons/shopping.svg?raw'
+import HousingIcon from './icons/housing.svg?raw'
+import EntertainmentIcon from './icons/entertainment.svg?raw'
+import MedicalIcon from './icons/medical.svg?raw'
+import EducationIcon from './icons/education.svg?raw'
+import GiftIcon from './icons/gift.svg?raw'
+import CommunicationIcon from './icons/communication.svg?raw'
+import SubscriptionIcon from './icons/subscription.svg?raw'
+import FinanceIcon from './icons/finance.svg?raw'
+import OtherIcon from './icons/other.svg?raw'
 
 const iconMap = {
   food: FoodIcon,
@@ -32,24 +32,38 @@ export type CategoryIconName = keyof typeof iconMap
 interface CategoryIconProps {
   name?: CategoryIconName | string
   size?: number
+  color?: string
   className?: string
+}
+
+function getSvgContent(svg: string) {
+  const openTagEnd = svg.indexOf('>')
+  const closeTagStart = svg.lastIndexOf('</svg>')
+
+  return svg.slice(openTagEnd + 1, closeTagStart)
 }
 
 export function CategoryIcon({
   name = 'other',
   size = 40,
+  color,
   className,
 }: CategoryIconProps) {
-  const Icon =
+  const iconSvg =
     iconMap[name as CategoryIconName] ??
     iconMap.other
 
   return (
-    <Icon
+    <svg
       width={size}
       height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
       className={className}
+      color={color}
       aria-hidden="true"
+      dangerouslySetInnerHTML={{ __html: getSvgContent(iconSvg) }}
     />
   )
 }
