@@ -10,7 +10,7 @@ import './index.css'
 import { clsx } from 'clsx'
 import { useState } from 'react'
 
-type TabId = 'home' | 'chart' | 'add' | 'bill' | 'profile'
+export type TabId = 'home' | 'chart' | 'add' | 'bill' | 'profile'
 
 type Tab = {
   id: TabId
@@ -26,11 +26,16 @@ const tabs: Tab[] = [
   { id: 'profile', label: '我的', icon: UserRound },
 ]
 
-export function Tabbar() {
+interface TabbarProps {
+  onTabClick?: (tabId: TabId) => void
+}
+
+export function Tabbar({ onTabClick }: TabbarProps) {
   const [activeTab, setActiveTab] = useState<TabId>("home")
 
   const handleTabClick = (value: TabId) => {
     setActiveTab(value)
+    onTabClick?.(value)
     // TODO: 跳转到对应页面
   }
 

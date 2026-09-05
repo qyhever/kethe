@@ -1,10 +1,18 @@
 
+import type { ReactNode } from 'react'
+import { clsx } from 'clsx'
 
-export function Navbar() {
+interface NavbarProps {
+  title: string
+  right?: ReactNode
+  className?: string
+}
 
+export function Navbar({ title, right, className }: NavbarProps) {
   return (
-    <div>
-      navbar
-    </div>
+    <header className={clsx('home-navbar', className)}>
+      <h1>{title}</h1>
+      {right}
+    </header>
   )
 }
