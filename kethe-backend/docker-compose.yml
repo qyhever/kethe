@@ -1,0 +1,32 @@
+services:
+  app:
+    image: ${IMAGE_NAME:-kethe-backend}:${IMAGE_TAG:-1.0.0}
+    container_name: kethe-backend
+    network_mode: host
+    ports:
+      - "6308:6308"
+    env_file:
+      - .env
+      - .env.production
+    environment:
+      NODE_ENV: production
+    volumes:
+        - ./logs:/app/logs
+        - /var/www/html/kethe-uploads:/var/www/html/kethe-uploads
+        - /var/www/html/kethe-larges:/var/www/html/kethe-larges
+        - /var/www/html/kethe-chunks:/var/www/html/kethe-chunks
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:' + (process.env.PORT || 6308) + '/api/meta')
+          .then((response) => { if (!response.ok) process.exit(1) })
+          .catch(() => process.exit(1))
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    init: true
+    restart: unless-stopped

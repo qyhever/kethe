@@ -77,7 +77,7 @@ export default defineConfig(({ mode, command }) => {
     server: {
       proxy: {
         '/kethe/api': {
-          target: 'http://localhost:6307',
+          target: 'http://localhost:6308',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/kethe\/api/, '/api'),
         },
