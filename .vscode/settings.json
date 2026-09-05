@@ -4,7 +4,7 @@
   },
   "eslint.workingDirectories": [
     {
-      "directory": "kethe-frontend",
+      "directory": "kethe-frontend-h5",
       "changeProcessCWD": true
     },
     {

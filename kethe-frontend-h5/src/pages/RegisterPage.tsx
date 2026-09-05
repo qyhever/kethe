@@ -47,7 +47,7 @@ export function RegisterPage() {
       // showToast('注册成功，已登录')
       navigate('/clipboard', { replace: true })
     } catch (error) {
-      console.log('error: ', error);
+      console.log('error: ', error)
       // showToast(getErrorMessage(error))
     } finally {
       setSubmitting(false)
@@ -62,7 +62,7 @@ export function RegisterPage() {
       setVerifyCountdown(60)
       // showToast('验证码已发送')
     } catch (error) {
-      console.log('error: ', error);
+      console.log('error: ', error)
       // showToast(getErrorMessage(error))
     } finally {
       setSubmitting(false)

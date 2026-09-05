@@ -23,7 +23,7 @@ export function LoginPage() {
       setTokens(tokens)
       navigate('/clipboard', { replace: true })
     } catch (error) {
-      console.log('error: ', error);
+      console.log('error: ', error)
       // showToast(getErrorMessage(error))
     } finally {
       setSubmitting(false)
