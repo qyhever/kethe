@@ -5,7 +5,8 @@ import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { HomePage } from './pages/HomePage'
-
+import { ToastProvider } from './components/Toast'
+import { ToastDemoPage } from './pages/ToastDemoPage'
 
 import {
   VersionUpdateNotification,
@@ -39,16 +40,17 @@ function App() {
   }, [])
 
   return (
-    <>
+    <ToastProvider>
       <VersionUpdateNotification ref={versionNotificationRef} />
       <Routes>
         <Route path="/" element={<Navigate replace to="/home" />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/home" element={<HomePage />} />
+        <Route path="/toast-demo" element={<ToastDemoPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-    </>
+    </ToastProvider>
   )
 }
 
