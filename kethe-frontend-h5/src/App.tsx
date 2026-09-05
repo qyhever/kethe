@@ -8,6 +8,7 @@ import { HomePage } from './pages/HomePage'
 import { ToastProvider } from './components/Toast'
 import { ToastDemoPage } from './pages/ToastDemoPage'
 import { FlowPage } from './pages/FlowPage'
+import { SearchPage } from './pages/SearchPage'
 
 import {
   VersionUpdateNotification,
@@ -47,6 +48,7 @@ function App() {
         <Route path="/" element={<Navigate replace to="/home" />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/flow" element={<FlowPage />} />
+        <Route path="/search" element={<SearchPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/toast-demo" element={<ToastDemoPage />} />
