@@ -1,46 +1,317 @@
+/*
+ * Kethe Design Tokens
+ * 页面 CSS 优先使用语义变量；Tailwind 对应类在 tailwind.css 中映射到同一套变量。
+ */
 :root {
   color-scheme: light;
-  font-family: Geist, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  /* Typography — 系统字体保证中文与数字在 Apple 设备上的原生观感。 */
+  --font-family-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro SC", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  --font-family-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "SF Pro SC", "PingFang SC", "Helvetica Neue", sans-serif;
+  --font-family-mono: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+  --font-size-caption-2: 11px;
+  --font-size-caption-1: 12px;
+  --font-size-footnote: 13px;
+  --font-size-subheadline: 15px;
+  --font-size-callout: 16px;
+  --font-size-body: 17px;
+  --font-size-headline: 17px;
+  --font-size-title-3: 20px;
+  --font-size-title-2: 22px;
+  --font-size-title-1: 28px;
+  --font-size-large-title: 34px;
+  --font-size-display: clamp(2.625rem, 8vw, 3.5625rem);
+  --line-height-tight: 1.08;
+  --line-height-snug: 1.25;
+  --line-height-normal: 1.47;
+  --line-height-relaxed: 1.6;
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-display: -0.035em;
+  --letter-spacing-normal: 0;
+  --font-weight-regular: 400;
+  --font-weight-medium: 510;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Primitive palette — 只用于构建设计系统语义。 */
+  --palette-blue-50: #f0f6ff;
+  --palette-blue-100: #e5f1ff;
+  --palette-blue-200: #c9e0ff;
+  --palette-blue-400: #4b91f7;
+  --palette-blue-500: #176bf3;
+  --palette-blue-600: #0a5bd7;
+  --palette-blue-700: #084db8;
+  --palette-green-500: #168560;
+  --palette-red-500: #fb5148;
+  --palette-orange-500: #ff8047;
+  --palette-yellow-500: #f7ae1d;
+  --palette-gray-50: #f9fafb;
+  --palette-gray-100: #f2f4f6;
+  --palette-gray-200: #e8edf4;
+  --palette-gray-300: #c9cfd7;
+  --palette-gray-400: #939aa4;
+  --palette-gray-500: #697581;
+  --palette-gray-600: #56606c;
+  --palette-gray-700: #343d49;
+  --palette-gray-800: #1d2734;
+  --palette-gray-900: #111821;
+
+  /* Semantic colors — 页面与组件应使用这一层。 */
+  --color-brand: var(--palette-blue-500);
+  --color-brand-hover: var(--palette-blue-600);
+  --color-brand-active: var(--palette-blue-700);
+  --color-brand-soft: var(--palette-blue-50);
+  --color-brand-tint: var(--palette-blue-100);
+  --color-brand-border: var(--palette-blue-200);
+  --color-on-brand: #ffffff;
+  --color-background: #ffffff;
+  --color-background-secondary: #f5f5f7;
+  --color-background-tertiary: #eef1f5;
+  --color-surface: rgba(255, 255, 255, 0.96);
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #f7f8fa;
+  --color-surface-glass: rgba(245, 245, 247, 0.88);
+  --color-fill: rgba(120, 120, 128, 0.12);
+  --color-fill-secondary: rgba(120, 120, 128, 0.08);
+  --color-fill-tertiary: rgba(118, 118, 128, 0.05);
+  --color-text-primary: #1d1d1f;
+  --color-text-regular: #56606c;
+  --color-text-secondary: #697581;
+  --color-text-tertiary: #939aa4;
+  --color-text-placeholder: #a9afb7;
+  --color-text-disabled: #bdc2c9;
+  --color-text-inverse: #ffffff;
+  --color-link: var(--color-brand);
+  --color-border: rgba(60, 60, 67, 0.16);
+  --color-border-subtle: rgba(60, 60, 67, 0.09);
+  --color-separator: rgba(60, 60, 67, 0.12);
+  --color-separator-opaque: #e5e7eb;
+  --color-focus-ring: #7eaffb;
+  --color-overlay: rgba(0, 0, 0, 0.28);
+  --color-success: var(--palette-green-500);
+  --color-success-soft: #edf8f3;
+  --color-danger: var(--palette-red-500);
+  --color-danger-soft: #fff1f0;
+  --color-warning: #d97800;
+  --color-warning-soft: #fff7e8;
+  --color-info: var(--color-brand);
+  --color-info-soft: var(--color-brand-soft);
+  --color-income: var(--color-brand);
+  --color-expense: var(--color-text-primary);
+
+  /* Spacing — 以 4px 为基础，核心布局遵循 8pt 节奏。 */
+  --space-0: 0;
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --page-gutter: clamp(16px, 4vw, 30px);
+  --content-max-width: 750px;
+
+  /* Shape & depth — 大面积卡片使用更柔和的连续圆角。 */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+  --radius-full: 9999px;
+  --shadow-xs: 0 1px 2px rgba(17, 24, 33, 0.04);
+  --shadow-sm: 0 4px 14px rgba(25, 35, 50, 0.06);
+  --shadow-md: 0 8px 25px rgba(35, 46, 65, 0.07);
+  --shadow-lg: 0 14px 36px rgba(33, 54, 82, 0.11);
+  --shadow-popover: 0 18px 40px rgba(39, 61, 91, 0.15);
+  --shadow-brand: 0 10px 24px rgba(23, 107, 243, 0.22);
+  --shadow-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  --blur-glass: 18px;
+  --blur-overlay: 28px;
+
+  /* Motion — 对应 iOS 式快速响应与柔和收尾。 */
+  --duration-instant: 100ms;
+  --duration-fast: 160ms;
+  --duration-normal: 240ms;
+  --duration-slow: 420ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Interaction, layers & app chrome. */
+  --control-height-sm: 36px;
+  --control-height-md: 44px;
+  --control-height-lg: 52px;
+  --tap-target-min: 44px;
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 300;
+  --z-overlay: 500;
+  --z-modal: 700;
+  --z-toast: 900;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --tabbar-height: 49px;
+  --tabbar-full-height: 74px;
+  --tabbar-bg: var(--color-surface-glass);
+
+  /* 兼容已有组件命名。 */
+  --color-primary: var(--color-brand);
+  --color-primary-focus: var(--color-brand-hover);
+
+  font-family: var(--font-family-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-brand: #409cff;
+  --color-brand-hover: #64adff;
+  --color-brand-active: #2489f5;
+  --color-brand-soft: rgba(64, 156, 255, 0.14);
+  --color-brand-tint: rgba(64, 156, 255, 0.2);
+  --color-brand-border: rgba(64, 156, 255, 0.34);
+  --color-background: #000000;
+  --color-background-secondary: #1c1c1e;
+  --color-background-tertiary: #2c2c2e;
+  --color-surface: rgba(28, 28, 30, 0.94);
+  --color-surface-raised: #242426;
+  --color-surface-sunken: #121214;
+  --color-surface-glass: rgba(28, 28, 30, 0.86);
+  --color-fill: rgba(120, 120, 128, 0.36);
+  --color-fill-secondary: rgba(120, 120, 128, 0.28);
+  --color-fill-tertiary: rgba(118, 118, 128, 0.2);
+  --color-text-primary: #f5f5f7;
+  --color-text-regular: #d1d1d6;
+  --color-text-secondary: #aeaeb2;
+  --color-text-tertiary: #8e8e93;
+  --color-text-placeholder: #69696f;
+  --color-text-disabled: #545458;
+  --color-border: rgba(84, 84, 88, 0.65);
+  --color-border-subtle: rgba(84, 84, 88, 0.45);
+  --color-separator: rgba(84, 84, 88, 0.6);
+  --color-separator-opaque: #38383a;
+  --color-focus-ring: #409cff;
+  --color-overlay: rgba(0, 0, 0, 0.58);
+  --color-success: #30d158;
+  --color-success-soft: rgba(48, 209, 88, 0.13);
+  --color-danger: #ff453a;
+  --color-danger-soft: rgba(255, 69, 58, 0.13);
+  --color-warning: #ffd60a;
+  --color-warning-soft: rgba(255, 214, 10, 0.13);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.38);
+  --shadow-popover: 0 18px 44px rgba(0, 0, 0, 0.55);
+  --shadow-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html {
   min-width: 375px;
-  max-width: 750px;
+  max-width: var(--content-max-width);
   margin: 0 auto;
+  background: var(--color-background-secondary);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  color: var(--color-text-primary);
+  background: var(--color-background);
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
+  color: inherit;
   font: inherit;
 }
 
 button {
   border: 0;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:disabled {
   cursor: not-allowed;
 }
 
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
 ::selection {
-  color: #f2f2f2;
+  color: var(--color-text-inverse);
+  background: var(--color-brand);
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* 可在普通 CSS/JSX 中直接复用的轻量原语。 */
+.font-display {
+  font-family: var(--font-family-display);
+}
+
+.font-numeric {
+  font-family: var(--font-family-display);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.surface-card {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-2xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md), var(--shadow-inner-highlight);
+}
+
+.surface-glass {
+  background: var(--color-surface-glass);
+  -webkit-backdrop-filter: saturate(180%) blur(var(--blur-glass));
+  backdrop-filter: saturate(180%) blur(var(--blur-glass));
+}
+
+.safe-page {
+  padding-right: max(var(--page-gutter), var(--safe-right));
+  padding-left: max(var(--page-gutter), var(--safe-left));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

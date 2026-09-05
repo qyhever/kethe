@@ -1,18 +1,112 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-:root {
-  --tabbar-height: 49px;
-  --tabbar-full-height: 74px;
-  --tabbar-bg: rgba(245, 245, 247, 0.94);
+/* Tailwind v4 adapter：真实值统一维护在 index.css。 */
+@theme inline {
+  --font-sans: var(--font-family-sans);
+  --font-display: var(--font-family-display);
+  --font-mono: var(--font-family-mono);
 
-  --color-text-primary: #1d1d1f;
-  --color-text-regular: #7a7a7a;
-  --color-text-secondary: #999999;
-  --color-text-placeholder: #cccccc;
+  --color-accent: var(--color-brand);
+  --color-accent-hover: var(--color-brand-hover);
+  --color-accent-active: var(--color-brand-active);
+  --color-accent-soft: var(--color-brand-soft);
+  --color-accent-tint: var(--color-brand-tint);
+  --color-accent-border: var(--color-brand-border);
+  --color-on-accent: var(--color-on-brand);
+  --color-canvas: var(--color-background);
+  --color-canvas-secondary: var(--color-background-secondary);
+  --color-canvas-tertiary: var(--color-background-tertiary);
+  --color-card: var(--color-surface);
+  --color-card-raised: var(--color-surface-raised);
+  --color-card-sunken: var(--color-surface-sunken);
+  --color-glass: var(--color-surface-glass);
+  --color-neutral-fill: var(--color-fill);
+  --color-neutral-fill-secondary: var(--color-fill-secondary);
+  --color-neutral-fill-tertiary: var(--color-fill-tertiary);
+  --color-content: var(--color-text-primary);
+  --color-content-regular: var(--color-text-regular);
+  --color-content-secondary: var(--color-text-secondary);
+  --color-content-tertiary: var(--color-text-tertiary);
+  --color-content-placeholder: var(--color-text-placeholder);
+  --color-content-disabled: var(--color-text-disabled);
+  --color-content-inverse: var(--color-text-inverse);
+  --color-line: var(--color-border);
+  --color-line-subtle: var(--color-border-subtle);
+  --color-divider: var(--color-separator);
+  --color-focus: var(--color-focus-ring);
+  --color-scrim: var(--color-overlay);
+  --color-status-success: var(--color-success);
+  --color-status-success-soft: var(--color-success-soft);
+  --color-status-danger: var(--color-danger);
+  --color-status-danger-soft: var(--color-danger-soft);
+  --color-status-warning: var(--color-warning);
+  --color-status-warning-soft: var(--color-warning-soft);
+  --color-status-info: var(--color-info);
+  --color-status-info-soft: var(--color-info-soft);
+  --color-finance-income: var(--color-income);
+  --color-finance-expense: var(--color-expense);
 
-  --color-primary: #1469f7;
-  --color-primary-focus: #0071e3;
+  /* 保留现有 bg-primary / text-primary 等类。 */
+  --color-primary: var(--color-brand);
+  --color-primary-focus: var(--color-brand-hover);
+  --text-caption-2: var(--font-size-caption-2);
+  --text-caption-2--line-height: var(--line-height-normal);
+  --text-caption-1: var(--font-size-caption-1);
+  --text-caption-1--line-height: var(--line-height-normal);
+  --text-footnote: var(--font-size-footnote);
+  --text-footnote--line-height: var(--line-height-normal);
+  --text-subheadline: var(--font-size-subheadline);
+  --text-subheadline--line-height: var(--line-height-normal);
+  --text-callout: var(--font-size-callout);
+  --text-callout--line-height: var(--line-height-normal);
+  --text-body: var(--font-size-body);
+  --text-body--line-height: var(--line-height-normal);
+  --text-headline: var(--font-size-headline);
+  --text-headline--line-height: var(--line-height-snug);
+  --text-title-3: var(--font-size-title-3);
+  --text-title-3--line-height: var(--line-height-snug);
+  --text-title-2: var(--font-size-title-2);
+  --text-title-2--line-height: var(--line-height-snug);
+  --text-title-1: var(--font-size-title-1);
+  --text-title-1--line-height: var(--line-height-tight);
+  --text-large-title: var(--font-size-large-title);
+  --text-large-title--line-height: var(--line-height-tight);
+  --text-display: var(--font-size-display);
+  --text-display--line-height: var(--line-height-tight);
 
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --radius-control: var(--radius-md);
+  --radius-sheet: var(--radius-xl);
+  --radius-card: var(--radius-2xl);
+  --radius-pill: var(--radius-full);
+  --shadow-hairline: var(--shadow-xs);
+  --shadow-control: var(--shadow-sm);
+  --shadow-card: var(--shadow-md);
+  --shadow-floating: var(--shadow-lg);
+  --shadow-overlay: var(--shadow-popover);
+  --shadow-accent: var(--shadow-brand);
+  --spacing-gutter: var(--page-gutter);
+  --spacing-safe-top: var(--safe-top);
+  --spacing-safe-right: var(--safe-right);
+  --spacing-safe-bottom: var(--safe-bottom);
+  --spacing-safe-left: var(--safe-left);
+  --spacing-tabbar: var(--tabbar-full-height);
+  --ease-fluid: var(--ease-standard);
+  --ease-spring: var(--ease-emphasized);
+  --ease-leave: var(--ease-exit);
+}
+
+@utility text-numeric {
+  font-family: var(--font-family-display);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+@utility glass {
+  background: var(--color-surface-glass);
+  -webkit-backdrop-filter: saturate(180%) blur(var(--blur-glass));
+  backdrop-filter: saturate(180%) blur(var(--blur-glass));
+}
+
+@utility tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
 }
