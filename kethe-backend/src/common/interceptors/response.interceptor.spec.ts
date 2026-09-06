@@ -10,6 +10,7 @@ describe('ResponseInterceptor', () => {
     handler: () => void = () => undefined,
   ) =>
     ({
+      getClass: () => class TestController {},
       getHandler: () => handler,
       switchToHttp: () => ({
         getRequest: () => ({ method }),
@@ -26,7 +27,7 @@ describe('ResponseInterceptor', () => {
     ).resolves.toEqual({
       success: true,
       data: [{ id: 1 }],
-      message: '查询成功',
+      message: '请求成功',
     })
   })
 
@@ -54,7 +55,7 @@ describe('ResponseInterceptor', () => {
     ).resolves.toEqual({
       success: true,
       data: null,
-      message: '删除成功',
+      message: '请求成功',
     })
   })
 

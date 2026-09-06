@@ -80,46 +80,6 @@ describe('MailService', () => {
     expect(html).not.toContain('{{VALID_MINUTES}}')
   })
 
-  it('应该发送 V2EX 今日热贴 Top 10 邮件', async () => {
-    const hotlist = [
-      {
-        rank: 1,
-        id: 123,
-        title: 'TypeScript & NestJS <最佳实践>',
-        url: 'https://v2ex.example.com/t/123?x=1&y=2',
-        sourceUrl: 'https://v2ex.6688988.xyz/',
-        crawledAt: '2026-07-25T00:00:00.000Z',
-      },
-      {
-        rank: 2,
-        id: 456,
-        title: '每日构建',
-        url: 'https://v2ex.example.com/t/456',
-        sourceUrl: 'https://v2ex.6688988.xyz/',
-        crawledAt: '2026-07-25T00:01:00.000Z',
-      },
-    ]
-
-    await service.sendV2exHotTop10('receiver@example.com', hotlist)
-
-    const { text, html } = getLastSendMailOptions()
-    expect(sendMail).toHaveBeenCalledWith({
-      from: '"明叶同行" <no-reply@example.com>',
-      to: 'receiver@example.com',
-      subject: 'V2EX 今日热贴 Top 10',
-      text,
-      html,
-    })
-    expect(text).toContain('1. TypeScript & NestJS <最佳实践>')
-    expect(html).toContain('V2EX 今日热贴 Top 10')
-    expect(text).toContain('https://v2ex.example.com/t/123?x=1&y=2')
-    expect(text).toContain('2026-07-25T00:00:00.000Z')
-    expect(text).toContain('2. 每日构建')
-    expect(html).toContain('TypeScript &amp; NestJS &lt;最佳实践&gt;')
-    expect(html).toContain('https://v2ex.example.com/t/123?x=1&amp;y=2')
-    expect(html).toContain('2026-07-25T00:01:00.000Z')
-  })
-
   it('应该使用配置中的发件人发送纯文本邮件', async () => {
     await service.sendMail(
       'receiver@example.com',

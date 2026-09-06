@@ -193,7 +193,9 @@ describe('AttachService', () => {
     await expect(readFile(filePath)).resolves.toEqual(file)
 
     await jest.advanceTimersToNextTimerAsync()
-    await flushFileSystemPromises()
+    for (let index = 0; index < 10 && logSpy.mock.calls.length === 0; index++) {
+      await flushFileSystemPromises()
+    }
     await expect(readFile(filePath)).rejects.toMatchObject({ code: 'ENOENT' })
     expect(logSpy).toHaveBeenCalledWith(`合并文件删除成功: ${filePath}`)
   })

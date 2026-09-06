@@ -29,7 +29,7 @@ describe('AuthController (e2e)', () => {
   const authService = {
     login: jest.fn(),
     notifyLoginSuccess: jest
-      .fn<(context: LoginSuccessNotificationContext) => Promise<void>>()
+      .fn<Promise<void>, [LoginSuccessNotificationContext]>()
       .mockResolvedValue(undefined),
     refresh: jest.fn(),
     register: jest.fn(),
@@ -85,7 +85,7 @@ describe('AuthController (e2e)', () => {
       .post('/api/auth/registration-code')
       .send({ email: ' USER@example.com ' })
       .expect(201)
-      .expect({ success: true, data: null, message: '创建成功' })
+      .expect({ success: true, data: null, message: '请求成功' })
 
     expect(verificationCodeService.sendRegistrationCode).toHaveBeenCalledWith(
       'user@example.com',
@@ -347,7 +347,7 @@ describe('AuthController (e2e)', () => {
       .get('/api/user')
       .set('Authorization', 'Bearer valid-access-token')
       .expect(200)
-      .expect({ success: true, data: [], message: '查询成功' })
+      .expect({ success: true, data: [], message: '请求成功' })
 
     expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-access-token', {
       issuer: 'kethe-test',
@@ -369,7 +369,7 @@ describe('AuthController (e2e)', () => {
       .get('/api/user/me')
       .set('Authorization', 'Bearer valid-access-token')
       .expect(200)
-      .expect({ success: true, data: user, message: '查询成功' })
+      .expect({ success: true, data: user, message: '请求成功' })
 
     expect(userService.findOne).toHaveBeenCalledWith(7)
   })

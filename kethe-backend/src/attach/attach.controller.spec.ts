@@ -5,22 +5,24 @@ import type { AttachUploadFile } from './attach.types'
 
 describe('AttachController', () => {
   it('should reject an upload without a file', () => {
+    const upload = jest.fn()
     const service = {
-      upload: jest.fn(),
+      upload,
     } as unknown as AttachService
     const controller = new AttachController(service)
 
     expect(() => controller.upload()).toThrow(BadRequestException)
-    expect(service.upload).not.toHaveBeenCalled()
+    expect(upload).not.toHaveBeenCalled()
   })
 
   it('should delegate a file upload to the service', async () => {
+    const upload = jest.fn().mockResolvedValue({
+      fileName: 'stored.txt',
+      originName: 'origin.txt',
+      url: 'http://localhost/stored.txt',
+    })
     const service = {
-      upload: jest.fn().mockResolvedValue({
-        fileName: 'stored.txt',
-        originName: 'origin.txt',
-        url: 'http://localhost/stored.txt',
-      }),
+      upload,
     } as unknown as AttachService
     const controller = new AttachController(service)
     const file: AttachUploadFile = {
@@ -33,6 +35,6 @@ describe('AttachController', () => {
       originName: 'origin.txt',
       url: 'http://localhost/stored.txt',
     })
-    expect(service.upload).toHaveBeenCalledWith(file)
+    expect(upload).toHaveBeenCalledWith(file)
   })
 })

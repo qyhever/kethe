@@ -45,7 +45,7 @@ describe('AccessTokenGuard', () => {
       getClass: () => controller,
       getHandler: () => handler,
       switchToHttp: () => ({ getRequest: () => request }),
-    }) as ExecutionContext
+    }) as unknown as ExecutionContext
 
   beforeEach(() => {
     jwtService = { verifyAsync: jest.fn() }

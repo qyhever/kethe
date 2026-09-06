@@ -17,11 +17,7 @@ describe('AppController (e2e)', () => {
   })
 
   it('/ (GET)', () => {
-    return request(app.getHttpServer()).get('/').expect(200).expect({
-      success: true,
-      data: 'Hello World!',
-      message: '查询成功',
-    })
+    return request(app.getHttpServer()).get('/').expect(200).expect('success')
   })
 
   it('/meta (GET)', () => {

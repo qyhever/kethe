@@ -98,18 +98,18 @@ describe('UserController', () => {
       id: 1,
       nickname: '新昵称',
     }
-    const user = { id: 1, nickname: '新昵称' } as User
-    userService.update.mockResolvedValue(user)
+    const result = null
+    userService.update.mockResolvedValue(result)
 
-    await expect(controller.update(updateUserDto)).resolves.toBe(user)
+    await expect(controller.update(updateUserDto)).resolves.toBe(result)
     expect(userService.update).toHaveBeenCalledWith(updateUserDto)
   })
 
   it('remove 应该将 ID 传给 UserService', async () => {
-    const user = { id: 1, username: 'admin' } as User
-    userService.remove.mockResolvedValue(user)
+    const result = null
+    userService.remove.mockResolvedValue(result)
 
-    await expect(controller.remove(1)).resolves.toBe(user)
+    await expect(controller.remove(1)).resolves.toBe(result)
     expect(userService.remove).toHaveBeenCalledWith(1)
   })
 

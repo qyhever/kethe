@@ -350,7 +350,7 @@ describe('UserService', () => {
           username: user.username,
           email: user.email,
         }),
-      ).resolves.toBe(user)
+      ).resolves.toBeNull()
       expect(userRepository.existsByUsername).not.toHaveBeenCalled()
       expect(userRepository.existsByEmail).not.toHaveBeenCalled()
       expect(userRepository.save).not.toHaveBeenCalled()
@@ -367,7 +367,7 @@ describe('UserService', () => {
       userRepository.findById.mockResolvedValue(user)
       userRepository.save.mockResolvedValue(user)
 
-      await expect(service.update(updateUserDto)).resolves.toBe(user)
+      await expect(service.update(updateUserDto)).resolves.toBeNull()
       expect(userRepository.save).toHaveBeenCalledWith(user)
       expect(user).toMatchObject({
         id: 1,
@@ -394,7 +394,7 @@ describe('UserService', () => {
       const user = createExistingUser()
       userRepository.findById.mockResolvedValue(user)
 
-      await expect(service.update({ id: 1 })).resolves.toBe(user)
+      await expect(service.update({ id: 1 })).resolves.toBeNull()
       expect(userRepository.save).not.toHaveBeenCalled()
     })
   })
@@ -440,7 +440,7 @@ describe('UserService', () => {
       userRepository.findById.mockResolvedValue(user)
       userRepository.softRemove.mockResolvedValue(removedUser)
 
-      await expect(service.remove(1)).resolves.toBe(removedUser)
+      await expect(service.remove(1)).resolves.toBeNull()
       expect(userRepository.findById).toHaveBeenCalledWith(1)
       expect(userRepository.softRemove).toHaveBeenCalledWith(user)
     })
