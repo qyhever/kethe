@@ -9,6 +9,7 @@ import { ToastProvider } from './components/Toast'
 import { ToastDemoPage } from './pages/ToastDemoPage'
 import { FlowPage } from './pages/FlowPage'
 import { SearchPage } from './pages/SearchPage'
+import { TallyPage } from './pages/TallyPage'
 
 import {
   VersionUpdateNotification,
@@ -49,6 +50,7 @@ function App() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/flow" element={<FlowPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/tally/*" element={<TallyPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/toast-demo" element={<ToastDemoPage />} />

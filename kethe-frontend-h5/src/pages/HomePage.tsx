@@ -403,6 +403,10 @@ export function HomePage() {
       bill: '账单',
       profile: '我的',
     }
+    if (tabId === 'add') {
+      navigate('/tally')
+      return
+    }
     if (tabId !== 'home') handleUnavailableAction(labels[tabId])
   }
 

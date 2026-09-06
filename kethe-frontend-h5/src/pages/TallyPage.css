@@ -1,0 +1,539 @@
+.tally-page {
+  --tally-blue: #176bf3;
+  --tally-ink: #18202d;
+  min-height: 100dvh;
+  color: var(--tally-ink);
+  background:
+    radial-gradient(circle at 82% 4%, rgba(224, 235, 250, 0.42), transparent 18rem),
+    linear-gradient(180deg, #fbfcfe 0%, #f6f8fb 100%);
+}
+
+.tally-page__content {
+  width: min(100%, 750px);
+  margin: 0 auto;
+  padding: max(15px, var(--safe-top)) 30px 28px;
+}
+
+.tally-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  min-height: 56px;
+}
+
+.tally-header button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -12px;
+  border-radius: 50%;
+  color: #121a25;
+  background: transparent;
+  transition: background-color var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+
+.tally-header button:hover {
+  background: var(--color-fill-secondary);
+}
+
+.tally-header button:active {
+  transform: scale(0.92);
+}
+
+.tally-header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.35px;
+  line-height: 1;
+  text-align: center;
+}
+
+.tally-segment {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  height: 52px;
+  margin-top: 4px;
+  padding: 3px;
+  border-radius: 20px;
+  background: rgba(231, 234, 239, 0.72);
+  box-shadow: inset 0 1px 3px rgba(35, 46, 65, 0.045);
+}
+
+.tally-segment--compact {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.tally-segment button {
+  border-radius: 17px;
+  color: #3d4755;
+  background: transparent;
+  font-size: 17px;
+  font-weight: 470;
+  transition: color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.tally-segment button.is-active {
+  color: var(--tally-blue);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 9px rgba(40, 52, 70, 0.08), inset 0 1px 0 #fff;
+  font-weight: 560;
+}
+
+.tally-amount {
+  display: flex;
+  align-items: center;
+  min-height: 150px;
+  padding: 8px 16px;
+}
+
+.tally-amount__currency {
+  margin-right: 12px;
+  color: #17212e;
+  font-family: var(--font-family-display);
+  font-size: 33px;
+  font-weight: 500;
+}
+
+.tally-amount__caret {
+  width: 2px;
+  height: 70px;
+  margin-right: 10px;
+  border-radius: 2px;
+  background: var(--tally-blue);
+  animation: tally-caret 1.05s steps(2, start) infinite;
+}
+
+.tally-amount strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #aeb5c0;
+  font-family: var(--font-family-display);
+  font-size: clamp(50px, 8.3vw, 64px);
+  font-weight: 400;
+  letter-spacing: -1.7px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tally-amount strong.has-value {
+  color: #202a37;
+}
+
+.tally-amount > button {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  margin-left: auto;
+  border-radius: 50%;
+  color: #fff;
+  background: #c4c9d1;
+}
+
+.tally-form {
+  position: relative;
+  display: grid;
+  gap: 10px;
+}
+
+.tally-form-row {
+  display: grid;
+  grid-template-columns: 36px auto minmax(0, 1fr) 20px;
+  align-items: center;
+  width: 100%;
+  min-height: 61px;
+  padding: 0 18px;
+  border: 1px solid rgba(236, 239, 244, 0.7);
+  border-radius: 18px;
+  color: #1f2937;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 7px 20px rgba(34, 48, 70, 0.035), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  text-align: left;
+  transition: transform var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+button.tally-form-row:hover {
+  box-shadow: 0 8px 22px rgba(34, 65, 110, 0.075);
+}
+
+button.tally-form-row:active {
+  transform: scale(0.992);
+}
+
+.tally-form-row__icon {
+  display: grid;
+  place-items: center;
+  justify-self: start;
+  color: #243246;
+}
+
+.tally-form-row__label {
+  font-size: 17px;
+  font-weight: 480;
+}
+
+.tally-form-row__value {
+  overflow: hidden;
+  padding-left: 18px;
+  color: #7c8797;
+  font-size: 16px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tally-form-row__value.is-muted {
+  color: #a5acb7;
+}
+
+.tally-form-row > svg {
+  color: #aeb6c1;
+}
+
+.tally-note-row {
+  grid-template-columns: 36px auto minmax(0, 1fr);
+}
+
+.tally-note-row input {
+  min-width: 0;
+  padding: 0 0 0 18px;
+  border: 0;
+  outline: 0;
+  color: #4d5968;
+  background: transparent;
+  font-size: 16px;
+  text-align: right;
+}
+
+.tally-note-row input::placeholder {
+  color: #a5acb7;
+  opacity: 1;
+}
+
+.tally-date-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tally-entry-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.tally-entry-page .tally-page__content {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.tally-entry-footer {
+  flex: 0 0 auto;
+  width: min(100%, 750px);
+  margin: 0 auto;
+  padding: 12px 30px calc(18px + var(--safe-bottom));
+  background: rgba(246, 248, 251, 0.9);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.tally-keyboard {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 9px;
+}
+
+.tally-keyboard__numbers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.tally-keyboard__actions {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.tally-keyboard button {
+  min-height: 57px;
+  border-radius: 13px;
+  color: #131d29;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(25, 38, 58, 0.035);
+  font-family: var(--font-family-display);
+  font-size: 24px;
+  font-weight: 500;
+  transition: background-color var(--duration-instant), transform var(--duration-instant);
+}
+
+.tally-keyboard button:active {
+  background: #e5e9ef;
+  transform: scale(0.97);
+}
+
+.tally-keyboard .tally-keyboard__delete {
+  background: #e9edf2;
+}
+
+.tally-save {
+  width: 100%;
+  min-height: 64px;
+  margin-top: 17px;
+  border-radius: 17px;
+  color: #fff;
+  background: linear-gradient(100deg, #2d72f4, #176bf3 55%, #2879f4);
+  box-shadow: 0 9px 22px rgba(23, 107, 243, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  font-size: 19px;
+  font-weight: 520;
+  transition: filter var(--duration-fast), transform var(--duration-fast);
+}
+
+.tally-save:hover {
+  filter: brightness(1.04);
+}
+
+.tally-save:active {
+  transform: scale(0.99);
+}
+
+.tally-category-page .tally-page__content {
+  padding-bottom: calc(28px + var(--safe-bottom));
+}
+
+.tally-category-list {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(234, 237, 242, 0.75);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.91);
+  box-shadow: 0 8px 25px rgba(35, 46, 65, 0.05);
+  animation: tally-list-in var(--duration-normal) var(--ease-emphasized) both;
+}
+
+.tally-category-list > button {
+  display: grid;
+  grid-template-columns: 48px 1fr 20px;
+  align-items: center;
+  gap: 17px;
+  width: 100%;
+  min-height: 69px;
+  padding: 0 18px 0 10px;
+  color: #1d2632;
+  background: transparent;
+  font-size: 18px;
+  text-align: left;
+  transition: background-color var(--duration-fast);
+}
+
+.tally-category-list > button + button {
+  position: relative;
+}
+
+.tally-category-list > button + button::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 75px;
+  height: 1px;
+  background: #e9edf2;
+  content: '';
+}
+
+.tally-category-list > button:hover,
+.tally-category-list > button.is-selected {
+  background: rgba(240, 246, 255, 0.6);
+}
+
+.tally-category-list > button > svg {
+  color: #adb6c2;
+}
+
+.tally-category-list__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.account-sheet {
+  position: fixed;
+  z-index: var(--z-modal);
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 18px max(18px, var(--safe-right)) calc(18px + var(--safe-bottom)) max(18px, var(--safe-left));
+  background: var(--color-overlay);
+  animation: tally-fade-in var(--duration-normal) both;
+}
+
+.account-sheet section {
+  width: min(100%, 690px);
+  padding: 8px 18px 18px;
+  border-radius: 25px;
+  background: #fff;
+  box-shadow: var(--shadow-popover);
+  animation: tally-sheet-in var(--duration-normal) var(--ease-emphasized) both;
+}
+
+.account-sheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58px;
+}
+
+.account-sheet h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.account-sheet header button {
+  color: var(--tally-blue);
+  background: transparent;
+}
+
+.account-sheet section > button {
+  display: grid;
+  grid-template-columns: 32px 1fr 24px;
+  align-items: center;
+  width: 100%;
+  min-height: 54px;
+  padding: 0 8px;
+  border-top: 1px solid var(--color-separator);
+  color: #263140;
+  background: transparent;
+  text-align: left;
+}
+
+.account-sheet section > button.is-selected {
+  color: var(--tally-blue);
+}
+
+@keyframes tally-caret {
+  50% { opacity: 0; }
+}
+
+@keyframes tally-list-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tally-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tally-sheet-in {
+  from { transform: translateY(24px); }
+  to { transform: translateY(0); }
+}
+
+@media (max-width: 560px) {
+  .tally-page__content {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .tally-header {
+    min-height: 54px;
+  }
+
+  .tally-segment {
+    height: 50px;
+  }
+
+  .tally-amount {
+    min-height: 145px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .tally-amount__caret {
+    height: 65px;
+  }
+
+  .tally-amount strong {
+    font-size: clamp(46px, 14vw, 58px);
+  }
+
+  .tally-entry-footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .tally-keyboard button {
+    min-height: 54px;
+  }
+
+  .tally-save {
+    min-height: 61px;
+  }
+
+  .tally-category-list > button {
+    min-height: 66px;
+  }
+}
+
+@media (max-height: 900px) {
+  .tally-amount {
+    min-height: 125px;
+  }
+
+  .tally-form {
+    gap: 8px;
+  }
+
+  .tally-form-row {
+    min-height: 58px;
+  }
+
+  .tally-keyboard button {
+    min-height: 51px;
+  }
+
+  .tally-save {
+    min-height: 60px;
+    margin-top: 14px;
+  }
+}
+
+@media (max-height: 760px) {
+  .tally-amount {
+    min-height: 112px;
+  }
+
+  .tally-form {
+    gap: 7px;
+  }
+
+  .tally-form-row {
+    min-height: 54px;
+  }
+
+  .tally-keyboard button {
+    min-height: 47px;
+  }
+
+  .tally-save {
+    min-height: 52px;
+    margin-top: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tally-amount__caret,
+  .tally-category-list,
+  .account-sheet,
+  .account-sheet section {
+    animation: none;
+  }
+}
