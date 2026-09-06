@@ -29,6 +29,7 @@ import type { EnvironmentVariables } from '../config/environment.validation'
           username,
           password,
           database,
+          timezone: 'Z',
           synchronize,
           autoLoadEntities: true,
           retryAttempts: 3,

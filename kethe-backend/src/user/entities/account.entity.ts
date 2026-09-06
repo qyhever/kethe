@@ -1,12 +1,19 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import {
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm'
 import { AccountType } from '../enums/account-type.enum'
 
 @Entity({ name: 'accounts', synchronize: false })
 export class Account {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
-  id!: number
+  id!: string
 
-  @Column({ type: 'bigint', unsigned: true })
+  @Column({ type: 'int' })
   userId!: number
 
   @Column({ type: 'varchar', length: 50 })
@@ -28,10 +35,10 @@ export class Account {
   currency!: string
 
   @Column({ type: 'bigint', default: 0 })
-  initialBalance!: number
+  initialBalance!: string
 
   @Column({ type: 'bigint', default: 0 })
-  currentBalance!: number
+  currentBalance!: string
 
   @Column({ type: 'boolean', default: true })
   includeInAssets!: boolean
@@ -44,4 +51,13 @@ export class Account {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   remark!: string | null
+
+  @DeleteDateColumn({ type: 'datetime', precision: 3, nullable: true })
+  deletedAt!: Date | null
+
+  @CreateDateColumn({ type: 'datetime', precision: 3 })
+  createdAt!: Date
+
+  @UpdateDateColumn({ type: 'datetime', precision: 3 })
+  updatedAt!: Date
 }

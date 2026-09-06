@@ -7,7 +7,7 @@ import {
 } from '@nestjs/swagger'
 import { BaseEntity } from '../../common/entities/base.entity'
 
-@Entity({ name: 'user' })
+@Entity({ name: 'users', synchronize: false })
 @Index('uk_user_username', ['username'], { unique: true })
 @Index('uk_user_email', ['email'], { unique: true })
 export class User extends BaseEntity {

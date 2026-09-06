@@ -7,8 +7,14 @@ import {
   UpdateDateColumn,
 } from 'typeorm'
 
-@Entity({ name: 'categories', synchronize: false })
-export class Category {
+export enum TransactionType {
+  EXPENSE = 1,
+  INCOME = 2,
+  TRANSFER = 3,
+}
+
+@Entity({ name: 'transactions', synchronize: false })
+export class Transaction {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id!: string
 
@@ -16,28 +22,28 @@ export class Category {
   userId!: number
 
   @Column({ type: 'tinyint', unsigned: true })
-  categoryType!: number
+  transactionType!: TransactionType
+
+  @Column({ type: 'bigint', unsigned: true })
+  amount!: string
 
   @Column({ type: 'bigint', unsigned: true, nullable: true })
-  parentId!: string | null
+  categoryId!: string | null
 
-  @Column({ type: 'varchar', length: 50 })
-  name!: string
+  @Column({ type: 'bigint', unsigned: true })
+  accountId!: string
 
   @Column({ type: 'bigint', unsigned: true, nullable: true })
-  iconId!: string | null
+  targetAccountId!: string | null
 
-  @Column({ type: 'varchar', length: 64, nullable: true })
-  systemKey!: string | null
+  @Column({ type: 'char', length: 3, default: 'CNY' })
+  currency!: string
 
-  @Column({ type: 'boolean', default: false })
-  isSystemDefault!: boolean
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  remark!: string | null
 
-  @Column({ type: 'int', unsigned: true, default: 0 })
-  sortOrder!: number
-
-  @Column({ type: 'boolean', default: true })
-  isEnabled!: boolean
+  @Column({ type: 'datetime', precision: 3 })
+  transactionTime!: Date
 
   @DeleteDateColumn({ type: 'datetime', precision: 3, nullable: true })
   deletedAt!: Date | null

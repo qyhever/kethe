@@ -4,7 +4,7 @@ import { BaseEntity } from '../../common/entities/base.entity'
 
 export type ProjectType = '1' | '2'
 
-@Entity({ name: 'project' })
+@Entity({ name: 'projects', synchronize: false })
 @Index('idx_project_type', ['type'])
 @Index('idx_project_deleted_at', ['deletedAt'])
 @Index('idx_project_effective_time', ['effectiveTimeStart', 'effectiveTimeEnd'])

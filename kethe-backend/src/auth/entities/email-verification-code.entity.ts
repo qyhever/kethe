@@ -3,7 +3,7 @@ import { BaseEntity } from '../../common/entities/base.entity'
 
 export const REGISTRATION_PURPOSE = 'register'
 
-@Entity({ name: 'email_verification_code' })
+@Entity({ name: 'email_verification_codes', synchronize: false })
 @Index('uk_email_verification_code_email_purpose', ['email', 'purpose'], {
   unique: true,
 })
