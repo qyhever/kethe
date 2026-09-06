@@ -77,14 +77,14 @@ CREATE TABLE category_icons (
     iconKey        VARCHAR(64) NOT NULL COMMENT '图标唯一标识，例如 food、transport、shopping',
     iconName       VARCHAR(64) NOT NULL COMMENT '图标名称，例如 餐饮、交通',
     svgContent     MEDIUMTEXT NOT NULL COMMENT 'SVG完整内容',
-    isSystem       TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '是否系统内置：0否，1是',
-    status          TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '状态：0停用，1启用',
+    isSystemDefault TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '是否系统内置：0否，1是',
+    isEnabled       TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '是否启用：0停用，1启用',
     createdAt      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     updatedAt      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
                     ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_category_icons_key (iconKey),
-    KEY idx_category_icons_status (status)
+    KEY idx_category_icons_is_enabled (isEnabled)
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci
@@ -103,15 +103,15 @@ CREATE TABLE categories (
     systemKey          VARCHAR(64) DEFAULT NULL COMMENT '系统默认分类标识，例如 expense_food；自定义分类为空',
     isSystemDefault   TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否由系统默认分类初始化：0否，1是',
     sortOrder          INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '排序值，越小越靠前',
-    status              TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '状态：0停用，1启用',
+    isEnabled           TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '是否启用：0停用，1启用',
     deletedAt          DATETIME(3) DEFAULT NULL COMMENT '软删除时间；NULL表示未删除',
     createdAt          DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     updatedAt          DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
                         ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_categories_user_system_key (userId, systemKey),
-    KEY idx_categories_user_type_status
-        (userId, categoryType, status, deletedAt),
+    KEY idx_categories_user_type_is_enabled
+        (userId, categoryType, isEnabled, deletedAt),
     KEY idx_categories_parent
         (parentId),
     KEY idx_categories_user_parent_sort
@@ -126,8 +126,8 @@ CREATE TABLE categories (
         REFERENCES category_icons(id),
     CONSTRAINT chk_categories_type
         CHECK (categoryType IN (1, 2)),
-    CONSTRAINT chk_categories_status
-        CHECK (status IN (0, 1)),
+    CONSTRAINT chk_categories_is_enabled
+        CHECK (isEnabled IN (0, 1)),
     CONSTRAINT chk_categories_system_default
         CHECK (isSystemDefault IN (0, 1))
 ) ENGINE=InnoDB
@@ -160,8 +160,8 @@ CREATE TABLE accounts (
                         '是否计入总资产：0否，1是',
     sortOrder          INT UNSIGNED NOT NULL DEFAULT 0 COMMENT
                         '排序值，越小越靠前',
-    status              TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT
-                        '状态：0停用，1启用',
+    isEnabled           TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT
+                        '是否启用：0停用，1启用',
     remark              VARCHAR(255) DEFAULT NULL COMMENT '账户备注',
     deletedAt          DATETIME(3) DEFAULT NULL COMMENT
                         '软删除时间；NULL表示未删除',
@@ -172,12 +172,12 @@ CREATE TABLE accounts (
     PRIMARY KEY (id),
     UNIQUE KEY uk_accounts_user_system_key
         (userId, systemKey),
-    KEY idx_accounts_user_status
-        (userId, status, deletedAt),
+    KEY idx_accounts_user_is_enabled
+        (userId, isEnabled, deletedAt),
     KEY idx_accounts_user_sort
         (userId, sortOrder),
-    CONSTRAINT chk_accounts_status
-        CHECK (status IN (0, 1)),
+    CONSTRAINT chk_accounts_is_enabled
+        CHECK (isEnabled IN (0, 1)),
     CONSTRAINT chk_accounts_include_assets
         CHECK (includeInAssets IN (0, 1)),
     CONSTRAINT chk_accounts_system_default
@@ -263,4 +263,3 @@ CREATE TABLE transactions (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci
   COMMENT='用户记账流水表';
-
