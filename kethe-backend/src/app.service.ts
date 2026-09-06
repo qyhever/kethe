@@ -9,10 +9,11 @@ export class AppService {
     return 'success'
   }
   getMeta(): AppMetaDto {
-    const metaStr = fs.readFileSync(
-      path.resolve(__dirname, '../public/meta.json'),
-      'utf8',
-    )
+    const metaPath = path.resolve(__dirname, '../public/meta.json')
+    if (!fs.existsSync(metaPath)) {
+      return { deployTime: 'unknown' }
+    }
+    const metaStr = fs.readFileSync(metaPath, 'utf8')
     const meta = JSON.parse(metaStr) as AppMetaDto
     return meta
   }

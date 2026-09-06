@@ -12,5 +12,5 @@ const distfile = path.resolve(__dirname, '../public/meta.json')
 const content = {
   deployTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
 }
+fs.mkdirSync(path.dirname(distfile), { recursive: true })
 fs.writeFileSync(distfile, JSON.stringify(content, null, 2))
-
