@@ -1,0 +1,48 @@
+@baseUrl = http://localhost:3000/api
+@token = replace-with-access-token
+@categoryId = 1
+@accountId = 1
+@transactionId = 1
+
+### 分类树
+GET {{baseUrl}}/categories?categoryType=1
+Authorization: Bearer {{token}}
+
+### 账户列表
+GET {{baseUrl}}/accounts
+Authorization: Bearer {{token}}
+
+### 新增支出（金额单位：分）
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "transactionType": 1,
+  "amount": "3800",
+  "categoryId": "{{categoryId}}",
+  "accountId": "{{accountId}}",
+  "currency": "CNY",
+  "transactionTime": "2026-09-06T04:00:00.000Z",
+  "remark": "午餐"
+}
+
+### 流水分页
+GET {{baseUrl}}/transactions?currentPage=1&pageSize=20&startTime=2026-09-01T00:00:00.000Z&endTime=2026-10-01T00:00:00.000Z
+Authorization: Bearer {{token}}
+
+### 首页概览
+GET {{baseUrl}}/dashboard/overview?month=2026-09
+Authorization: Bearer {{token}}
+
+### 月度趋势
+GET {{baseUrl}}/reports/trend?view=month&month=2026-09
+Authorization: Bearer {{token}}
+
+### 月度账单
+GET {{baseUrl}}/bills/monthly?month=2026-09
+Authorization: Bearer {{token}}
+
+### CSV 导出（最多 366 天）
+GET {{baseUrl}}/exports/transactions.csv?startTime=2026-09-01T00:00:00.000Z&endTime=2026-10-01T00:00:00.000Z
+Authorization: Bearer {{token}}

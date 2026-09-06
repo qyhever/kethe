@@ -19,6 +19,7 @@ import { UserModule } from './user/user.module'
 import { AuthModule } from './auth/auth.module'
 import { ProjectModule } from './project/project.module'
 import { AttachModule } from './attach/attach.module'
+import { LedgerModule } from './ledger/ledger.module'
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AttachModule } from './attach/attach.module'
     AuthModule,
     ProjectModule,
     AttachModule,
+    LedgerModule,
   ],
   controllers: [AppController],
   providers: [
