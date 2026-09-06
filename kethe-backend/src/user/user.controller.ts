@@ -87,7 +87,6 @@ export class UserController {
     data: { model: User },
   })
   findCurrentUser(@Req() request: RequestWithContext) {
-    console.log('request: ', request.user)
     return this.userService.findOne(request.user!.id)
   }
 

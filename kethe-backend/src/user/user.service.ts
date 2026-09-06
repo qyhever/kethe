@@ -102,7 +102,6 @@ export class UserService {
   }
 
   async findPage(query: FindUsersPageDto): Promise<UserPageResultDto> {
-    console.log('service query: ', query)
     const normalizedQuery: FindUsersPageDto = {
       currentPage: query.currentPage ?? 1,
       pageSize: query.pageSize ?? 10,
