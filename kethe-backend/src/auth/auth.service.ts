@@ -13,6 +13,7 @@ import { ResponseMessageEnum } from '../common/enums/response-message.enum'
 import type { ServiceErrorResult } from '../common/interceptors/response.interceptor'
 import type { EnvironmentVariables } from '../config/environment.validation'
 import { UserService } from '../user/user.service'
+import { DefaultUserDataService } from '../user/default-user-data.service'
 import { RegisterDto } from './dto/register.dto'
 import { LoginDto } from './dto/login.dto'
 import { VerificationCodeService } from './verification-code.service'
@@ -33,6 +34,7 @@ export class AuthService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly userService: UserService,
+    private readonly defaultUserDataService: DefaultUserDataService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<EnvironmentVariables, true>,
@@ -240,7 +242,7 @@ export class AuthService {
           )
         if ('error' in verificationCode) return verificationCode
 
-        await this.userService.createRegistrationUser(
+        const user = await this.userService.createRegistrationUser(
           {
             username: dto.username,
             nickname: dto.nickname,
@@ -249,6 +251,7 @@ export class AuthService {
           },
           manager,
         )
+        await this.defaultUserDataService.initialize(user.id, manager)
         await this.verificationCodeService.consume(verificationCode, manager)
         return null
       })

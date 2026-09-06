@@ -7,6 +7,7 @@ import { DataSource, type EntityManager } from 'typeorm'
 import { ResponseMessageEnum } from '../common/enums/response-message.enum'
 import { User } from '../user/entities/user.entity'
 import { UserService } from '../user/user.service'
+import { DefaultUserDataService } from '../user/default-user-data.service'
 import { AuthService } from './auth.service'
 import { RegisterDto } from './dto/register.dto'
 import { EmailVerificationCode } from './entities/email-verification-code.entity'
@@ -46,6 +47,7 @@ describe('AuthService', () => {
     verifyRegistrationCode: jest.Mock
     consume: jest.Mock
   }
+  let defaultUserDataService: { initialize: jest.Mock }
   const manager = {} as EntityManager
   const dto: RegisterDto = {
     username: 'new-user',
@@ -68,6 +70,7 @@ describe('AuthService', () => {
       verifyRegistrationCode: jest.fn(),
       consume: jest.fn(),
     }
+    defaultUserDataService = { initialize: jest.fn() }
     const dataSource = {
       transaction: jest.fn((work: (manager: EntityManager) => unknown) =>
         work(manager),
@@ -86,6 +89,10 @@ describe('AuthService', () => {
         AuthService,
         { provide: DataSource, useValue: dataSource },
         { provide: UserService, useValue: userService },
+        {
+          provide: DefaultUserDataService,
+          useValue: defaultUserDataService,
+        },
         {
           provide: VerificationCodeService,
           useValue: verificationCodeService,
@@ -398,6 +405,13 @@ describe('AuthService', () => {
       expect.objectContaining({ email: 'user@example.com' }),
       manager,
     )
+    expect(defaultUserDataService.initialize).toHaveBeenCalledWith(
+      user.id,
+      manager,
+    )
+    expect(
+      defaultUserDataService.initialize.mock.invocationCallOrder[0],
+    ).toBeLessThan(verificationCodeService.consume.mock.invocationCallOrder[0])
     expect(verificationCodeService.consume).toHaveBeenCalledWith(
       codeRecord,
       manager,
@@ -414,6 +428,21 @@ describe('AuthService', () => {
     expect(
       verificationCodeService.verifyRegistrationCode,
     ).not.toHaveBeenCalled()
+    expect(defaultUserDataService.initialize).not.toHaveBeenCalled()
+  })
+
+  it('邮箱已存在时应该拒绝注册且不初始化默认数据', async () => {
+    userService.existsByEmail.mockResolvedValue(true)
+
+    await expect(service.register(dto)).resolves.toEqual({
+      error: true,
+      message: ResponseMessageEnum.EMAIL_ALREADY_EXISTS,
+    })
+    expect(
+      verificationCodeService.verifyRegistrationCode,
+    ).not.toHaveBeenCalled()
+    expect(userService.createRegistrationUser).not.toHaveBeenCalled()
+    expect(defaultUserDataService.initialize).not.toHaveBeenCalled()
   })
 
   it('验证码错误时不应该创建用户', async () => {
@@ -427,6 +456,7 @@ describe('AuthService', () => {
       message: '验证码错误',
     })
     expect(userService.createRegistrationUser).not.toHaveBeenCalled()
+    expect(defaultUserDataService.initialize).not.toHaveBeenCalled()
     expect(verificationCodeService.consume).not.toHaveBeenCalled()
   })
 
@@ -437,6 +467,24 @@ describe('AuthService', () => {
     userService.createRegistrationUser.mockRejectedValue(new Error('DB error'))
 
     await expect(service.register(dto)).rejects.toThrow('DB error')
+    expect(defaultUserDataService.initialize).not.toHaveBeenCalled()
+    expect(verificationCodeService.consume).not.toHaveBeenCalled()
+  })
+
+  it('默认数据初始化失败时不应该消费验证码', async () => {
+    const codeRecord = { id: 1 } as EmailVerificationCode
+    const user = { id: 2 } as User
+    verificationCodeService.verifyRegistrationCode.mockResolvedValue(codeRecord)
+    userService.createRegistrationUser.mockResolvedValue(user)
+    defaultUserDataService.initialize.mockRejectedValue(
+      new Error('default data failed'),
+    )
+
+    await expect(service.register(dto)).rejects.toThrow('default data failed')
+    expect(defaultUserDataService.initialize).toHaveBeenCalledWith(
+      user.id,
+      manager,
+    )
     expect(verificationCodeService.consume).not.toHaveBeenCalled()
   })
 

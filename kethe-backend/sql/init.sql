@@ -176,6 +176,8 @@ CREATE TABLE accounts (
         (userId, isEnabled, deletedAt),
     KEY idx_accounts_user_sort
         (userId, sortOrder),
+    CONSTRAINT chk_accounts_type
+        CHECK (accountType IN (1, 2, 3, 4, 5, 99)),
     CONSTRAINT chk_accounts_is_enabled
         CHECK (isEnabled IN (0, 1)),
     CONSTRAINT chk_accounts_include_assets

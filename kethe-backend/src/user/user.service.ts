@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { hash } from 'bcryptjs'
-import type { EntityManager } from 'typeorm'
+import { DataSource, type EntityManager } from 'typeorm'
 import { ResponseMessageEnum } from '../common/enums/response-message.enum'
 import type { ServiceErrorResult } from '../common/interceptors/response.interceptor'
 import type { EnvironmentVariables } from '../config/environment.validation'
@@ -13,46 +13,56 @@ import { UpdateUserDto } from './dto/update-user.dto'
 import { User } from './entities/user.entity'
 import { UserRepository } from './repositories/user.repository'
 import type { BatchDeleteUsersResult } from './types/batch-delete-users-result'
+import { DefaultUserDataService } from './default-user-data.service'
 
 @Injectable()
 export class UserService {
   constructor(
+    private readonly dataSource: DataSource,
     private readonly userRepository: UserRepository,
     private readonly configService: ConfigService<EnvironmentVariables, true>,
+    private readonly defaultUserDataService: DefaultUserDataService,
   ) {}
 
   async create(
     createUserDto: CreateUserDto,
   ): Promise<User | ServiceErrorResult> {
-    const [usernameExists, emailExists] = await Promise.all([
-      this.userRepository.existsByUsername(createUserDto.username),
-      this.userRepository.existsByEmail(createUserDto.email),
-    ])
+    return this.dataSource.transaction(async (manager) => {
+      const [usernameExists, emailExists] = await Promise.all([
+        this.userRepository.existsByUsername(createUserDto.username, manager),
+        this.userRepository.existsByEmail(createUserDto.email, manager),
+      ])
 
-    if (usernameExists) {
-      return {
-        error: true,
-        message: ResponseMessageEnum.USERNAME_ALREADY_EXISTS,
+      if (usernameExists) {
+        return {
+          error: true as const,
+          message: ResponseMessageEnum.USERNAME_ALREADY_EXISTS,
+        }
       }
-    }
 
-    if (emailExists) {
-      return {
-        error: true,
-        message: ResponseMessageEnum.EMAIL_ALREADY_EXISTS,
+      if (emailExists) {
+        return {
+          error: true as const,
+          message: ResponseMessageEnum.EMAIL_ALREADY_EXISTS,
+        }
       }
-    }
 
-    const bcryptRounds = this.configService.get('BCRYPT_ROUNDS', {
-      infer: true,
-    })
-    const password = await hash(createUserDto.password, bcryptRounds)
-    const user = this.userRepository.create({
-      ...createUserDto,
-      password,
-    })
+      const bcryptRounds = this.configService.get('BCRYPT_ROUNDS', {
+        infer: true,
+      })
+      const password = await hash(createUserDto.password, bcryptRounds)
+      const user = this.userRepository.create(
+        {
+          ...createUserDto,
+          password,
+        },
+        manager,
+      )
+      const savedUser = await this.userRepository.save(user, manager)
+      await this.defaultUserDataService.initialize(savedUser.id, manager)
 
-    return this.userRepository.save(user)
+      return savedUser
+    })
   }
 
   existsByEmail(email: string, manager?: EntityManager): Promise<boolean> {

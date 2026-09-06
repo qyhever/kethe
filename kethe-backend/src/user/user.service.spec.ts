@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { ConfigService } from '@nestjs/config'
 import { compare, getRounds } from 'bcryptjs'
+import { DataSource, type EntityManager } from 'typeorm'
 import { ResponseMessageEnum } from '../common/enums/response-message.enum'
 import { CreateUserDto } from './dto/create-user.dto'
 import { FindUsersPageDto } from './dto/find-users-page.dto'
@@ -8,6 +9,7 @@ import { UpdateUserDto } from './dto/update-user.dto'
 import { User } from './entities/user.entity'
 import { UserRepository } from './repositories/user.repository'
 import { UserService } from './user.service'
+import { DefaultUserDataService } from './default-user-data.service'
 
 type UserRepositoryMock = {
   [Method in keyof UserRepository]: jest.MockedFunction<UserRepository[Method]>
@@ -16,6 +18,8 @@ type UserRepositoryMock = {
 describe('UserService', () => {
   let service: UserService
   let userRepository: UserRepositoryMock
+  let defaultUserDataService: { initialize: jest.Mock }
+  const manager = {} as EntityManager
 
   beforeEach(async () => {
     userRepository = {
@@ -31,10 +35,20 @@ describe('UserService', () => {
       softRemove: jest.fn(),
       softRemoveMany: jest.fn(),
     }
+    defaultUserDataService = { initialize: jest.fn() }
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
+        {
+          provide: DataSource,
+          useValue: {
+            transaction: jest.fn(
+              (work: (transactionManager: EntityManager) => unknown) =>
+                work(manager),
+            ),
+          },
+        },
         {
           provide: UserRepository,
           useValue: userRepository,
@@ -44,6 +58,10 @@ describe('UserService', () => {
           useValue: {
             get: jest.fn().mockReturnValue(10),
           },
+        },
+        {
+          provide: DefaultUserDataService,
+          useValue: defaultUserDataService,
         },
       ],
     }).compile()
@@ -87,7 +105,11 @@ describe('UserService', () => {
       await expect(
         compare(createUserDto.password, createPayload.password as string),
       ).resolves.toBe(true)
-      expect(userRepository.save).toHaveBeenCalledWith(user)
+      expect(userRepository.save).toHaveBeenCalledWith(user, manager)
+      expect(defaultUserDataService.initialize).toHaveBeenCalledWith(
+        user.id,
+        manager,
+      )
     })
 
     it('用户名已存在时不应创建用户', async () => {
@@ -107,6 +129,7 @@ describe('UserService', () => {
       })
       expect(userRepository.create).not.toHaveBeenCalled()
       expect(userRepository.save).not.toHaveBeenCalled()
+      expect(defaultUserDataService.initialize).not.toHaveBeenCalled()
     })
 
     it('邮箱已存在时不应创建用户', async () => {
@@ -126,6 +149,26 @@ describe('UserService', () => {
       })
       expect(userRepository.create).not.toHaveBeenCalled()
       expect(userRepository.save).not.toHaveBeenCalled()
+      expect(defaultUserDataService.initialize).not.toHaveBeenCalled()
+    })
+
+    it('默认数据初始化失败时应该拒绝创建结果', async () => {
+      const user = { id: 1, username: 'admin' } as User
+      userRepository.create.mockReturnValue(user)
+      userRepository.save.mockResolvedValue(user)
+      defaultUserDataService.initialize.mockRejectedValue(
+        new Error('default data failed'),
+      )
+
+      await expect(
+        service.create({
+          username: 'admin',
+          nickname: '管理员',
+          email: 'admin@example.com',
+          password: 'plain-password',
+          isEnabled: true,
+        }),
+      ).rejects.toThrow('default data failed')
     })
   })
 
