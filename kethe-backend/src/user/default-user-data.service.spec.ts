@@ -26,11 +26,14 @@ describe('DefaultUserDataService', () => {
       save: jest.fn((data: Category | Category[]) => {
         const records = Array.isArray(data) ? data : [data]
         for (const record of records) {
-          if (!record.id) record.id = nextCategoryId++
+          if (!record.id) record.id = String(nextCategoryId++)
           categoryRecords.push(record)
         }
         return Promise.resolve(data)
       }),
+      findOne: jest.fn().mockResolvedValue(null),
+      find: jest.fn().mockResolvedValue([]),
+      manager: { query: jest.fn().mockResolvedValue([]) },
     } as unknown as Repository<Category>
     const accountRepository = {
       create: jest.fn((data: Partial<Account>) => data as Account),
@@ -38,6 +41,7 @@ describe('DefaultUserDataService', () => {
         accountRecords.push(...(Array.isArray(data) ? data : [data]))
         return Promise.resolve(data)
       }),
+      find: jest.fn().mockResolvedValue([]),
     } as unknown as Repository<Account>
 
     manager = {
@@ -111,18 +115,20 @@ describe('DefaultUserDataService', () => {
     ).toBe(73)
   })
 
-  it('应该按顺序创建四个零余额人民币默认账户', async () => {
+  it('应该按顺序创建五个零余额人民币默认账户', async () => {
     await service.initialize(42, manager)
 
-    expect(accountRecords).toHaveLength(4)
+    expect(accountRecords).toHaveLength(5)
     expect(accountRecords.map(({ name }) => name)).toEqual([
       '现金',
+      '银行卡',
       'PayPal',
       '微信',
       '支付宝',
     ])
     expect(accountRecords.map(({ accountType }) => accountType)).toEqual([
       AccountType.CASH,
+      AccountType.BANK_CARD,
       AccountType.PAYPAL,
       AccountType.WECHAT,
       AccountType.ALIPAY,
@@ -131,7 +137,7 @@ describe('DefaultUserDataService', () => {
       DEFAULT_ACCOUNTS.map(({ systemKey }) => systemKey),
     )
     expect(accountRecords.map(({ sortOrder }) => sortOrder)).toEqual([
-      1, 2, 3, 4,
+      1, 2, 3, 4, 5,
     ])
     expect(
       accountRecords.every(
@@ -139,8 +145,8 @@ describe('DefaultUserDataService', () => {
           account.userId === 42 &&
           account.icon === null &&
           account.currency === 'CNY' &&
-          account.initialBalance === 0 &&
-          account.currentBalance === 0 &&
+          account.initialBalance === '0' &&
+          account.currentBalance === '0' &&
           account.includeInAssets &&
           account.isSystemDefault &&
           account.isEnabled &&

@@ -28,72 +28,130 @@ export class DefaultUserDataService {
       parentIndex,
       definition,
     ] of DEFAULT_EXPENSE_CATEGORIES.entries()) {
-      const parent = await repository.save(
-        repository.create({
-          userId,
-          categoryType: EXPENSE_CATEGORY_TYPE,
-          parentId: null,
-          name: definition.name,
-          iconId: null,
-          systemKey: definition.systemKey,
-          isSystemDefault: true,
-          sortOrder: parentIndex + 1,
-          isEnabled: true,
-        }),
-      )
+      let parent = await repository.findOne({
+        where: { userId, systemKey: definition.systemKey },
+        withDeleted: true,
+      })
+      if (!parent) {
+        parent = await repository.save(
+          repository.create({
+            userId,
+            categoryType: EXPENSE_CATEGORY_TYPE,
+            parentId: null,
+            name: definition.name,
+            iconId: await this.findIconId(repository, definition.systemKey),
+            systemKey: definition.systemKey,
+            isSystemDefault: true,
+            sortOrder: parentIndex + 1,
+            isEnabled: true,
+          }),
+        )
+      }
 
-      const children = definition.children.map((child, childIndex) =>
-        repository.create({
-          userId,
-          categoryType: EXPENSE_CATEGORY_TYPE,
-          parentId: parent.id,
-          name: child.name,
-          iconId: null,
-          systemKey: child.systemKey,
-          isSystemDefault: true,
-          sortOrder: childIndex + 1,
-          isEnabled: true,
-        }),
+      const existingKeys = new Set(
+        (
+          await repository.find({
+            where: { userId, parentId: parent.id },
+            withDeleted: true,
+          })
+        ).map((category) => category.systemKey),
       )
-      await repository.save(children)
+      const children = definition.children
+        .map((child, childIndex) => ({ child, childIndex }))
+        .filter(({ child }) => !existingKeys.has(child.systemKey))
+        .map(({ child, childIndex }) =>
+          repository.create({
+            userId,
+            categoryType: EXPENSE_CATEGORY_TYPE,
+            parentId: parent.id,
+            name: child.name,
+            iconId: null,
+            systemKey: child.systemKey,
+            isSystemDefault: true,
+            sortOrder: childIndex + 1,
+            isEnabled: true,
+          }),
+        )
+      if (children.length) await repository.save(children)
     }
 
-    const incomeCategories = DEFAULT_INCOME_CATEGORIES.map(
-      (definition, index) =>
-        repository.create({
-          userId,
-          categoryType: INCOME_CATEGORY_TYPE,
-          parentId: null,
-          name: definition.name,
-          iconId: null,
-          systemKey: definition.systemKey,
-          isSystemDefault: true,
-          sortOrder: index + 1,
-          isEnabled: true,
-        }),
+    const incomeKeys = new Set(
+      (
+        await repository.find({
+          where: { userId, categoryType: INCOME_CATEGORY_TYPE },
+          withDeleted: true,
+        })
+      ).map((category) => category.systemKey),
     )
-    await repository.save(incomeCategories)
+    const incomeCategories = await Promise.all(
+      DEFAULT_INCOME_CATEGORIES.map((definition, index) => ({
+        definition,
+        index,
+      }))
+        .filter(({ definition }) => !incomeKeys.has(definition.systemKey))
+        .map(async ({ definition, index }) =>
+          repository.create({
+            userId,
+            categoryType: INCOME_CATEGORY_TYPE,
+            parentId: null,
+            name: definition.name,
+            iconId: await this.findIconId(repository, definition.systemKey),
+            systemKey: definition.systemKey,
+            isSystemDefault: true,
+            sortOrder: index + 1,
+            isEnabled: true,
+          }),
+        ),
+    )
+    if (incomeCategories.length) await repository.save(incomeCategories)
   }
 
   private async createAccounts(
     userId: number,
     repository: Repository<Account>,
   ): Promise<void> {
-    const accounts = DEFAULT_ACCOUNTS.map((definition, index) =>
-      repository.create({
-        userId,
-        ...definition,
-        icon: null,
-        isSystemDefault: true,
-        currency: 'CNY',
-        initialBalance: 0,
-        currentBalance: 0,
-        includeInAssets: true,
-        sortOrder: index + 1,
-        isEnabled: true,
-        remark: null,
-      }),
+    const existingKeys = new Set(
+      (await repository.find({ where: { userId }, withDeleted: true })).map(
+        (account) => account.systemKey,
+      ),
     )
-    await repository.save(accounts)
+    const accounts = DEFAULT_ACCOUNTS.map((definition, index) => ({
+      definition,
+      index,
+    }))
+      .filter(({ definition }) => !existingKeys.has(definition.systemKey))
+      .map(({ definition, index }) =>
+        repository.create({
+          userId,
+          ...definition,
+          icon: null,
+          isSystemDefault: true,
+          currency: 'CNY',
+          initialBalance: '0',
+          currentBalance: '0',
+          includeInAssets: true,
+          sortOrder: index + 1,
+          isEnabled: true,
+          remark: null,
+        }),
+      )
+    if (accounts.length) await repository.save(accounts)
+  }
+
+  private async findIconId(
+    repository: Repository<Category>,
+    systemKey: string,
+  ): Promise<string | null> {
+    const key = systemKey.replace(/^(expense|income)_/, '').split('_')[0]
+    const iconKey = systemKey.startsWith('income_')
+      ? key === 'gift' || key === 'other'
+        ? key
+        : 'finance'
+      : key
+    const rows = await repository.manager.query<Array<{ id: string }>>(
+      'SELECT id FROM category_icons WHERE iconKey = ? AND isEnabled = 1 LIMIT 1',
+      [iconKey],
+    )
+    return rows[0]?.id ?? null
   }
 }

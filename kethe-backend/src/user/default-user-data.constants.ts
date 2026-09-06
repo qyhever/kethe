@@ -154,6 +154,11 @@ export const DEFAULT_INCOME_CATEGORIES = [
 
 export const DEFAULT_ACCOUNTS = [
   { name: '现金', systemKey: 'cash', accountType: AccountType.CASH },
+  {
+    name: '银行卡',
+    systemKey: 'bank_card',
+    accountType: AccountType.BANK_CARD,
+  },
   { name: 'PayPal', systemKey: 'paypal', accountType: AccountType.PAYPAL },
   { name: '微信', systemKey: 'wechat', accountType: AccountType.WECHAT },
   { name: '支付宝', systemKey: 'alipay', accountType: AccountType.ALIPAY },
