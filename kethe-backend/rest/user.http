@@ -24,8 +24,8 @@ Authorization: Bearer {{token}}
 {
   "username": "testuser",
   "nickname": "奔跑的椰子",
-  "email": "testuser@example.xyz",
-  "password": "testuser123",
+  "email": "test@abc.com",
+  "password": "test123",
   "isEnabled": true
 }
 
