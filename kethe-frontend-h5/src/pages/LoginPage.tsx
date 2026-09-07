@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate, Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { LockKeyhole, Mail } from 'lucide-react'
 import { login } from '../api/auth'
-import { hasTokens, setTokens } from '../api/token'
 import { AuthField } from '../components/Auth/AuthField'
 import { AuthScaffold } from '../components/Auth/AuthScaffold'
 import { useToast } from '../components/Toast'
+import { useAuthStore } from '../stores/auth'
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '登录失败，请稍后重试'
@@ -14,23 +14,25 @@ function getErrorMessage(error: unknown) {
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
+  const signIn = useAuthStore((state) => state.signIn)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordVisible, setPasswordVisible] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-
-  if (hasTokens()) {
-    return <Navigate replace to="/home" />
-  }
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitting(true)
     try {
       const tokens = await login({ email, password })
-      setTokens(tokens)
-      navigate('/home', { replace: true })
+      await signIn(tokens)
+      const from = (location.state as { from?: { pathname?: string; search?: string; hash?: string } } | null)?.from
+      const destination = from?.pathname
+        ? `${from.pathname}${from.search || ''}${from.hash || ''}`
+        : '/home'
+      navigate(destination, { replace: true })
     } catch (error) {
       toast.error(getErrorMessage(error))
     } finally {

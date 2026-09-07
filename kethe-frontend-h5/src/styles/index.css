@@ -315,3 +315,11 @@ button:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+/* 应用启动时验证本地会话，避免受保护页面或登录页短暂闪现。 */
+.auth-checking {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-secondary);
+  background: var(--color-background);
+}

@@ -306,11 +306,6 @@
   .auth-form__submit {
     height: 58px;
   }
-
-  .auth-page__landscape,
-  .auth-page__slogan {
-    position: fixed;
-  }
 }
 
 @media (max-width: 380px) {

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate, Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
 import { login, register, sendRegistrationCode } from '../api/auth'
-import { hasTokens, setTokens } from '../api/token'
 import { AuthField } from '../components/Auth/AuthField'
 import { AuthScaffold } from '../components/Auth/AuthScaffold'
 import { useToast } from '../components/Toast'
+import { useAuthStore } from '../stores/auth'
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '操作失败，请稍后重试'
@@ -23,6 +23,7 @@ function getDefaultProfile(email: string) {
 export function RegisterPage() {
   const navigate = useNavigate()
   const toast = useToast()
+  const signIn = useAuthStore((state) => state.signIn)
   const [email, setEmail] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
   const [passwordVisible, setPasswordVisible] = useState(false)
@@ -39,10 +40,6 @@ export function RegisterPage() {
     return () => window.clearInterval(timer)
   }, [verifyCountdown])
 
-  if (hasTokens()) {
-    return <Navigate replace to="/home" />
-  }
-
   const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitting(true)
@@ -55,7 +52,7 @@ export function RegisterPage() {
         verificationCode: verifyCode,
       })
       const tokens = await login({ email, password: registerPassword })
-      setTokens(tokens)
+      await signIn(tokens)
       toast.success('注册成功')
       navigate('/home', { replace: true })
     } catch (error) {

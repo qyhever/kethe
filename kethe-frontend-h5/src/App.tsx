@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-// import { hasTokens } from './api/token'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -10,6 +9,8 @@ import { ToastDemoPage } from './pages/ToastDemoPage'
 import { FlowPage } from './pages/FlowPage'
 import { SearchPage } from './pages/SearchPage'
 import { TallyPage } from './pages/TallyPage'
+import { RequireAnonymous, RequireAuth } from './components/Auth/RouteGuards'
+import { useAuthStore } from './stores/auth'
 
 import {
   VersionUpdateNotification,
@@ -21,12 +22,13 @@ import './styles/index.css'
 import './styles/tailwind.css'
 
 
-// function AuthRedirect() {
-//   return <Navigate replace to={hasTokens() ? '/clipboard' : '/login'} />
-// }
-
 function App() {
   const versionNotificationRef = useRef<VersionUpdateNotificationRef>(null)
+  const initializeAuth = useAuthStore((state) => state.initialize)
+
+  useEffect(() => {
+    void initializeAuth()
+  }, [initializeAuth])
 
   useEffect(() => {
     // 启动版本检测
@@ -47,13 +49,17 @@ function App() {
       <VersionUpdateNotification ref={versionNotificationRef} />
       <Routes>
         <Route path="/" element={<Navigate replace to="/home" />} />
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/flow" element={<FlowPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/tally/*" element={<TallyPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/toast-demo" element={<ToastDemoPage />} />
+        <Route element={<RequireAuth />}>
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/flow" element={<FlowPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/tally/*" element={<TallyPage />} />
+          <Route path="/toast-demo" element={<ToastDemoPage />} />
+        </Route>
+        <Route element={<RequireAnonymous />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+        </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </ToastProvider>

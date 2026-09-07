@@ -3,6 +3,7 @@ import { request as http } from './fetch'
 import type { RequestOptions } from './fetch'
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from '../api/token'
 import type { ApiResponse, AuthTokens } from '../api/types'
+import { notifyUnauthorized } from './auth-session'
 
 const defaultOptions = {
   baseURL: import.meta.env.VITE_API_BASE_URL || '/kethe/api',
@@ -34,6 +35,11 @@ export class ApiError extends Error {
 
 let refreshPromise: Promise<AuthTokens> | null = null
 
+function expireSession() {
+  clearTokens()
+  notifyUnauthorized()
+}
+
 function withAuthHeader(headers?: RequestOptions['headers']) {
   const nextHeaders = { ...(headers || {}) }
   const token = getAccessToken()
@@ -54,7 +60,7 @@ async function refreshTokens() {
   if (!refreshPromise) {
     const refreshToken = getRefreshToken()
     if (!refreshToken) {
-      clearTokens()
+      expireSession()
       throw new ApiError('登录已过期，请重新登录', 401)
     }
 
@@ -66,10 +72,23 @@ async function refreshTokens() {
     })
       .then((response) => {
         if (!response.success) {
+          expireSession()
           throw new ApiError(response.message || '登录已过期，请重新登录', 401, response)
         }
         setTokens(response.data)
         return response.data
+      })
+      .catch((error: any) => {
+        if (error instanceof ApiError) throw error
+
+        const status = error?.response?.status
+        if (status >= 400 && status < 500) expireSession()
+
+        throw new ApiError(
+          codeMessage[status] || getErrorMessage(error),
+          status,
+          error?.data,
+        )
       })
       .finally(() => {
         refreshPromise = null
@@ -115,7 +134,7 @@ export async function request<T = any>(opts: RequestOptions, retried = false): P
     }
 
     if (error instanceof ApiError && error.status === 401) {
-      clearTokens()
+      expireSession()
     }
 
     throw error
