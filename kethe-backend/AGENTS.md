@@ -17,7 +17,7 @@
 
 ## 编码风格与命名约定
 
-以 Prettier 配置为准：使用单引号、尾随逗号、不使用分号，并采用默认的两个空格缩进。ESLint 启用了类型感知的 TypeScript 规则；应尽量解决未处理 Promise 和不安全参数相关警告。遵循 NestJS 命名方式，例如 `user.service.ts`、`create-user.dto.ts`，导出类型使用 PascalCase，如 `UserService`。新增 SQL 文件到 `sql/` 目录时，文件名必须保持 `YYYY-MM-DD-[name].sql` 格式。保存计划文件时，应保存到 `docs/plans/` 目录，文件名必须保持 `YYYY-MM-DD-[name].md` 格式。功能专用代码和测试应就近放置；只有真正可复用的基础设施才放入 `src/common/`。
+以 Prettier 配置为准：使用单引号、尾随逗号、不使用分号，并采用默认的两个空格缩进。ESLint 启用了类型感知的 TypeScript 规则；应尽量解决未处理 Promise 和不安全参数相关警告。遵循 NestJS 命名方式，例如 `user.service.ts`、`create-user.dto.ts`，导出类型使用 PascalCase，如 `UserService`。新增 SQL 文件到 `sql/` 目录时，文件名必须保持 `YYYY-MM-DD-[name].sql` 格式；SQL 有变更时，需要同时新增升级 sql 文件和更新 init.sql 文件。保存计划文件时，应保存到 `docs/plans/` 目录，文件名必须保持 `YYYY-MM-DD-[name].md` 格式。功能专用代码和测试应就近放置；只有真正可复用的基础设施才放入 `src/common/`。
 
 ## 测试指南
 
