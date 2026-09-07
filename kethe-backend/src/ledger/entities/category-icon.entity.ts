@@ -14,6 +14,9 @@ export class CategoryIcon {
   @Column({ type: 'mediumtext' })
   svgContent!: string
 
+  @Column({ type: 'varchar', length: 7, default: '#64748B' })
+  color!: string
+
   @Column({ type: 'boolean', default: true })
   isSystemDefault!: boolean
 

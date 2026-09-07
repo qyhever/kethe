@@ -8,7 +8,7 @@ import {
   WalletCards,
   X,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { createTransaction, fetchAccounts, fetchCategories } from '../api/ledger'
@@ -26,6 +26,8 @@ interface Category {
   parentId: string | null
   iconKey: string | null
   svgContent: string | null
+  iconColor: string | null
+  children: Category[]
 }
 
 const tallyTypes: Array<{ id: TallyType; label: string }> = [
@@ -46,29 +48,29 @@ function getCurrentDateTime() {
   ].join('T')
 }
 
-function flattenCategories(items: LedgerCategory[]) {
-  return items.flatMap((parent) => {
-    const parentCategory: Category = {
+function normalizeCategories(items: LedgerCategory[]): Category[] {
+  return items.filter((parent) => parent.isEnabled).map((parent) => {
+    const children = (parent.children ?? [])
+      .filter((child) => child.isEnabled)
+      .map((child) => ({
+        id: child.id,
+        label: child.name,
+        parentId: child.parentId ?? parent.id,
+        iconKey: child.iconKey ?? parent.iconKey,
+        svgContent: child.svgContent ?? parent.svgContent,
+        iconColor: child.iconColor ?? parent.iconColor,
+        children: [],
+      }))
+
+    return {
       id: parent.id,
       label: parent.name,
       parentId: parent.parentId,
       iconKey: parent.iconKey,
       svgContent: parent.svgContent,
+      iconColor: parent.iconColor,
+      children,
     }
-    const childCategories = (parent.children ?? []).map((child) => ({
-      id: child.id,
-      label: child.name,
-      parentId: child.parentId ?? parent.id,
-      iconKey: child.iconKey ?? parent.iconKey,
-      svgContent: child.svgContent ?? parent.svgContent,
-    }))
-
-    return [
-      ...(parent.isEnabled ? [parentCategory] : []),
-      ...childCategories.filter((child) =>
-        (parent.children ?? []).some((item) => item.id === child.id && item.isEnabled),
-      ),
-    ]
   })
 }
 
@@ -275,6 +277,25 @@ function CategoryPage({
   onBack: () => void
 }) {
   const visibleType = type === 'income' ? 'income' : 'expense'
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
+
+  useEffect(() => {
+    setExpandedIds(new Set())
+  }, [visibleType])
+
+  const handleParentClick = (category: Category) => {
+    if (category.children.length === 0) {
+      onSelect(category)
+      return
+    }
+
+    setExpandedIds((current) => {
+      const next = new Set(current)
+      if (next.has(category.id)) next.delete(category.id)
+      else next.add(category.id)
+      return next
+    })
+  }
 
   return (
     <main className="tally-page tally-category-page">
@@ -286,20 +307,46 @@ function CategoryPage({
         {!loading && !error && categories.length === 0 && <p className="tally-status">暂无可用分类</p>}
         {!loading && categories.length > 0 && (
           <section className="tally-category-list" aria-label={`${visibleType === 'income' ? '收入' : '支出'}分类`}>
-            {categories.map((category) => (
-              <button
-                className={selected?.id === category.id ? 'is-selected' : undefined}
-                key={category.id}
-                type="button"
-                onClick={() => onSelect(category)}
-              >
-                <span className="tally-category-list__icon">
-                  <CategoryVisual category={category} />
-                </span>
-                <span>{category.label}</span>
-                <ChevronRight aria-hidden="true" size={20} strokeWidth={1.8} />
-              </button>
-            ))}
+            {categories.map((category) => {
+              const isExpanded = expandedIds.has(category.id)
+              const hasChildren = category.children.length > 0
+              const colorStyle = {
+                '--category-color': category.iconColor ?? '#64748B',
+              } as CSSProperties
+
+              return (
+                <div className={`tally-category-group${isExpanded ? ' is-expanded' : ''}`} key={category.id}>
+                  <button
+                    className={`tally-category-list__parent${selected?.id === category.id ? ' is-selected' : ''}`}
+                    type="button"
+                    aria-expanded={hasChildren ? isExpanded : undefined}
+                    onClick={() => handleParentClick(category)}
+                  >
+                    <span className="tally-category-list__icon" style={colorStyle}>
+                      <CategoryVisual category={category} />
+                    </span>
+                    <span>{category.label}</span>
+                    <ChevronRight className="tally-category-list__chevron" aria-hidden="true" size={20} strokeWidth={1.8} />
+                  </button>
+                  {hasChildren && (
+                    <div className="tally-category-list__children" hidden={!isExpanded}>
+                      {category.children.map((child) => (
+                        <button
+                          className={selected?.id === child.id ? 'is-selected' : undefined}
+                          key={child.id}
+                          type="button"
+                          onClick={() => onSelect(child)}
+                        >
+                          <span className="tally-category-list__child-mark" style={colorStyle} aria-hidden="true" />
+                          <span>{child.label}</span>
+                          <ChevronRight aria-hidden="true" size={18} strokeWidth={1.8} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </section>
         )}
       </div>
@@ -353,14 +400,14 @@ export function TallyPage() {
         errors.push(message)
       }
       if (expenseResult.status === 'fulfilled') {
-        setExpenseCategories(flattenCategories(expenseResult.value))
+        setExpenseCategories(normalizeCategories(expenseResult.value))
       } else {
         const message = `支出分类加载失败：${getErrorMessage(expenseResult.reason, '请稍后重试')}`
         setExpenseCategoryError(message)
         errors.push(message)
       }
       if (incomeResult.status === 'fulfilled') {
-        setIncomeCategories(flattenCategories(incomeResult.value))
+        setIncomeCategories(normalizeCategories(incomeResult.value))
       } else {
         const message = `收入分类加载失败：${getErrorMessage(incomeResult.reason, '请稍后重试')}`
         setIncomeCategoryError(message)

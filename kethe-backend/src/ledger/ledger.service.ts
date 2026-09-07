@@ -40,6 +40,7 @@ interface CategoryRow {
   isEnabled: boolean
   iconKey: string | null
   svgContent: string | null
+  iconColor: string | null
 }
 
 interface TransactionRow {
@@ -98,6 +99,7 @@ export class LedgerService {
         'c.isEnabled isEnabled',
         'i.iconKey iconKey',
         'i.svgContent svgContent',
+        'i.color iconColor',
       ])
       .where('c.userId = :userId', { userId })
       .orderBy('c.sortOrder', 'ASC')
@@ -124,6 +126,7 @@ export class LedgerService {
           iconId: child.iconId === null ? parent.iconId : String(child.iconId),
           iconKey: child.iconKey ?? parent.iconKey,
           svgContent: child.svgContent ?? parent.svgContent,
+          iconColor: child.iconColor ?? parent.iconColor,
           isSystemDefault: Boolean(child.isSystemDefault),
           isEnabled: Boolean(child.isEnabled),
           sortOrder: Number(child.sortOrder),

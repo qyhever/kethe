@@ -110,6 +110,7 @@ export interface LedgerCategory {
   isEnabled: boolean
   iconKey: string | null
   svgContent: string | null
+  iconColor: string | null
   children: LedgerCategory[]
 }
 

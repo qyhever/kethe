@@ -85,6 +85,7 @@ CREATE TABLE category_icons (
     iconKey        VARCHAR(64) NOT NULL COMMENT '图标唯一标识，例如 food、transport、shopping',
     iconName       VARCHAR(64) NOT NULL COMMENT '图标名称，例如 餐饮、交通',
     svgContent     MEDIUMTEXT NOT NULL COMMENT 'SVG完整内容',
+    color           VARCHAR(7) NOT NULL DEFAULT '#64748B' COMMENT '图标主题色，格式为#RRGGBB',
     isSystemDefault TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '是否系统内置：0否，1是',
     isEnabled       TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '是否启用：0停用，1启用',
     createdAt      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
@@ -98,19 +99,19 @@ CREATE TABLE category_icons (
   COLLATE=utf8mb4_0900_ai_ci
   COMMENT='分类图标资源表';
 
-INSERT INTO category_icons (iconKey, iconName, svgContent) VALUES
-('food', '餐饮', '<svg viewBox="0 0 24 24"><path d="M7 3v8m3-8v8M5 7h7m-3 4v10M17 3v18m0-18c3 2 3 7 0 9" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('transport', '交通', '<svg viewBox="0 0 24 24"><path d="M5 16V7c0-3 14-3 14 0v9M5 13h14M8 18h.01M16 18h.01" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('shopping', '购物', '<svg viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6L5 8zm4 0a3 3 0 016 0" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('housing', '住房', '<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10h-6v-7H9v7H3V11z" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('entertainment', '娱乐', '<svg viewBox="0 0 24 24"><path d="M7 8h10l3 10-3 2-3-4h-4l-3 4-3-2L7 8zm3 4H7m1.5-1.5v3M16 12h.01M18 14h.01" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('medical', '医疗', '<svg viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3z" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('education', '教育', '<svg viewBox="0 0 24 24"><path d="M2 8l10-5 10 5-10 5L2 8zm4 3v6c4 3 8 3 12 0v-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('gift', '人情', '<svg viewBox="0 0 24 24"><path d="M3 10h18v11H3V10zm-1-4h20v4H2V6zm10 0v15M12 6C8 6 7 2 9 2c2 0 3 4 3 4zm0 0c4 0 5-4 3-4-2 0-3 4-3 4z" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('communication', '通讯', '<svg viewBox="0 0 24 24"><path d="M6 2h12v20H6V2zm4 17h4" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('subscription', '订阅', '<svg viewBox="0 0 24 24"><path d="M4 5h16v14H4V5zm6 4l5 3-5 3V9z" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('finance', '金融', '<svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6M5 10v8m5-8v8m4-8v8m5-8v8M3 21h18" fill="none" stroke="currentColor" stroke-width="2"/></svg>'),
-('other', '其他', '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>');
+INSERT INTO category_icons (iconKey, iconName, svgContent, color) VALUES
+('food', '餐饮', '<svg viewBox="0 0 24 24"><path d="M7 3v8m3-8v8M5 7h7m-3 4v10M17 3v18m0-18c3 2 3 7 0 9" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#FF7A1A'),
+('transport', '交通', '<svg viewBox="0 0 24 24"><path d="M5 16V7c0-3 14-3 14 0v9M5 13h14M8 18h.01M16 18h.01" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#347DF0'),
+('shopping', '购物', '<svg viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6L5 8zm4 0a3 3 0 016 0" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#8657E8'),
+('housing', '住房', '<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10h-6v-7H9v7H3V11z" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#25BF70'),
+('entertainment', '娱乐', '<svg viewBox="0 0 24 24"><path d="M7 8h10l3 10-3 2-3-4h-4l-3 4-3-2L7 8zm3 4H7m1.5-1.5v3M16 12h.01M18 14h.01" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#F45272'),
+('medical', '医疗', '<svg viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3z" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#F05468'),
+('education', '教育', '<svg viewBox="0 0 24 24"><path d="M2 8l10-5 10 5-10 5L2 8zm4 3v6c4 3 8 3 12 0v-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#F2A30B'),
+('gift', '人情', '<svg viewBox="0 0 24 24"><path d="M3 10h18v11H3V10zm-1-4h20v4H2V6zm10 0v15M12 6C8 6 7 2 9 2c2 0 3 4 3 4zm0 0c4 0 5-4 3-4-2 0-3 4-3 4z" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#F34F72'),
+('communication', '通讯', '<svg viewBox="0 0 24 24"><path d="M6 2h12v20H6V2zm4 17h4" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#3B7EF2'),
+('subscription', '订阅', '<svg viewBox="0 0 24 24"><path d="M4 5h16v14H4V5zm6 4l5 3-5 3V9z" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#8D50EA'),
+('finance', '金融', '<svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6M5 10v8m5-8v8m4-8v8m5-8v8M3 21h18" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '#42CDB2'),
+('other', '其他', '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>', '#64748B');
 
 -- ============================================================
 -- 2. 分类表
