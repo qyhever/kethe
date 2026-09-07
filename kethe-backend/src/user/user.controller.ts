@@ -26,6 +26,7 @@ import { UpdateUserDto } from './dto/update-user.dto'
 import { User } from './entities/user.entity'
 import { BatchDeleteUsersResultDto } from './dto/batch-delete-users-result.dto'
 import { UserPageResultDto } from './dto/user-page-result.dto'
+import { Public } from 'src/common/decorators/public.decorator'
 
 @ApiTags('用户')
 @ApiBearerAuth()
@@ -36,6 +37,7 @@ export class UserController {
 
   /** @deprecated 临时兼容入口，可绕过邮箱验证，请改用 POST /auth/register。 */
   @Post()
+  @Public()
   @ApiOperation({
     summary: '创建用户（已废弃）',
     description:
