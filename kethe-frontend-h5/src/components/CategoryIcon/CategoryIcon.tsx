@@ -10,6 +10,11 @@ import GiftIcon from './icons/gift.svg?raw'
 import CommunicationIcon from './icons/communication.svg?raw'
 import SubscriptionIcon from './icons/subscription.svg?raw'
 import FinanceIcon from './icons/finance.svg?raw'
+import SalaryIcon from './icons/salary.svg?raw'
+import BonusIcon from './icons/bonus.svg?raw'
+import PartTimeIcon from './icons/part-time.svg?raw'
+import InvestmentIcon from './icons/investment.svg?raw'
+import GiftMoneyIcon from './icons/gift-money.svg?raw'
 import OtherIcon from './icons/other.svg?raw'
 
 const iconMap = {
@@ -24,6 +29,11 @@ const iconMap = {
   communication: CommunicationIcon,
   subscription: SubscriptionIcon,
   finance: FinanceIcon,
+  salary: SalaryIcon,
+  bonus: BonusIcon,
+  'part-time': PartTimeIcon,
+  investment: InvestmentIcon,
+  'gift-money': GiftMoneyIcon,
   other: OtherIcon,
 } as const
 

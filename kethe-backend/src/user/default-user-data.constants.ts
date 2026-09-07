@@ -144,12 +144,12 @@ export const DEFAULT_EXPENSE_CATEGORIES: ReadonlyArray<DefaultExpenseCategory> =
   ]
 
 export const DEFAULT_INCOME_CATEGORIES = [
-  { name: '工资', systemKey: 'income_salary' },
-  { name: '奖金', systemKey: 'income_bonus' },
-  { name: '兼职', systemKey: 'income_part_time' },
-  { name: '理财', systemKey: 'income_investment' },
-  { name: '礼金', systemKey: 'income_gift' },
-  { name: '其他', systemKey: 'income_other' },
+  { name: '工资', systemKey: 'income_salary', iconKey: 'salary' },
+  { name: '奖金', systemKey: 'income_bonus', iconKey: 'bonus' },
+  { name: '兼职', systemKey: 'income_part_time', iconKey: 'part-time' },
+  { name: '理财', systemKey: 'income_investment', iconKey: 'investment' },
+  { name: '礼金', systemKey: 'income_gift', iconKey: 'gift-money' },
+  { name: '其他', systemKey: 'income_other', iconKey: 'other' },
 ] as const
 
 export const DEFAULT_ACCOUNTS = [

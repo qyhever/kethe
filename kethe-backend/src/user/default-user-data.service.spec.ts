@@ -14,12 +14,22 @@ describe('DefaultUserDataService', () => {
   let categoryRecords: Category[]
   let accountRecords: Account[]
   let manager: EntityManager
+  let iconIdByKey: Map<string, string>
 
   beforeEach(() => {
     service = new DefaultUserDataService()
     categoryRecords = []
     accountRecords = []
     let nextCategoryId = 1
+    iconIdByKey = new Map<string, string>()
+    const resolveIconId = (iconKey: string) => {
+      let id = iconIdByKey.get(iconKey)
+      if (!id) {
+        id = String(iconIdByKey.size + 1)
+        iconIdByKey.set(iconKey, id)
+      }
+      return id
+    }
 
     const categoryRepository = {
       create: jest.fn((data: Partial<Category>) => data as Category),
@@ -33,7 +43,11 @@ describe('DefaultUserDataService', () => {
       }),
       findOne: jest.fn().mockResolvedValue(null),
       find: jest.fn().mockResolvedValue([]),
-      manager: { query: jest.fn().mockResolvedValue([]) },
+      manager: {
+        query: jest.fn((_sql: string, parameters: [string]) =>
+          Promise.resolve([{ id: resolveIconId(parameters[0]) }]),
+        ),
+      },
     } as unknown as Repository<Category>
     const accountRepository = {
       create: jest.fn((data: Partial<Account>) => data as Account),
@@ -87,6 +101,9 @@ describe('DefaultUserDataService', () => {
     expect(incomeCategories.every(({ parentId }) => parentId === null)).toBe(
       true,
     )
+    expect(incomeCategories.map(({ iconId }) => iconId)).toEqual(
+      DEFAULT_INCOME_CATEGORIES.map(({ iconKey }) => iconIdByKey.get(iconKey)),
+    )
 
     for (const [index, definition] of DEFAULT_EXPENSE_CATEGORIES.entries()) {
       const parent = expenseParents[index]
@@ -105,11 +122,12 @@ describe('DefaultUserDataService', () => {
       categoryRecords.every(
         (category) =>
           category.userId === 42 &&
-          category.iconId === null &&
           category.isSystemDefault &&
           category.isEnabled,
       ),
     ).toBe(true)
+    expect(expenseParents.every(({ iconId }) => iconId !== null)).toBe(true)
+    expect(expenseChildren.every(({ iconId }) => iconId === null)).toBe(true)
     expect(
       new Set(categoryRecords.map(({ systemKey }) => systemKey)).size,
     ).toBe(73)

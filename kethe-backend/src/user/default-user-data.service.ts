@@ -95,7 +95,7 @@ export class DefaultUserDataService {
             categoryType: INCOME_CATEGORY_TYPE,
             parentId: null,
             name: definition.name,
-            iconId: await this.findIconId(repository, definition.systemKey),
+            iconId: await this.findIconIdByKey(repository, definition.iconKey),
             systemKey: definition.systemKey,
             isSystemDefault: true,
             sortOrder: index + 1,
@@ -142,12 +142,14 @@ export class DefaultUserDataService {
     repository: Repository<Category>,
     systemKey: string,
   ): Promise<string | null> {
-    const key = systemKey.replace(/^(expense|income)_/, '').split('_')[0]
-    const iconKey = systemKey.startsWith('income_')
-      ? key === 'gift' || key === 'other'
-        ? key
-        : 'finance'
-      : key
+    const iconKey = systemKey.replace(/^expense_/, '').split('_')[0]
+    return this.findIconIdByKey(repository, iconKey)
+  }
+
+  private async findIconIdByKey(
+    repository: Repository<Category>,
+    iconKey: string,
+  ): Promise<string | null> {
     const rows = await repository.manager.query<Array<{ id: string }>>(
       'SELECT id FROM category_icons WHERE iconKey = ? AND isEnabled = 1 LIMIT 1',
       [iconKey],
