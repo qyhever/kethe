@@ -104,6 +104,19 @@ function getErrorMessage(error: unknown) {
   return '请求失败'
 }
 
+function getServerErrorMessage(data: unknown) {
+  if (!data || typeof data !== 'object') return undefined
+
+  const message = (data as { message?: unknown }).message
+  if (typeof message === 'string' && message) return message
+  if (Array.isArray(message)) {
+    const messages = message.filter((item): item is string => typeof item === 'string')
+    if (messages.length > 0) return messages.join('；')
+  }
+
+  return undefined
+}
+
 async function requestRaw<T>(opts: RequestOptions): Promise<ApiResponse<T>> {
   const method = opts.method || 'GET'
   const options: RequestOptions = {
@@ -118,7 +131,11 @@ async function requestRaw<T>(opts: RequestOptions): Promise<ApiResponse<T>> {
     return await http<ApiResponse<T>>(options)
   } catch (error: any) {
     const status = error?.response?.status
-    throw new ApiError(codeMessage[status] || getErrorMessage(error), status, error?.data)
+    throw new ApiError(
+      getServerErrorMessage(error?.data) || codeMessage[status] || getErrorMessage(error),
+      status,
+      error?.data,
+    )
   }
 }
 

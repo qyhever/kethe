@@ -9,54 +9,81 @@ import {
   X,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { CategoryIcon, type CategoryIconName } from '../components/CategoryIcon/CategoryIcon'
+import { createTransaction, fetchAccounts, fetchCategories } from '../api/ledger'
+import type { LedgerAccount, LedgerCategory } from '../api/types'
+import { CategoryIcon } from '../components/CategoryIcon/CategoryIcon'
 import { useToast } from '../components/Toast'
 import './TallyPage.css'
 
-type TallyType = 'expense' | 'income' | 'transfer' | 'other'
+type TallyType = 'expense' | 'income' | 'transfer'
+type AccountPicker = 'account' | 'target'
 
 interface Category {
   id: string
   label: string
-  icon: CategoryIconName
-  color: string
-  background: string
+  parentId: string | null
+  iconKey: string | null
+  svgContent: string | null
 }
 
 const tallyTypes: Array<{ id: TallyType; label: string }> = [
   { id: 'expense', label: '支出' },
   { id: 'income', label: '收入' },
   { id: 'transfer', label: '转账' },
-  { id: 'other', label: '其他' },
 ]
 
-const expenseCategories: Category[] = [
-  { id: 'food', label: '餐饮', icon: 'food', color: '#f47a12', background: '#fff0df' },
-  { id: 'transport', label: '交通', icon: 'transport', color: '#347df0', background: '#e7f0ff' },
-  { id: 'shopping', label: '购物', icon: 'shopping', color: '#7951e8', background: '#eee9ff' },
-  { id: 'housing', label: '住房', icon: 'housing', color: '#20b96c', background: '#e0f7eb' },
-  { id: 'entertainment', label: '娱乐', icon: 'entertainment', color: '#ee5272', background: '#ffe5eb' },
-  { id: 'medical', label: '医疗', icon: 'medical', color: '#f24c65', background: '#ffe5ea' },
-  { id: 'education', label: '教育', icon: 'education', color: '#f2a20d', background: '#fff2d7' },
-  { id: 'gift', label: '人情', icon: 'gift', color: '#ef4f70', background: '#ffe4eb' },
-  { id: 'communication', label: '通讯', icon: 'communication', color: '#3a7ded', background: '#e4edff' },
-  { id: 'subscription', label: '订阅', icon: 'subscription', color: '#8651ea', background: '#eee6ff' },
-  { id: 'finance', label: '金融', icon: 'finance', color: '#37bda3', background: '#ddf7f1' },
-  { id: 'other', label: '其它', icon: 'other', color: '#334155', background: '#edf0f4' },
-]
+function padTimePart(value: number) {
+  return String(value).padStart(2, '0')
+}
 
-const incomeCategories: Category[] = [
-  { id: 'salary', label: '工资', icon: 'finance', color: '#27b36a', background: '#e0f7ea' },
-  { id: 'bonus', label: '奖金', icon: 'gift', color: '#ef4f70', background: '#ffe4eb' },
-  { id: 'investment', label: '投资', icon: 'finance', color: '#347df0', background: '#e7f0ff' },
-  { id: 'part-time', label: '兼职', icon: 'education', color: '#f2a20d', background: '#fff2d7' },
-  { id: 'refund', label: '退款', icon: 'shopping', color: '#7951e8', background: '#eee9ff' },
-  { id: 'other-income', label: '其它', icon: 'other', color: '#334155', background: '#edf0f4' },
-]
+function getCurrentDateTime() {
+  const now = new Date()
+  return [
+    `${now.getFullYear()}-${padTimePart(now.getMonth() + 1)}-${padTimePart(now.getDate())}`,
+    `${padTimePart(now.getHours())}:${padTimePart(now.getMinutes())}`,
+  ].join('T')
+}
 
-const accounts = ['微信钱包', '支付宝', '招商银行卡', '现金']
+function flattenCategories(items: LedgerCategory[]) {
+  return items.flatMap((parent) => {
+    const parentCategory: Category = {
+      id: parent.id,
+      label: parent.name,
+      parentId: parent.parentId,
+      iconKey: parent.iconKey,
+      svgContent: parent.svgContent,
+    }
+    const childCategories = (parent.children ?? []).map((child) => ({
+      id: child.id,
+      label: child.name,
+      parentId: child.parentId ?? parent.id,
+      iconKey: child.iconKey ?? parent.iconKey,
+      svgContent: child.svgContent ?? parent.svgContent,
+    }))
+
+    return [
+      ...(parent.isEnabled ? [parentCategory] : []),
+      ...childCategories.filter((child) =>
+        (parent.children ?? []).some((item) => item.id === child.id && item.isEnabled),
+      ),
+    ]
+  })
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback
+}
+
+function amountToCents(value: string) {
+  const normalized = value.trim()
+  if (!/^\d+(?:\.\d{0,2})?$/.test(normalized)) return null
+
+  const [yuan = '0', fraction = ''] = normalized.split('.')
+  const cents = BigInt(yuan) * 100n + BigInt(`${fraction}00`.slice(0, 2))
+  return cents > 0n ? cents.toString() : null
+}
 
 function TypeSegment({
   value,
@@ -119,16 +146,18 @@ function FormRow({
   label,
   value,
   muted = false,
+  disabled = false,
   onClick,
 }: {
   icon: ReactNode
   label: string
   value: string
   muted?: boolean
+  disabled?: boolean
   onClick: () => void
 }) {
   return (
-    <button className="tally-form-row" type="button" onClick={onClick}>
+    <button className="tally-form-row" type="button" disabled={disabled} onClick={onClick}>
       <span className="tally-form-row__icon">{icon}</span>
       <span className="tally-form-row__label">{label}</span>
       <span className={muted ? 'tally-form-row__value is-muted' : 'tally-form-row__value'}>{value}</span>
@@ -137,77 +166,142 @@ function FormRow({
   )
 }
 
-function NumericKeyboard({ onInput, onDelete }: { onInput: (key: string) => void; onDelete: () => void }) {
+function NumericKeyboard({
+  disabled = false,
+  onInput,
+  onDelete,
+}: {
+  disabled?: boolean
+  onInput: (key: string) => void
+  onDelete: () => void
+}) {
   const numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
 
   return (
     <div className="tally-keyboard" aria-label="数字键盘">
       <div className="tally-keyboard__numbers">
         {numbers.map((number) => (
-          <button key={number} type="button" onClick={() => onInput(number)}>{number}</button>
+          <button disabled={disabled} key={number} type="button" onClick={() => onInput(number)}>{number}</button>
         ))}
       </div>
       <div className="tally-keyboard__actions">
-        <button className="tally-keyboard__delete" type="button" aria-label="退格" onClick={onDelete}>
+        <button className="tally-keyboard__delete" disabled={disabled} type="button" aria-label="退格" onClick={onDelete}>
           <Delete aria-hidden="true" size={25} strokeWidth={1.8} />
         </button>
-        <button type="button" aria-label="小数点" onClick={() => onInput('.')}>.</button>
-        <button type="button" onClick={() => onInput('0')}>0</button>
+        <button disabled={disabled} type="button" aria-label="小数点" onClick={() => onInput('.')}>.</button>
+        <button disabled={disabled} type="button" onClick={() => onInput('0')}>0</button>
       </div>
     </div>
   )
 }
 
-function AccountSheet({ selected, onSelect, onClose }: { selected?: string; onSelect: (account: string) => void; onClose: () => void }) {
+function AccountSheet({
+  accounts,
+  loading,
+  selected,
+  excludeId,
+  title,
+  onSelect,
+  onClose,
+}: {
+  accounts: LedgerAccount[]
+  loading: boolean
+  selected?: LedgerAccount
+  excludeId?: string
+  title: string
+  onSelect: (account: LedgerAccount) => void
+  onClose: () => void
+}) {
   return (
     <div className="account-sheet" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose()
     }}>
       <section role="dialog" aria-modal="true" aria-labelledby="account-title">
-        <header><h2 id="account-title">选择账户</h2><button type="button" onClick={onClose}>取消</button></header>
-        {accounts.map((account) => (
-          <button className={selected === account ? 'is-selected' : undefined} key={account} type="button" onClick={() => onSelect(account)}>
-            <WalletCards aria-hidden="true" size={22} />
-            <span>{account}</span>
-            {selected === account && <span aria-hidden="true">✓</span>}
-          </button>
-        ))}
+        <header><h2 id="account-title">{title}</h2><button type="button" onClick={onClose}>取消</button></header>
+        {loading && <p className="tally-status">正在加载账户…</p>}
+        {!loading && accounts.length === 0 && <p className="tally-status">暂无可用账户</p>}
+        {!loading && accounts.map((account) => {
+          const unavailable = account.id === excludeId
+          return (
+            <button
+              className={selected?.id === account.id ? 'is-selected' : undefined}
+              disabled={unavailable}
+              key={account.id}
+              type="button"
+              onClick={() => onSelect(account)}
+            >
+              <WalletCards aria-hidden="true" size={22} />
+              <span>{account.name}</span>
+              {unavailable ? <span className="account-sheet__hint">当前账户</span> : selected?.id === account.id && <span aria-hidden="true">✓</span>}
+            </button>
+          )
+        })}
       </section>
     </div>
   )
 }
 
-function CategoryPage({ type, selected, onTypeChange, onSelect, onBack }: {
+function CategoryVisual({ category }: { category: Category }) {
+  if (category.svgContent) {
+    return (
+      <span
+        className="tally-category-list__svg-icon"
+        aria-hidden="true"
+        dangerouslySetInnerHTML={{ __html: category.svgContent }}
+      />
+    )
+  }
+
+  return <CategoryIcon name={category.iconKey ?? 'other'} size={27} color="currentColor" />
+}
+
+function CategoryPage({
+  type,
+  categories,
+  loading,
+  error,
+  selected,
+  onTypeChange,
+  onSelect,
+  onBack,
+}: {
   type: TallyType
+  categories: Category[]
+  loading: boolean
+  error?: string
   selected?: Category
   onTypeChange: (value: TallyType) => void
   onSelect: (category: Category) => void
   onBack: () => void
 }) {
   const visibleType = type === 'income' ? 'income' : 'expense'
-  const categories = visibleType === 'income' ? incomeCategories : expenseCategories
 
   return (
     <main className="tally-page tally-category-page">
       <div className="tally-page__content">
         <TallyHeader title="选择分类" onBack={onBack} />
         <TypeSegment compact value={visibleType} onChange={onTypeChange} />
-        <section className="tally-category-list" aria-label={`${visibleType === 'income' ? '收入' : '支出'}分类`}>
-          {categories.map((category) => (
-            <button
-              className={selected?.id === category.id ? 'is-selected' : undefined}
-              key={category.id}
-              type="button"
-              onClick={() => onSelect(category)}
-            >
-              <span className="tally-category-list__icon" style={{ color: category.color, background: category.background }}>
-                <CategoryIcon name={category.icon} size={27} color="currentColor" />
-              </span>
-              <span>{category.label}</span>
-              <ChevronRight aria-hidden="true" size={20} strokeWidth={1.8} />
-            </button>
-          ))}
-        </section>
+        {error && <p className="tally-status tally-status--error" role="alert">{error}</p>}
+        {loading && <p className="tally-status">正在加载分类…</p>}
+        {!loading && !error && categories.length === 0 && <p className="tally-status">暂无可用分类</p>}
+        {!loading && categories.length > 0 && (
+          <section className="tally-category-list" aria-label={`${visibleType === 'income' ? '收入' : '支出'}分类`}>
+            {categories.map((category) => (
+              <button
+                className={selected?.id === category.id ? 'is-selected' : undefined}
+                key={category.id}
+                type="button"
+                onClick={() => onSelect(category)}
+              >
+                <span className="tally-category-list__icon">
+                  <CategoryVisual category={category} />
+                </span>
+                <span>{category.label}</span>
+                <ChevronRight aria-hidden="true" size={20} strokeWidth={1.8} />
+              </button>
+            ))}
+          </section>
+        )}
       </div>
     </main>
   )
@@ -218,19 +312,75 @@ export function TallyPage() {
   const location = useLocation()
   const toast = useToast()
   const dateInputRef = useRef<HTMLInputElement>(null)
+  const savingRef = useRef(false)
   const [type, setType] = useState<TallyType>('expense')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<Category>()
-  const [account, setAccount] = useState<string>()
-  const [dateTime, setDateTime] = useState('2025-09-05T09:41')
+  const [account, setAccount] = useState<LedgerAccount>()
+  const [targetAccount, setTargetAccount] = useState<LedgerAccount>()
+  const [dateTime, setDateTime] = useState(getCurrentDateTime)
   const [note, setNote] = useState('')
-  const [isAccountOpen, setIsAccountOpen] = useState(false)
+  const [accounts, setAccounts] = useState<LedgerAccount[]>([])
+  const [expenseCategories, setExpenseCategories] = useState<Category[]>([])
+  const [incomeCategories, setIncomeCategories] = useState<Category[]>([])
+  const [isLoadingResources, setIsLoadingResources] = useState(true)
+  const [accountError, setAccountError] = useState<string>()
+  const [expenseCategoryError, setExpenseCategoryError] = useState<string>()
+  const [incomeCategoryError, setIncomeCategoryError] = useState<string>()
+  const [accountPicker, setAccountPicker] = useState<AccountPicker>()
+  const [isSaving, setIsSaving] = useState(false)
 
   const isCategoryPage = location.pathname.endsWith('/category')
+
+  useEffect(() => {
+    let active = true
+
+    async function loadResources() {
+      const [accountsResult, expenseResult, incomeResult] = await Promise.allSettled([
+        fetchAccounts(),
+        fetchCategories(1),
+        fetchCategories(2),
+      ])
+
+      if (!active) return
+
+      const errors: string[] = []
+      if (accountsResult.status === 'fulfilled') {
+        setAccounts(accountsResult.value.filter((item) => item.isEnabled))
+      } else {
+        const message = `账户加载失败：${getErrorMessage(accountsResult.reason, '请稍后重试')}`
+        setAccountError(message)
+        errors.push(message)
+      }
+      if (expenseResult.status === 'fulfilled') {
+        setExpenseCategories(flattenCategories(expenseResult.value))
+      } else {
+        const message = `支出分类加载失败：${getErrorMessage(expenseResult.reason, '请稍后重试')}`
+        setExpenseCategoryError(message)
+        errors.push(message)
+      }
+      if (incomeResult.status === 'fulfilled') {
+        setIncomeCategories(flattenCategories(incomeResult.value))
+      } else {
+        const message = `收入分类加载失败：${getErrorMessage(incomeResult.reason, '请稍后重试')}`
+        setIncomeCategoryError(message)
+        errors.push(message)
+      }
+
+      setIsLoadingResources(false)
+      if (errors.length > 0) toast.error(errors.join('；'), { duration: 5000 })
+    }
+
+    void loadResources()
+    return () => {
+      active = false
+    }
+  }, [toast])
 
   const handleTypeChange = (nextType: TallyType) => {
     setType(nextType)
     setCategory(undefined)
+    setTargetAccount(undefined)
   }
 
   const handleAmountInput = (key: string) => {
@@ -246,27 +396,74 @@ export function TallyPage() {
     })
   }
 
-  const handleSave = () => {
-    if (!amount || Number(amount) <= 0) {
+  const handleSave = async () => {
+    if (savingRef.current) return
+
+    const cents = amountToCents(amount)
+    if (!cents) {
       toast.info('请输入记账金额')
       return
     }
-    if (!category) {
+    if (!account) {
+      toast.info(type === 'transfer' ? '请选择转出账户' : '请选择账户')
+      return
+    }
+    if (type === 'transfer') {
+      if (!targetAccount) {
+        toast.info('请选择转入账户')
+        return
+      }
+      if (account.id === targetAccount.id) {
+        toast.info('转出和转入账户不能相同')
+        return
+      }
+    } else if (!category) {
       toast.info('请选择分类')
       return
     }
-    if (!account) {
-      toast.info('请选择账户')
+
+    const transactionDate = new Date(dateTime)
+    if (Number.isNaN(transactionDate.getTime())) {
+      toast.info('请选择有效的交易时间')
       return
     }
-    toast.success('记账成功')
-    navigate('/home')
+
+    savingRef.current = true
+    setIsSaving(true)
+    try {
+      const relatedResource = type === 'transfer'
+        ? { targetAccountId: targetAccount!.id }
+        : { categoryId: category!.id }
+      await createTransaction({
+        transactionType: type === 'expense' ? 1 : type === 'income' ? 2 : 3,
+        amount: cents,
+        ...relatedResource,
+        accountId: account.id,
+        currency: 'CNY',
+        transactionTime: transactionDate.toISOString(),
+        remark: note.trim() || undefined,
+      })
+      toast.success('记账成功')
+      navigate('/home')
+    } catch (error) {
+      toast.error(getErrorMessage(error, '记账失败，请稍后重试'), { duration: 5000 })
+    } finally {
+      savingRef.current = false
+      setIsSaving(false)
+    }
   }
 
   if (isCategoryPage) {
+    const visibleType = type === 'income' ? 'income' : 'expense'
+    const categories = visibleType === 'income' ? incomeCategories : expenseCategories
+    const categoryError = visibleType === 'income' ? incomeCategoryError : expenseCategoryError
+
     return (
       <CategoryPage
         type={type}
+        categories={categories}
+        loading={isLoadingResources}
+        error={categoryError}
         selected={category}
         onTypeChange={handleTypeChange}
         onBack={() => navigate('/tally')}
@@ -281,6 +478,7 @@ export function TallyPage() {
   const formattedDate = dateTime
     ? dateTime.replace(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/, '$1年$2月$3日  $4:$5')
     : '请选择'
+  const accountValue = account?.name ?? (isLoadingResources ? '加载中…' : accountError ? '加载失败' : '暂无可用账户')
 
   return (
     <main className="tally-page tally-entry-page">
@@ -290,30 +488,45 @@ export function TallyPage() {
         <AmountEditor amount={amount} onClear={() => setAmount('')} />
 
         <section className="tally-form" aria-label="记账信息">
-          <FormRow
-            icon={<LayoutList size={23} strokeWidth={1.8} />}
-            label="分类"
-            value={category?.label ?? '请选择'}
-            muted={!category}
-            onClick={() => navigate('/tally/category')}
-          />
+          {type !== 'transfer' && (
+            <FormRow
+              icon={<LayoutList size={23} strokeWidth={1.8} />}
+              label="分类"
+              value={category?.label ?? (isLoadingResources ? '加载中…' : '请选择')}
+              muted={!category}
+              disabled={isSaving}
+              onClick={() => navigate('/tally/category')}
+            />
+          )}
           <FormRow
             icon={<WalletCards size={23} strokeWidth={1.8} />}
-            label="账户"
-            value={account ?? '请选择'}
+            label={type === 'transfer' ? '转出账户' : '账户'}
+            value={accountValue}
             muted={!account}
-            onClick={() => setIsAccountOpen(true)}
+            disabled={isSaving}
+            onClick={() => setAccountPicker('account')}
           />
+          {type === 'transfer' && (
+            <FormRow
+              icon={<WalletCards size={23} strokeWidth={1.8} />}
+              label="转入账户"
+              value={targetAccount?.name ?? (isLoadingResources ? '加载中…' : '请选择')}
+              muted={!targetAccount}
+              disabled={isSaving}
+              onClick={() => setAccountPicker('target')}
+            />
+          )}
           <FormRow
             icon={<CalendarDays size={23} strokeWidth={1.8} />}
             label="时间"
             value={formattedDate}
+            disabled={isSaving}
             onClick={() => dateInputRef.current?.showPicker()}
           />
           <label className="tally-form-row tally-note-row">
             <span className="tally-form-row__icon"><NotebookPen size={23} strokeWidth={1.8} /></span>
             <span className="tally-form-row__label">备注</span>
-            <input aria-label="备注" placeholder="添加备注（选填）" value={note} onChange={(event) => setNote(event.target.value)} />
+            <input aria-label="备注" disabled={isSaving} placeholder="添加备注（选填）" value={note} onChange={(event) => setNote(event.target.value)} />
           </label>
           <input
             className="tally-date-input"
@@ -328,17 +541,28 @@ export function TallyPage() {
       </div>
 
       <footer className="tally-entry-footer">
-        <NumericKeyboard onInput={handleAmountInput} onDelete={() => setAmount((current) => current.slice(0, -1))} />
-        <button className="tally-save" type="button" onClick={handleSave}>保存</button>
+        <NumericKeyboard
+          disabled={isSaving}
+          onInput={handleAmountInput}
+          onDelete={() => setAmount((current) => current.slice(0, -1))}
+        />
+        <button className="tally-save" disabled={isSaving} type="button" onClick={() => void handleSave()}>
+          {isSaving ? '保存中…' : '保存'}
+        </button>
       </footer>
 
-      {isAccountOpen && (
+      {accountPicker && (
         <AccountSheet
-          selected={account}
-          onClose={() => setIsAccountOpen(false)}
+          accounts={accounts}
+          loading={isLoadingResources}
+          selected={accountPicker === 'account' ? account : targetAccount}
+          excludeId={type === 'transfer' ? (accountPicker === 'account' ? targetAccount?.id : account?.id) : undefined}
+          title={accountPicker === 'target' ? '选择转入账户' : '选择账户'}
+          onClose={() => setAccountPicker(undefined)}
           onSelect={(nextAccount) => {
-            setAccount(nextAccount)
-            setIsAccountOpen(false)
+            if (accountPicker === 'target') setTargetAccount(nextAccount)
+            else setAccount(nextAccount)
+            setAccountPicker(undefined)
           }}
         />
       )}

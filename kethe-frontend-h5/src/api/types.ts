@@ -77,3 +77,49 @@ export interface AttachUploadResult {
   originName: string
   url: string
 }
+
+export interface LedgerAccount {
+  id: string
+  userId: number
+  name: string
+  accountType: number
+  icon: string | null
+  systemKey: string | null
+  isSystemDefault: boolean
+  currency: string
+  initialBalance: string
+  currentBalance: string
+  includeInAssets: boolean
+  sortOrder: number
+  isEnabled: boolean
+  remark: string | null
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+}
+
+export interface LedgerCategory {
+  id: string
+  categoryType: 1 | 2
+  parentId: string | null
+  name: string
+  iconId: string | null
+  systemKey: string | null
+  isSystemDefault: boolean
+  sortOrder: number
+  isEnabled: boolean
+  iconKey: string | null
+  svgContent: string | null
+  children: LedgerCategory[]
+}
+
+export interface CreateTransactionPayload {
+  transactionType: 1 | 2 | 3
+  amount: string
+  categoryId?: string
+  accountId: string
+  targetAccountId?: string
+  currency: 'CNY'
+  transactionTime: string
+  remark?: string
+}

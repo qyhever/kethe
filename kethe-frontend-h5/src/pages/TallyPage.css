@@ -52,7 +52,7 @@
 
 .tally-segment {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 2px;
   height: 52px;
   margin-top: 4px;
@@ -163,6 +163,11 @@ button.tally-form-row:hover {
 
 button.tally-form-row:active {
   transform: scale(0.992);
+}
+
+button.tally-form-row:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .tally-form-row__icon {
@@ -279,6 +284,9 @@ button.tally-form-row:active {
 }
 
 .tally-keyboard .tally-keyboard__delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #e9edf2;
 }
 
@@ -361,6 +369,33 @@ button.tally-form-row:active {
   width: 48px;
   height: 48px;
   border-radius: 50%;
+  color: #347df0;
+  background: #e7f0ff;
+}
+
+.tally-category-list__svg-icon {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+}
+
+.tally-category-list__svg-icon > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tally-status {
+  margin: 18px 0 0;
+  color: #7c8797;
+  font-size: 16px;
+  text-align: center;
+}
+
+.tally-status--error {
+  color: #d04456;
+  text-align: left;
 }
 
 .account-sheet {
@@ -416,6 +451,17 @@ button.tally-form-row:active {
 
 .account-sheet section > button.is-selected {
   color: var(--tally-blue);
+}
+
+.account-sheet section > button:disabled {
+  color: #a5acb7;
+  cursor: not-allowed;
+}
+
+.account-sheet__hint {
+  color: #a5acb7;
+  font-size: 13px;
+  text-align: right;
 }
 
 @keyframes tally-caret {
