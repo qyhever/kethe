@@ -1,5 +1,5 @@
-@baseUrl = http://localhost:3000/api
-@token = replace-with-access-token
+@baseUrl = http://localhost:6308/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjE0LCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiMWE0NzdkYTAtNGUxNC00N2Y0LWI5OTItMzAzMWQxYWIwOTVmIiwiaWF0IjoxNzg4NzQ4ODczLCJleHAiOjE3ODg3NTYwNzMsImlzcyI6ImtldGhlIn0.HR6jjR7OACYyCUIGGTTj831UYatDkfnJS89a5ctbA_k
 @categoryId = 1
 @accountId = 1
 @transactionId = 1
