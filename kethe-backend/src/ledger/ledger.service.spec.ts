@@ -92,4 +92,103 @@ describe('LedgerService 流水视图', () => {
     expect(queryBuilder.limit).toHaveBeenCalledWith(10)
     expect(queryBuilder.getRawMany).toHaveBeenCalledTimes(1)
   })
+
+  it.each([
+    ['38', '3800'],
+    ['38.00', '3800'],
+    ['38.5', '3850'],
+    ['0.05', '5'],
+  ])('将金额关键词 %s 从元转换为分', (keyword, expectedAmount) => {
+    const queryBuilder = {
+      leftJoin: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+    }
+    const manager = {
+      getRepository: jest.fn().mockReturnValue({
+        createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+      }),
+    }
+
+    createService().transactionQuery(manager as never, 14, {
+      keyword,
+    } as never)
+
+    expect(queryBuilder.andWhere).toHaveBeenLastCalledWith(
+      expect.stringContaining('t.amount = :keywordAmount'),
+      { keyword: `%${keyword}%`, keywordAmount: expectedAmount },
+    )
+  })
+
+  it('应用分页和全部流水筛选条件', async () => {
+    const queryBuilder = {
+      leftJoin: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(0),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      offset: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([]),
+    }
+    const manager = {
+      getRepository: jest.fn().mockReturnValue({
+        createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+      }),
+    }
+    const service = new LedgerService(
+      { manager } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    )
+    const query = {
+      currentPage: 3,
+      pageSize: 20,
+      startTime: '2026-09-01T00:00:00.000Z',
+      endTime: '2026-10-01T00:00:00.000Z',
+      transactionType: 1,
+      categoryId: '10',
+      accountId: '20',
+      minAmount: '100',
+      maxAmount: '5000',
+    }
+
+    await service.listTransactions(14, query)
+
+    expect(queryBuilder.offset).toHaveBeenCalledWith(40)
+    expect(queryBuilder.limit).toHaveBeenCalledWith(20)
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      '(t.categoryId = :categoryId OR c.parentId = :categoryId)',
+      query,
+    )
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      '(t.accountId = :accountId OR t.targetAccountId = :accountId)',
+      query,
+    )
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      't.transactionType = :transactionType',
+      query,
+    )
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      't.transactionTime >= :startTime',
+      { startTime: new Date(query.startTime) },
+    )
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      't.transactionTime < :endTime',
+      { endTime: new Date(query.endTime) },
+    )
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      't.amount >= :minAmount',
+      query,
+    )
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      't.amount <= :maxAmount',
+      query,
+    )
+  })
 })

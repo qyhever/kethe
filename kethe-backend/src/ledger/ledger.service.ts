@@ -416,8 +416,8 @@ export class LedgerService {
     const rows = await qb
       .orderBy('t.transactionTime', 'DESC')
       .addOrderBy('t.id', 'DESC')
-      .skip((query.currentPage - 1) * query.pageSize)
-      .take(query.pageSize)
+      .offset((query.currentPage - 1) * query.pageSize)
+      .limit(query.pageSize)
       .getRawMany<TransactionRow>()
     const { list, groups } = this.transactionListView(rows)
     return {
@@ -541,7 +541,13 @@ export class LedgerService {
     if (query.minAmount) qb.andWhere('t.amount >= :minAmount', query)
     if (query.maxAmount) qb.andWhere('t.amount <= :maxAmount', query)
     if (query.keyword) {
-      const amount = /^[1-9]\d*$/.test(query.keyword) ? query.keyword : null
+      const amountMatch = query.keyword.match(/^(0|[1-9]\d*)(?:\.(\d{1,2}))?$/)
+      const amount = amountMatch
+        ? `${amountMatch[1]}${(amountMatch[2] ?? '').padEnd(2, '0')}`.replace(
+            /^0+(?=\d)/,
+            '',
+          )
+        : null
       qb.andWhere(
         '(t.remark LIKE :keyword OR c.name LIKE :keyword OR p.name LIKE :keyword OR a.name LIKE :keyword OR ta.name LIKE :keyword' +
           (amount ? ' OR t.amount = :keywordAmount)' : ')'),

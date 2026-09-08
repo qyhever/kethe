@@ -71,7 +71,7 @@
 
 .flow-type-tabs {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 9px;
   margin-bottom: 29px;
 }
@@ -209,6 +209,30 @@
 
 .flow-row__value strong { font-family: var(--font-family-display); font-variant-numeric: tabular-nums; }
 .flow-row__value strong.is-income { color: var(--color-success); }
+.flow-row__value strong.is-transfer { color: var(--color-text-secondary); }
+
+.flow-state {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  color: var(--color-text-secondary);
+}
+
+.flow-state--error { align-content: center; gap: 14px; color: var(--color-danger, #dc2626); }
+.flow-state--error p { margin: 0; text-align: center; }
+.flow-state--error button,
+.flow-load-more button,
+.filter-options-state button { display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: var(--radius-full); color: var(--flow-blue); background: var(--color-brand-soft); }
+
+.flow-load-more {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-footnote);
+}
 
 .flow-empty { display: grid; justify-items: center; gap: 10px; padding: 70px 20px; color: var(--color-text-tertiary); }
 .flow-empty p { margin: 0; }
@@ -251,18 +275,25 @@
 .filter-field__title svg { flex: 0 0 auto; color: var(--color-text-primary); }
 .filter-field__title strong { font-size: var(--font-size-callout); font-weight: var(--font-weight-semibold); }
 
-.filter-field--date .filter-field__title { display: grid; grid-template-columns: 28px minmax(0, 1fr) 20px; }
-.filter-field--date .filter-field__title div { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
-.filter-field--date .filter-field__title span { color: var(--color-text-secondary); font-size: var(--font-size-subheadline); white-space: nowrap; }
-.filter-field--date .filter-field__title > svg:last-child { color: var(--color-text-tertiary); }
+.filter-date-inputs { display: grid; grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr); align-items: end; gap: 6px; margin-top: 16px; }
+.filter-date-inputs label { display: grid; min-width: 0; gap: 6px; color: var(--color-text-secondary); font-size: 12px; }
+.filter-date-inputs input,
+.filter-field--select select { min-width: 0; height: 46px; padding: 0 9px; border: 0; border-radius: var(--radius-md); outline: 0; color: var(--color-text-primary); background: var(--color-fill-tertiary); font: inherit; }
+.filter-date-inputs input { width: 100%; }
+.filter-date-inputs input:focus,
+.filter-field--select select:focus { box-shadow: 0 0 0 2px var(--color-focus-ring); }
+.filter-date-inputs > span { padding-bottom: 14px; color: var(--color-text-secondary); text-align: center; }
 
 .filter-type-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin-top: 16px; }
 .filter-type-grid button { min-height: 42px; padding: 0 6px; font-size: var(--font-size-subheadline); }
-.filter-type-grid button:last-child { grid-column: 1; }
+.filter-field--select { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.filter-field--select select { width: min(55%, 230px); text-overflow: ellipsis; }
+.filter-field--select select:disabled { color: var(--color-text-tertiary); opacity: .72; }
 
-.filter-field--link { display: flex; align-items: center; justify-content: space-between; width: 100%; color: inherit; background: transparent; text-align: left; }
-.filter-field--link > span:last-child { display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary); font-size: var(--font-size-subheadline); }
-.filter-field--link > span:last-child svg { color: var(--color-text-tertiary); }
+.filter-options-state { margin: 12px 0 0; color: var(--color-text-secondary); font-size: var(--font-size-footnote); }
+.filter-options-state.is-error { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--color-danger, #dc2626); }
+.filter-options-state button { padding: 6px 11px; }
+
 .filter-field--amount { border-bottom: 0; }
 
 .filter-yen {

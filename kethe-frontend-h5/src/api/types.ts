@@ -167,6 +167,27 @@ export interface LedgerTransaction {
   targetAccountName: string | null
 }
 
+export interface TransactionQuery {
+  currentPage?: number
+  pageSize?: number
+  startTime?: string
+  endTime?: string
+  transactionType?: 1 | 2 | 3
+  categoryId?: string
+  accountId?: string
+  minAmount?: string
+  maxAmount?: string
+  keyword?: string
+}
+
+export interface TransactionPageResult {
+  list: LedgerTransaction[]
+  groups: DashboardTransactionGroup[]
+  total: number
+  currentPage: number
+  pageSize: number
+}
+
 export interface DashboardTransactionGroup {
   date: string
   income: string
