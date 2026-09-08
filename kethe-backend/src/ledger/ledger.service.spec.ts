@@ -69,4 +69,27 @@ describe('LedgerService 流水视图', () => {
       targetAccountId: '11',
     })
   })
+
+  it('最近流水查询只读取指定数量且不统计总数', async () => {
+    const queryBuilder = {
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([]),
+    }
+    const service = createService()
+    jest
+      .spyOn(service, 'transactionQuery')
+      .mockReturnValue(queryBuilder as never)
+
+    await service.listRecentTransactions(14, 10)
+
+    expect(queryBuilder.orderBy).toHaveBeenCalledWith(
+      't.transactionTime',
+      'DESC',
+    )
+    expect(queryBuilder.addOrderBy).toHaveBeenCalledWith('t.id', 'DESC')
+    expect(queryBuilder.limit).toHaveBeenCalledWith(10)
+    expect(queryBuilder.getRawMany).toHaveBeenCalledTimes(1)
+  })
 })

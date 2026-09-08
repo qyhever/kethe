@@ -29,6 +29,7 @@ import './HomePage.css'
 
 const ZONE = 'Asia/Shanghai'
 const DEFAULT_ICON_COLOR = '#64748b'
+const RECENT_TRANSACTION_LIMIT = 10
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
 interface MonthOption {
@@ -132,6 +133,40 @@ function transactionTime(value: string) {
     minute: '2-digit',
     hour12: false,
   }).format(new Date(value))
+}
+
+function limitRecentTransactionGroups(
+  groups: DashboardTransactionGroup[],
+): DashboardTransactionGroup[] {
+  let remaining = RECENT_TRANSACTION_LIMIT
+
+  return groups.flatMap((group) => {
+    if (remaining <= 0) return []
+    const list = group.list.slice(0, remaining)
+    remaining -= list.length
+    if (list.length === group.list.length) return [group]
+
+    const totals = list.reduce(
+      (sum, transaction) => {
+        if (transaction.transactionType === 1) {
+          sum.expense += BigInt(transaction.amount)
+        }
+        if (transaction.transactionType === 2) {
+          sum.income += BigInt(transaction.amount)
+        }
+        return sum
+      },
+      { income: 0n, expense: 0n },
+    )
+    return [
+      {
+        ...group,
+        list,
+        income: totals.income.toString(),
+        expense: totals.expense.toString(),
+      },
+    ]
+  })
 }
 
 function TrendValue({ trend }: { trend: DashboardTrend }) {
@@ -413,6 +448,10 @@ export function HomePage() {
         { label: '本周', ...data.week, icon: CalendarRange },
       ]
     : []
+  const recentGroups = useMemo(
+    () => limitRecentTransactionGroups(data?.recent.groups ?? []),
+    [data],
+  )
 
   return (
     <div className="home-page">
@@ -437,7 +476,7 @@ export function HomePage() {
             <section className="period-grid" aria-label="周期统计">
               {periodSummaries.map((summary) => <PeriodSummaryCard key={summary.label} summary={summary} />)}
             </section>
-            <RecentTransactions groups={data.recent.groups} onViewMore={() => navigate('/flow')} />
+            <RecentTransactions groups={recentGroups} onViewMore={() => navigate('/flow')} />
           </>
         )}
         <div className="home-scroll-spacer" aria-hidden="true" />

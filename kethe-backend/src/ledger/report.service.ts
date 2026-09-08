@@ -18,6 +18,7 @@ dayjs.extend(utc)
 dayjs.extend(timezone)
 dayjs.extend(isoWeek)
 const ZONE = 'Asia/Shanghai'
+const DASHBOARD_RECENT_TRANSACTION_LIMIT = 10
 
 interface SummaryRow {
   income: string | null
@@ -66,9 +67,9 @@ export class ReportService {
       this.summary(userId, previousMonth.start, previousMonth.end),
       this.summary(userId, today.start, today.end),
       this.summary(userId, week.start, week.end),
-      this.ledger.listTransactions(
+      this.ledger.listRecentTransactions(
         userId,
-        Object.assign(new TransactionQueryDto(), { pageSize: 10 }),
+        DASHBOARD_RECENT_TRANSACTION_LIMIT,
       ),
     ])
     return {

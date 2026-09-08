@@ -3,7 +3,7 @@ import { ReportService } from './report.service'
 describe('ReportService dashboard', () => {
   const dataSource = {} as never
   const recent = { list: [], groups: [] }
-  const ledger = { listTransactions: jest.fn().mockResolvedValue(recent) }
+  const ledger = { listRecentTransactions: jest.fn().mockResolvedValue(recent) }
   let service: ReportService
 
   beforeEach(() => {
@@ -49,6 +49,15 @@ describe('ReportService dashboard', () => {
       .calls as Array<[number, Date, Date]>
     expect(calls[0][1].toISOString()).toBe('2025-12-31T16:00:00.000Z')
     expect(calls[1][1].toISOString()).toBe('2025-11-30T16:00:00.000Z')
+  })
+
+  it('首页最近流水只查询最近 10 条', async () => {
+    await dashboard(
+      { income: '8000', expense: '10000' },
+      { income: '4000', expense: '5000' },
+    )
+
+    expect(ledger.listRecentTransactions).toHaveBeenCalledWith(14, 10)
   })
 
   it('计算上涨、下降、持平并保留一位小数', async () => {

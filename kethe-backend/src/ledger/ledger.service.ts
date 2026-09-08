@@ -419,6 +419,30 @@ export class LedgerService {
       .skip((query.currentPage - 1) * query.pageSize)
       .take(query.pageSize)
       .getRawMany<TransactionRow>()
+    const { list, groups } = this.transactionListView(rows)
+    return {
+      list,
+      groups,
+      total,
+      currentPage: query.currentPage,
+      pageSize: query.pageSize,
+    }
+  }
+
+  async listRecentTransactions(userId: number, limit: number) {
+    const rows = await this.transactionQuery(
+      this.dataSource.manager,
+      userId,
+      new TransactionQueryDto(),
+    )
+      .orderBy('t.transactionTime', 'DESC')
+      .addOrderBy('t.id', 'DESC')
+      .limit(limit)
+      .getRawMany<TransactionRow>()
+    return this.transactionListView(rows)
+  }
+
+  private transactionListView(rows: TransactionRow[]) {
     const list = rows.map((row) => this.transactionView(row))
     const groups = new Map<
       string,
@@ -444,9 +468,6 @@ export class LedgerService {
         income: group.income.toString(),
         expense: group.expense.toString(),
       })),
-      total,
-      currentPage: query.currentPage,
-      pageSize: query.pageSize,
     }
   }
 
