@@ -439,6 +439,27 @@ button.tally-form-row:disabled {
   text-align: left;
 }
 
+.tally-detail-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  color: #d04456;
+}
+
+.tally-detail-error p {
+  margin: 0;
+}
+
+.tally-detail-error button {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  color: var(--color-brand);
+  background: var(--color-brand-soft);
+}
+
 .account-sheet {
   position: fixed;
   z-index: var(--z-modal);

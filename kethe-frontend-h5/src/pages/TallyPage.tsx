@@ -11,14 +11,26 @@ import {
 import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { createTransaction, fetchAccounts, fetchCategories } from '../api/ledger'
-import type { LedgerAccount, LedgerCategory } from '../api/types'
+import {
+  createTransaction,
+  fetchAccounts,
+  fetchCategories,
+  fetchTransaction,
+  updateTransaction,
+} from '../api/ledger'
+import type {
+  CreateTransactionPayload,
+  LedgerAccount,
+  LedgerCategory,
+  LedgerTransaction,
+} from '../api/types'
 import { CategoryIcon } from '../components/CategoryIcon/CategoryIcon'
 import { useToast } from '../components/Toast'
 import './TallyPage.css'
 
 type TallyType = 'expense' | 'income' | 'transfer'
 type AccountPicker = 'account' | 'target'
+type AccountOption = Pick<LedgerAccount, 'id' | 'name'>
 
 interface Category {
   id: string
@@ -46,6 +58,21 @@ function getCurrentDateTime() {
     `${now.getFullYear()}-${padTimePart(now.getMonth() + 1)}-${padTimePart(now.getDate())}`,
     `${padTimePart(now.getHours())}:${padTimePart(now.getMinutes())}`,
   ].join('T')
+}
+
+function toLocalDateTime(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return [
+    `${date.getFullYear()}-${padTimePart(date.getMonth() + 1)}-${padTimePart(date.getDate())}`,
+    `${padTimePart(date.getHours())}:${padTimePart(date.getMinutes())}`,
+  ].join('T')
+}
+
+function centsToAmount(value: string) {
+  if (!/^\d+$/.test(value)) return ''
+  const cents = BigInt(value)
+  return `${cents / 100n}.${(cents % 100n).toString().padStart(2, '0')}`
 }
 
 function normalizeCategories(items: LedgerCategory[]): Category[] {
@@ -78,6 +105,16 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback
 }
 
+function findCategory(items: Category[], id: string | null) {
+  if (!id) return undefined
+  for (const item of items) {
+    if (item.id === id) return item
+    const child = item.children.find((candidate) => candidate.id === id)
+    if (child) return child
+  }
+  return undefined
+}
+
 function amountToCents(value: string) {
   const normalized = value.trim()
   if (!/^\d+(?:\.\d{0,2})?$/.test(normalized)) return null
@@ -90,10 +127,12 @@ function amountToCents(value: string) {
 function TypeSegment({
   value,
   compact = false,
+  disabled = false,
   onChange,
 }: {
   value: TallyType
   compact?: boolean
+  disabled?: boolean
   onChange: (value: TallyType) => void
 }) {
   const items = compact ? tallyTypes.slice(0, 2) : tallyTypes
@@ -105,6 +144,7 @@ function TypeSegment({
           className={value === item.id ? 'is-active' : undefined}
           key={item.id}
           type="button"
+          disabled={disabled}
           role="tab"
           aria-selected={value === item.id}
           onClick={() => onChange(item.id)}
@@ -128,14 +168,22 @@ function TallyHeader({ title, onBack }: { title: string; onBack: () => void }) {
   )
 }
 
-function AmountEditor({ amount, onClear }: { amount: string; onClear: () => void }) {
+function AmountEditor({
+  amount,
+  disabled = false,
+  onClear,
+}: {
+  amount: string
+  disabled?: boolean
+  onClear: () => void
+}) {
   return (
     <div className="tally-amount" aria-live="polite" aria-label={`金额 ${amount || '0.00'} 元`}>
       <span className="tally-amount__currency">¥</span>
       <span className="tally-amount__caret" aria-hidden="true" />
       <strong className={amount ? 'has-value' : undefined}>{amount || '0.00'}</strong>
       {amount && (
-        <button type="button" aria-label="清空金额" onClick={onClear}>
+        <button disabled={disabled} type="button" aria-label="清空金额" onClick={onClear}>
           <X aria-hidden="true" size={14} strokeWidth={3} />
         </button>
       )}
@@ -208,7 +256,7 @@ function AccountSheet({
 }: {
   accounts: LedgerAccount[]
   loading: boolean
-  selected?: LedgerAccount
+  selected?: AccountOption
   excludeId?: string
   title: string
   onSelect: (account: LedgerAccount) => void
@@ -262,6 +310,7 @@ function CategoryPage({
   categories,
   loading,
   error,
+  disabled,
   selected,
   onTypeChange,
   onSelect,
@@ -271,6 +320,7 @@ function CategoryPage({
   categories: Category[]
   loading: boolean
   error?: string
+  disabled?: boolean
   selected?: Category
   onTypeChange: (value: TallyType) => void
   onSelect: (category: Category) => void
@@ -301,7 +351,7 @@ function CategoryPage({
     <main className="tally-page tally-category-page">
       <div className="tally-page__content">
         <TallyHeader title="选择分类" onBack={onBack} />
-        <TypeSegment compact value={visibleType} onChange={onTypeChange} />
+        <TypeSegment compact disabled={disabled} value={visibleType} onChange={onTypeChange} />
         {error && <p className="tally-status tally-status--error" role="alert">{error}</p>}
         {loading && <p className="tally-status">正在加载分类…</p>}
         {!loading && !error && categories.length === 0 && <p className="tally-status">暂无可用分类</p>}
@@ -319,6 +369,7 @@ function CategoryPage({
                   <button
                     className={`tally-category-list__parent${selected?.id === category.id ? ' is-selected' : ''}`}
                     type="button"
+                    disabled={disabled}
                     aria-expanded={hasChildren ? isExpanded : undefined}
                     onClick={() => handleParentClick(category)}
                   >
@@ -335,6 +386,7 @@ function CategoryPage({
                           className={selected?.id === child.id ? 'is-selected' : undefined}
                           key={child.id}
                           type="button"
+                          disabled={disabled}
                           onClick={() => onSelect(child)}
                         >
                           <span className="tally-category-list__child-mark" style={colorStyle} aria-hidden="true" />
@@ -360,11 +412,30 @@ export function TallyPage() {
   const toast = useToast()
   const dateInputRef = useRef<HTMLInputElement>(null)
   const savingRef = useRef(false)
+  const normalizedPath = location.pathname.replace(/\/$/, '')
+  const isCategoryPage =
+    normalizedPath === '/tally/category' ||
+    /^\/tally\/[^/]+\/category$/.test(normalizedPath)
+  const transactionMatch =
+    normalizedPath === '/tally/category'
+      ? null
+      : normalizedPath.match(/^\/tally\/([^/]+)(?:\/category)?$/)
+  const transactionId = transactionMatch?.[1]
+  const isEditing = transactionId !== undefined
+  const isValidTransactionId = !!transactionId && /^[1-9]\d*$/.test(transactionId)
+  const tallyPath = isEditing ? `/tally/${transactionId}` : '/tally'
+  const routeState = location.state as { returnTo?: unknown } | null
+  const returnTo =
+    routeState?.returnTo === '/flow' || routeState?.returnTo === '/home'
+      ? routeState.returnTo
+      : isEditing
+        ? '/flow'
+        : '/home'
   const [type, setType] = useState<TallyType>('expense')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<Category>()
-  const [account, setAccount] = useState<LedgerAccount>()
-  const [targetAccount, setTargetAccount] = useState<LedgerAccount>()
+  const [account, setAccount] = useState<AccountOption>()
+  const [targetAccount, setTargetAccount] = useState<AccountOption>()
   const [dateTime, setDateTime] = useState(getCurrentDateTime)
   const [note, setNote] = useState('')
   const [accounts, setAccounts] = useState<LedgerAccount[]>([])
@@ -376,8 +447,11 @@ export function TallyPage() {
   const [incomeCategoryError, setIncomeCategoryError] = useState<string>()
   const [accountPicker, setAccountPicker] = useState<AccountPicker>()
   const [isSaving, setIsSaving] = useState(false)
-
-  const isCategoryPage = location.pathname.endsWith('/category')
+  const [transaction, setTransaction] = useState<LedgerTransaction>()
+  const [isLoadingDetail, setIsLoadingDetail] = useState(isEditing)
+  const [detailError, setDetailError] = useState<string>()
+  const [detailRetryKey, setDetailRetryKey] = useState(0)
+  const [isDetailHydrated, setIsDetailHydrated] = useState(!isEditing)
 
   useEffect(() => {
     let active = true
@@ -424,6 +498,91 @@ export function TallyPage() {
     }
   }, [toast])
 
+  useEffect(() => {
+    if (!isEditing) return
+
+    setTransaction(undefined)
+    setIsDetailHydrated(false)
+    if (!isValidTransactionId || !transactionId) {
+      setDetailError('无效的流水 ID')
+      setIsLoadingDetail(false)
+      return
+    }
+
+    let active = true
+    setDetailError(undefined)
+    setIsLoadingDetail(true)
+    fetchTransaction(transactionId)
+      .then((result) => {
+        if (active) setTransaction(result)
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setDetailError(
+            `流水详情加载失败：${getErrorMessage(error, '请稍后重试')}`,
+          )
+      })
+      .finally(() => {
+        if (active) setIsLoadingDetail(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [detailRetryKey, isEditing, isValidTransactionId, transactionId])
+
+  useEffect(() => {
+    if (!transaction || isLoadingResources) return
+
+    const nextType: TallyType =
+      transaction.transactionType === 1
+        ? 'expense'
+        : transaction.transactionType === 2
+          ? 'income'
+          : 'transfer'
+    const categoryItems =
+      nextType === 'income' ? incomeCategories : expenseCategories
+    const matchedCategory = findCategory(categoryItems, transaction.categoryId)
+    const fallbackCategory = transaction.categoryId
+      ? {
+          id: transaction.categoryId,
+          label: transaction.categoryName ?? '未分类',
+          parentId: transaction.parentCategoryId,
+          iconKey: transaction.iconKey,
+          svgContent: transaction.svgContent,
+          iconColor: transaction.iconColor,
+          children: [],
+        }
+      : undefined
+
+    setType(nextType)
+    setAmount(centsToAmount(transaction.amount))
+    setCategory(matchedCategory ?? fallbackCategory)
+    setAccount(
+      accounts.find((item) => item.id === transaction.accountId) ?? {
+        id: transaction.accountId,
+        name: transaction.accountName || '未知账户',
+      },
+    )
+    setTargetAccount(
+      transaction.targetAccountId
+        ? accounts.find((item) => item.id === transaction.targetAccountId) ?? {
+            id: transaction.targetAccountId,
+            name: transaction.targetAccountName || '未知账户',
+          }
+        : undefined,
+    )
+    setDateTime(toLocalDateTime(transaction.transactionTime))
+    setNote(transaction.remark ?? '')
+    setIsDetailHydrated(true)
+  }, [
+    accounts,
+    expenseCategories,
+    incomeCategories,
+    isLoadingResources,
+    transaction,
+  ])
+
   const handleTypeChange = (nextType: TallyType) => {
     setType(nextType)
     setCategory(undefined)
@@ -444,7 +603,7 @@ export function TallyPage() {
   }
 
   const handleSave = async () => {
-    if (savingRef.current) return
+    if (savingRef.current || (isEditing && !isDetailHydrated)) return
 
     const cents = amountToCents(amount)
     if (!cents) {
@@ -481,7 +640,7 @@ export function TallyPage() {
       const relatedResource = type === 'transfer'
         ? { targetAccountId: targetAccount!.id }
         : { categoryId: category!.id }
-      await createTransaction({
+      const payload: CreateTransactionPayload = {
         transactionType: type === 'expense' ? 1 : type === 'income' ? 2 : 3,
         amount: cents,
         ...relatedResource,
@@ -489,18 +648,26 @@ export function TallyPage() {
         currency: 'CNY',
         transactionTime: transactionDate.toISOString(),
         remark: note.trim() || undefined,
-      })
-      toast.success('记账成功')
-      navigate('/home')
+      }
+      if (isEditing) await updateTransaction(transactionId!, payload)
+      else await createTransaction(payload)
+      toast.success(isEditing ? '修改成功' : '记账成功')
+      navigate(returnTo)
     } catch (error) {
-      toast.error(getErrorMessage(error, '记账失败，请稍后重试'), { duration: 5000 })
+      toast.error(
+        getErrorMessage(
+          error,
+          isEditing ? '修改失败，请稍后重试' : '记账失败，请稍后重试',
+        ),
+        { duration: 5000 },
+      )
     } finally {
       savingRef.current = false
       setIsSaving(false)
     }
   }
 
-  if (isCategoryPage) {
+  if (isCategoryPage && (!isEditing || isDetailHydrated)) {
     const visibleType = type === 'income' ? 'income' : 'expense'
     const categories = visibleType === 'income' ? incomeCategories : expenseCategories
     const categoryError = visibleType === 'income' ? incomeCategoryError : expenseCategoryError
@@ -511,12 +678,13 @@ export function TallyPage() {
         categories={categories}
         loading={isLoadingResources}
         error={categoryError}
+        disabled={isEditing && !isDetailHydrated}
         selected={category}
         onTypeChange={handleTypeChange}
-        onBack={() => navigate('/tally')}
+        onBack={() => navigate(tallyPath, { state: location.state })}
         onSelect={(nextCategory) => {
           setCategory(nextCategory)
-          navigate('/tally')
+          navigate(tallyPath, { state: location.state })
         }}
       />
     )
@@ -526,13 +694,29 @@ export function TallyPage() {
     ? dateTime.replace(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/, '$1年$2月$3日  $4:$5')
     : '请选择'
   const accountValue = account?.name ?? (isLoadingResources ? '加载中…' : accountError ? '加载失败' : '暂无可用账户')
+  const isInteractionDisabled =
+    isSaving || (isEditing && !isDetailHydrated)
 
   return (
     <main className="tally-page tally-entry-page">
       <div className="tally-page__content">
-        <TallyHeader title="记一笔" onBack={() => navigate('/home')} />
-        <TypeSegment value={type} onChange={handleTypeChange} />
-        <AmountEditor amount={amount} onClear={() => setAmount('')} />
+        <TallyHeader title={isEditing ? '编辑流水' : '记一笔'} onBack={() => navigate(returnTo)} />
+        <TypeSegment disabled={isInteractionDisabled} value={type} onChange={handleTypeChange} />
+        <AmountEditor amount={amount} disabled={isInteractionDisabled} onClear={() => setAmount('')} />
+
+        {isLoadingDetail && (
+          <p className="tally-status" role="status">正在加载流水详情…</p>
+        )}
+        {detailError && (
+          <div className="tally-detail-error" role="alert">
+            <p>{detailError}</p>
+            {isValidTransactionId && (
+              <button type="button" onClick={() => setDetailRetryKey((key) => key + 1)}>
+                重试
+              </button>
+            )}
+          </div>
+        )}
 
         <section className="tally-form" aria-label="记账信息">
           {type !== 'transfer' && (
@@ -541,8 +725,8 @@ export function TallyPage() {
               label="分类"
               value={category?.label ?? (isLoadingResources ? '加载中…' : '请选择')}
               muted={!category}
-              disabled={isSaving}
-              onClick={() => navigate('/tally/category')}
+              disabled={isInteractionDisabled}
+              onClick={() => navigate(`${tallyPath}/category`, { state: location.state })}
             />
           )}
           <FormRow
@@ -550,7 +734,7 @@ export function TallyPage() {
             label={type === 'transfer' ? '转出账户' : '账户'}
             value={accountValue}
             muted={!account}
-            disabled={isSaving}
+            disabled={isInteractionDisabled}
             onClick={() => setAccountPicker('account')}
           />
           {type === 'transfer' && (
@@ -559,7 +743,7 @@ export function TallyPage() {
               label="转入账户"
               value={targetAccount?.name ?? (isLoadingResources ? '加载中…' : '请选择')}
               muted={!targetAccount}
-              disabled={isSaving}
+              disabled={isInteractionDisabled}
               onClick={() => setAccountPicker('target')}
             />
           )}
@@ -567,19 +751,20 @@ export function TallyPage() {
             icon={<CalendarDays size={23} strokeWidth={1.8} />}
             label="时间"
             value={formattedDate}
-            disabled={isSaving}
+            disabled={isInteractionDisabled}
             onClick={() => dateInputRef.current?.showPicker()}
           />
           <label className="tally-form-row tally-note-row">
             <span className="tally-form-row__icon"><NotebookPen size={23} strokeWidth={1.8} /></span>
             <span className="tally-form-row__label">备注</span>
-            <input aria-label="备注" disabled={isSaving} placeholder="添加备注（选填）" value={note} onChange={(event) => setNote(event.target.value)} />
+            <input aria-label="备注" disabled={isInteractionDisabled} placeholder="添加备注（选填）" value={note} onChange={(event) => setNote(event.target.value)} />
           </label>
           <input
             className="tally-date-input"
             ref={dateInputRef}
             type="datetime-local"
             value={dateTime}
+            disabled={isInteractionDisabled}
             onChange={(event) => setDateTime(event.target.value)}
             tabIndex={-1}
             aria-hidden="true"
@@ -589,11 +774,11 @@ export function TallyPage() {
 
       <footer className="tally-entry-footer">
         <NumericKeyboard
-          disabled={isSaving}
+          disabled={isInteractionDisabled}
           onInput={handleAmountInput}
           onDelete={() => setAmount((current) => current.slice(0, -1))}
         />
-        <button className="tally-save" disabled={isSaving} type="button" onClick={() => void handleSave()}>
+        <button className="tally-save" disabled={isInteractionDisabled} type="button" onClick={() => void handleSave()}>
           {isSaving ? '保存中…' : '保存'}
         </button>
       </footer>

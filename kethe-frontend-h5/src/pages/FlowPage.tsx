@@ -192,7 +192,13 @@ function groupTransactions(items: LedgerTransaction[]) {
   return [...groups.values()]
 }
 
-function TransactionRow({ transaction }: { transaction: LedgerTransaction }) {
+function TransactionRow({
+  transaction,
+  onClick,
+}: {
+  transaction: LedgerTransaction
+  onClick: () => void
+}) {
   const isTransfer = transaction.transactionType === 3
   const category = isTransfer
     ? '转账'
@@ -211,7 +217,7 @@ function TransactionRow({ transaction }: { transaction: LedgerTransaction }) {
         ? '+'
         : ''
   return (
-    <div className="flow-row">
+    <button className="flow-row" type="button" onClick={onClick}>
       <span
         className="flow-row__icon"
         style={{ backgroundColor: transaction.iconColor || DEFAULT_ICON_COLOR }}
@@ -251,7 +257,7 @@ function TransactionRow({ transaction }: { transaction: LedgerTransaction }) {
         </strong>
         <small>{transactionTime(transaction.transactionTime)}</small>
       </span>
-    </div>
+    </button>
   )
 }
 
@@ -749,7 +755,7 @@ export function FlowPage() {
             <button
               type="button"
               aria-label="新增流水"
-              onClick={() => toast.info('记账功能开发中')}
+              onClick={() => navigate('/tally', { state: { returnTo: '/flow' } })}
             >
               <CirclePlus aria-hidden="true" size={29} />
             </button>
@@ -812,6 +818,11 @@ export function FlowPage() {
                       <TransactionRow
                         transaction={transaction}
                         key={transaction.id}
+                        onClick={() =>
+                          navigate(`/tally/${transaction.id}`, {
+                            state: { returnTo: '/flow' },
+                          })
+                        }
                       />
                     ))}
                   </div>
