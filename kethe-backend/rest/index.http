@@ -32,7 +32,7 @@ GET {{baseUrl}}/transactions?currentPage=1&pageSize=20&startTime=2026-09-01T00:0
 Authorization: Bearer {{token}}
 
 ### 首页概览
-GET {{baseUrl}}/dashboard/overview?month=2026-09
+GET {{baseUrl}}/dashboard/overview
 Authorization: Bearer {{token}}
 
 ### 月度趋势

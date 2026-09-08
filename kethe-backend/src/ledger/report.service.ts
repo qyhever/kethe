@@ -39,11 +39,12 @@ export class ReportService {
     private readonly ledger: LedgerService,
   ) {}
 
-  async dashboard(userId: number, query: MonthQueryDto) {
-    const month = this.monthRange(query.month)
+  async dashboard(userId: number) {
+    const currentMonth = dayjs().tz(ZONE).format('YYYY-MM')
+    const month = this.monthRange(currentMonth)
     const previousMonth = this.monthRange(
       dayjs
-        .tz(`${query.month}-01`, ZONE)
+        .tz(`${currentMonth}-01`, ZONE)
         .subtract(1, 'month')
         .format('YYYY-MM'),
     )

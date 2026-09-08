@@ -34,72 +34,6 @@
   line-height: 1;
 }
 
-.month-selector {
-  position: relative;
-}
-
-.month-selector__button {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 54px;
-  padding: 0 18px 0 20px;
-  border: 1px solid #e8edf4;
-  border-radius: 28px;
-  color: #1b2430;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 8px 22px rgba(33, 54, 82, 0.045), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  font-size: 18px;
-  font-weight: 520;
-  letter-spacing: 0.15px;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-}
-
-.month-selector__button:hover,
-.month-selector__button[aria-expanded='true'] {
-  border-color: #c9dbfb;
-  box-shadow: 0 10px 25px rgba(33, 93, 180, 0.09);
-}
-
-.month-selector__button:active {
-  transform: scale(0.98);
-}
-
-.month-selector__menu {
-  position: absolute;
-  z-index: 4;
-  top: calc(100% + 10px);
-  right: 0;
-  width: 174px;
-  padding: 8px;
-  border: 1px solid #ebeff5;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 18px 40px rgba(39, 61, 91, 0.15);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-  animation: month-menu-in 180ms ease-out both;
-}
-
-.month-selector__option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 11px 12px;
-  border-radius: 11px;
-  color: #56606c;
-  background: transparent;
-  font-size: 14px;
-  text-align: left;
-}
-
-.month-selector__option:hover,
-.month-selector__option.is-selected {
-  color: var(--home-blue);
-  background: #f0f6ff;
-}
-
 .overview-card {
   position: relative;
   isolation: isolate;
@@ -395,16 +329,6 @@
   letter-spacing: -0.5px;
 }
 
-.account-filter {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 0 8px 12px;
-  color: #596473;
-  background: transparent;
-  font-size: 16px;
-}
-
 .recent-card__body {
   border-top: 1px solid #f2f4f6;
 }
@@ -477,10 +401,7 @@
 .transaction-row:focus-visible,
 .period-card:focus-visible,
 .recent-card__more:focus-visible,
-.account-filter:focus-visible,
-.overview-card__chart:focus-visible,
-.month-selector__button:focus-visible,
-.month-selector__option:focus-visible {
+.overview-card__chart:focus-visible {
   outline: 2px solid #7eaffb;
   outline-offset: -2px;
 }
@@ -631,28 +552,10 @@
   }
 }
 
-@keyframes month-menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-5px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 @media (max-width: 560px) {
   .home-content {
     padding-right: 16px;
     padding-left: 16px;
-  }
-
-  .month-selector__button {
-    gap: 9px;
-    min-height: 48px;
-    padding: 0 13px 0 15px;
-    font-size: 16px;
   }
 
   .overview-card {
@@ -749,10 +652,6 @@
     font-size: 20px;
   }
 
-  .account-filter {
-    font-size: 14px;
-  }
-
   .transaction-group__header > div {
     gap: 8px;
   }
@@ -812,17 +711,6 @@
     font-size: 34px;
   }
 
-  .month-selector__button {
-    gap: 6px;
-    padding-right: 10px;
-    padding-left: 11px;
-    font-size: 14px;
-  }
-
-  .month-selector__button svg:first-child {
-    width: 19px;
-  }
-
   .overview-card__amount {
     font-size: 36px;
   }
@@ -862,12 +750,10 @@
 @media (prefers-reduced-motion: reduce) {
   .overview-card,
   .period-card,
-  .recent-card,
-  .month-selector__menu {
+  .recent-card {
     animation: none;
   }
 
-  .month-selector__button,
   .overview-card__chart,
   .period-card,
   .transaction-row,

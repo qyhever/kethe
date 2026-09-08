@@ -16,8 +16,8 @@ export class DashboardController {
   constructor(private readonly reports: ReportService) {}
 
   @Get('overview')
-  overview(@Req() request: RequestWithContext, @Query() query: MonthQueryDto) {
-    return this.reports.dashboard(request.user!.id, query)
+  overview(@Req() request: RequestWithContext) {
+    return this.reports.dashboard(request.user!.id)
   }
 }
 

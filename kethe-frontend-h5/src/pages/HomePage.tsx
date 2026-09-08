@@ -1,17 +1,15 @@
 import {
   ArrowDown,
   ArrowUp,
-  CalendarDays,
   CalendarRange,
   ChartNoAxesColumnIncreasing,
-  ChevronDown,
   ChevronRight,
   Minus,
   RefreshCw,
   Sun,
   type LucideIcon,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchDashboardOverview } from '../api/ledger'
 import type {
@@ -32,11 +30,6 @@ const DEFAULT_ICON_COLOR = '#64748b'
 const RECENT_TRANSACTION_LIMIT = 10
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
-interface MonthOption {
-  value: string
-  label: string
-}
-
 interface PeriodSummaryData extends DashboardSummary {
   label: string
   icon: LucideIcon
@@ -52,23 +45,6 @@ function shanghaiDateParts(date = new Date()) {
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? ''
   return { year: get('year'), month: get('month'), day: get('day') }
-}
-
-function currentMonth() {
-  const parts = shanghaiDateParts()
-  return `${parts.year}-${parts.month}`
-}
-
-function createMonthOptions(): MonthOption[] {
-  const [year, month] = currentMonth().split('-').map(Number)
-  return Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(Date.UTC(year, month - 1 - index, 1))
-    const value = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
-    return {
-      value,
-      label: `${date.getUTCFullYear()} 年 ${date.getUTCMonth() + 1} 月`,
-    }
-  })
 }
 
 function formatCents(value: string) {
@@ -192,73 +168,6 @@ function TrendValue({ trend }: { trend: DashboardTrend }) {
   )
 }
 
-function MonthSelector({
-  options,
-  value,
-  onChange,
-}: {
-  options: MonthOption[]
-  value: string
-  onChange: (value: string) => void
-}) {
-  const [isOpen, setIsOpen] = useState(false)
-  const selectorRef = useRef<HTMLDivElement>(null)
-  const selectedLabel =
-    options.find((option) => option.value === value)?.label ?? value
-
-  useEffect(() => {
-    if (!isOpen) return
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!selectorRef.current?.contains(event.target as Node)) setIsOpen(false)
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false)
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isOpen])
-
-  return (
-    <div className="month-selector" ref={selectorRef}>
-      <button
-        className="month-selector__button"
-        type="button"
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        onClick={() => setIsOpen((open) => !open)}
-      >
-        <CalendarDays aria-hidden="true" size={22} strokeWidth={2.1} />
-        <span>{selectedLabel}</span>
-        <ChevronDown aria-hidden="true" size={20} strokeWidth={2.2} />
-      </button>
-      {isOpen && (
-        <div className="month-selector__menu" role="listbox" aria-label="选择月份">
-          {options.map((option) => (
-            <button
-              className={`month-selector__option${option.value === value ? ' is-selected' : ''}`}
-              key={option.value}
-              type="button"
-              role="option"
-              aria-selected={option.value === value}
-              onClick={() => {
-                onChange(option.value)
-                setIsOpen(false)
-              }}
-            >
-              {option.label}
-              {option.value === value && <span aria-hidden="true">✓</span>}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function MonthlyOverview({ data }: { data: DashboardOverview['month'] }) {
   return (
     <section className="overview-card" aria-labelledby="overview-title">
@@ -376,10 +285,6 @@ function RecentTransactions({
     <section className="recent-card" aria-labelledby="recent-title">
       <header className="recent-card__header">
         <h2 id="recent-title">最近流水</h2>
-        <button className="account-filter" type="button" aria-label="筛选账户">
-          <span>全部账户</span>
-          <ChevronDown aria-hidden="true" size={18} strokeWidth={2.2} />
-        </button>
       </header>
       <div className="recent-card__body">
         {groups.length ? (
@@ -398,31 +303,26 @@ function RecentTransactions({
 
 export function HomePage() {
   const navigate = useNavigate()
-  const options = useMemo(createMonthOptions, [])
-  const [selectedMonth, setSelectedMonth] = useState(options[0].value)
   const [data, setData] = useState<DashboardOverview | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
   const toast = useToast()
 
-  const load = useCallback(
-    (signal: AbortSignal) => {
-      setLoading(true)
-      setError(null)
-      setData(null)
-      fetchDashboardOverview(selectedMonth, signal)
-        .then(setData)
-        .catch((reason: unknown) => {
-          if (signal.aborted) return
-          setError(reason instanceof Error ? reason.message : '首页数据加载失败')
-        })
-        .finally(() => {
-          if (!signal.aborted) setLoading(false)
-        })
-    },
-    [selectedMonth],
-  )
+  const load = useCallback((signal: AbortSignal) => {
+    setLoading(true)
+    setError(null)
+    setData(null)
+    fetchDashboardOverview(signal)
+      .then(setData)
+      .catch((reason: unknown) => {
+        if (signal.aborted) return
+        setError(reason instanceof Error ? reason.message : '首页数据加载失败')
+      })
+      .finally(() => {
+        if (!signal.aborted) setLoading(false)
+      })
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -456,10 +356,7 @@ export function HomePage() {
   return (
     <div className="home-page">
       <main className="home-content">
-        <Navbar
-          title="首页"
-          right={<MonthSelector options={options} value={selectedMonth} onChange={setSelectedMonth} />}
-        />
+        <Navbar title="首页" />
         {loading && <div className="home-state" role="status">正在加载首页数据…</div>}
         {!loading && error && (
           <div className="home-state home-state--error" role="alert">

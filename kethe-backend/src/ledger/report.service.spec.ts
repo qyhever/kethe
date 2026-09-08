@@ -7,8 +7,13 @@ describe('ReportService dashboard', () => {
   let service: ReportService
 
   beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-15T04:00:00.000Z'))
     jest.clearAllMocks()
     service = new ReportService(dataSource, ledger as never)
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
   async function dashboard(
@@ -26,7 +31,7 @@ describe('ReportService dashboard', () => {
       .mockResolvedValueOnce(previous)
       .mockResolvedValueOnce({ income: '300', expense: '100' })
       .mockResolvedValueOnce({ income: '900', expense: '400' })
-    return service.dashboard(14, { month: '2026-01' })
+    return service.dashboard(14)
   }
 
   it('返回月度汇总、负结余及跨年上月环比', async () => {

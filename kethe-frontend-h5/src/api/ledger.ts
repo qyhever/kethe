@@ -18,6 +18,6 @@ export function createTransaction(payload: CreateTransactionPayload) {
   return post('/transactions', payload)
 }
 
-export function fetchDashboardOverview(month: string, signal?: AbortSignal) {
-  return get<DashboardOverview>('/dashboard/overview', { month }, { signal })
+export function fetchDashboardOverview(signal?: AbortSignal) {
+  return get<DashboardOverview>('/dashboard/overview', undefined, { signal })
 }
