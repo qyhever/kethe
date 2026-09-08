@@ -24,6 +24,13 @@ interface SummaryRow {
   expense: string | null
 }
 
+type Summary = { income: string; expense: string }
+
+export interface Trend {
+  direction: 'up' | 'down' | 'flat' | null
+  percentage: number | null
+}
+
 @Injectable()
 export class ReportService {
   constructor(
@@ -33,6 +40,12 @@ export class ReportService {
 
   async dashboard(userId: number, query: MonthQueryDto) {
     const month = this.monthRange(query.month)
+    const previousMonth = this.monthRange(
+      dayjs
+        .tz(`${query.month}-01`, ZONE)
+        .subtract(1, 'month')
+        .format('YYYY-MM'),
+    )
     const now = dayjs().tz(ZONE)
     const today = this.range(
       now.startOf('day'),
@@ -42,19 +55,27 @@ export class ReportService {
       now.startOf('isoWeek'),
       now.startOf('isoWeek').add(1, 'week'),
     )
-    const [monthSummary, todaySummary, weekSummary, recent] = await Promise.all(
-      [
-        this.summary(userId, month.start, month.end),
-        this.summary(userId, today.start, today.end),
-        this.summary(userId, week.start, week.end),
-        this.ledger.listTransactions(
-          userId,
-          Object.assign(new TransactionQueryDto(), { pageSize: 10 }),
-        ),
-      ],
-    )
+    const [
+      monthSummary,
+      previousMonthSummary,
+      todaySummary,
+      weekSummary,
+      recent,
+    ] = await Promise.all([
+      this.summary(userId, month.start, month.end),
+      this.summary(userId, previousMonth.start, previousMonth.end),
+      this.summary(userId, today.start, today.end),
+      this.summary(userId, week.start, week.end),
+      this.ledger.listTransactions(
+        userId,
+        Object.assign(new TransactionQueryDto(), { pageSize: 10 }),
+      ),
+    ])
     return {
-      month: this.withBalance(monthSummary),
+      month: {
+        ...this.withBalance(monthSummary),
+        trends: this.summaryTrends(monthSummary, previousMonthSummary),
+      },
       today: this.withBalance(todaySummary),
       week: this.withBalance(weekSummary),
       recent: { list: recent.list, groups: recent.groups },
@@ -251,6 +272,43 @@ export class ReportService {
     return {
       ...summary,
       balance: (BigInt(summary.income) - BigInt(summary.expense)).toString(),
+    }
+  }
+
+  private summaryTrends(current: Summary, previous: Summary) {
+    const currentWithBalance = this.withBalance(current)
+    const previousWithBalance = this.withBalance(previous)
+    return {
+      income: this.calculateTrend(
+        currentWithBalance.income,
+        previousWithBalance.income,
+      ),
+      expense: this.calculateTrend(
+        currentWithBalance.expense,
+        previousWithBalance.expense,
+      ),
+      balance: this.calculateTrend(
+        currentWithBalance.balance,
+        previousWithBalance.balance,
+      ),
+    }
+  }
+
+  private calculateTrend(currentValue: string, previousValue: string): Trend {
+    const current = BigInt(currentValue)
+    const previous = BigInt(previousValue)
+    if (previous === 0n) return { direction: null, percentage: null }
+    if (current === previous) return { direction: 'flat', percentage: 0 }
+
+    const difference = current - previous
+    const denominator = previous < 0n ? -previous : previous
+    const percentageTenths =
+      ((difference < 0n ? -difference : difference) * 1000n +
+        denominator / 2n) /
+      denominator
+    return {
+      direction: difference > 0n ? 'up' : 'down',
+      percentage: Number(percentageTenths) / 10,
     }
   }
 

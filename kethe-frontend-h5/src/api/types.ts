@@ -124,3 +124,62 @@ export interface CreateTransactionPayload {
   transactionTime: string
   remark?: string
 }
+
+export type DashboardTrendDirection = 'up' | 'down' | 'flat' | null
+
+export interface DashboardTrend {
+  direction: DashboardTrendDirection
+  percentage: number | null
+}
+
+export interface DashboardSummary {
+  income: string
+  expense: string
+  balance: string
+}
+
+export interface DashboardMonthSummary extends DashboardSummary {
+  trends: {
+    income: DashboardTrend
+    expense: DashboardTrend
+    balance: DashboardTrend
+  }
+}
+
+export interface LedgerTransaction {
+  id: string
+  transactionType: 1 | 2 | 3
+  amount: string
+  currency: string
+  remark: string | null
+  transactionTime: string
+  createdAt: string
+  categoryId: string | null
+  categoryName: string | null
+  parentCategoryId: string | null
+  parentCategoryName: string | null
+  iconKey: string | null
+  svgContent: string | null
+  iconColor: string | null
+  accountId: string
+  accountName: string
+  targetAccountId: string | null
+  targetAccountName: string | null
+}
+
+export interface DashboardTransactionGroup {
+  date: string
+  income: string
+  expense: string
+  list: LedgerTransaction[]
+}
+
+export interface DashboardOverview {
+  month: DashboardMonthSummary
+  today: DashboardSummary
+  week: DashboardSummary
+  recent: {
+    list: LedgerTransaction[]
+    groups: DashboardTransactionGroup[]
+  }
+}

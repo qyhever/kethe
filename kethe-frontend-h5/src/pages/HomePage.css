@@ -209,6 +209,10 @@
   color: #168560;
 }
 
+.trend-value--flat {
+  color: #697581;
+}
+
 .overview-card__chart {
   display: grid;
   place-items: center;
@@ -550,6 +554,47 @@
 
 .transaction-row__amount--income {
   color: var(--home-blue);
+}
+
+.transaction-row__amount--transfer {
+  color: #596473;
+}
+
+.home-state {
+  display: grid;
+  place-items: center;
+  min-height: 280px;
+  padding: 32px;
+  border: 1px solid #edf0f4;
+  border-radius: 24px;
+  color: #697581;
+  background: rgba(255, 255, 255, 0.92);
+  text-align: center;
+}
+
+.home-state--empty {
+  min-height: 150px;
+  border: 0;
+  border-radius: 0;
+}
+
+.home-state--error {
+  align-content: center;
+  gap: 16px;
+}
+
+.home-state--error p {
+  margin: 0;
+}
+
+.home-state--error button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border-radius: 18px;
+  color: #fff;
+  background: var(--home-blue);
 }
 
 .recent-card__more {

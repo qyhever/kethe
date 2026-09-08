@@ -41,6 +41,7 @@ export type CategoryIconName = keyof typeof iconMap
 
 interface CategoryIconProps {
   name?: CategoryIconName | string
+  svgContent?: string | null
   size?: number
   color?: string
   className?: string
@@ -55,13 +56,12 @@ function getSvgContent(svg: string) {
 
 export function CategoryIcon({
   name = 'other',
+  svgContent,
   size = 40,
   color,
   className,
 }: CategoryIconProps) {
-  const iconSvg =
-    iconMap[name as CategoryIconName] ??
-    iconMap.other
+  const iconSvg = svgContent || iconMap[name as CategoryIconName] || iconMap.other
 
   return (
     <svg

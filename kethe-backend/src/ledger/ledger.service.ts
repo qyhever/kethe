@@ -55,6 +55,9 @@ interface TransactionRow {
   categoryName: string | null
   parentCategoryId: string | null
   parentCategoryName: string | null
+  iconKey: string | null
+  svgContent: string | null
+  iconColor: string | null
   accountId: string
   accountName: string
   targetAccountId: string | null
@@ -469,6 +472,8 @@ export class LedgerService {
       .createQueryBuilder('t')
       .leftJoin(Category, 'c', 'c.id = t.categoryId')
       .leftJoin(Category, 'p', 'p.id = c.parentId')
+      .leftJoin(CategoryIcon, 'ci', 'ci.id = c.iconId')
+      .leftJoin(CategoryIcon, 'pi', 'pi.id = p.iconId')
       .leftJoin(Account, 'a', 'a.id = t.accountId')
       .leftJoin(Account, 'ta', 'ta.id = t.targetAccountId')
       .select([
@@ -483,6 +488,9 @@ export class LedgerService {
         'c.name categoryName',
         'p.id parentCategoryId',
         'p.name parentCategoryName',
+        'COALESCE(ci.iconKey, pi.iconKey) iconKey',
+        'COALESCE(ci.svgContent, pi.svgContent) svgContent',
+        'COALESCE(ci.color, pi.color) iconColor',
         'a.id accountId',
         'a.name accountName',
         'ta.id targetAccountId',
