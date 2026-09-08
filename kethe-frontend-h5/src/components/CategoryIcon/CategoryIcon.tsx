@@ -1,4 +1,5 @@
 
+import type { SVGProps } from 'react'
 import FoodIcon from './icons/food.svg?raw'
 import TransportIcon from './icons/transport.svg?raw'
 import ShoppingIcon from './icons/shopping.svg?raw'
@@ -47,11 +48,50 @@ interface CategoryIconProps {
   className?: string
 }
 
-function getSvgContent(svg: string) {
+type SvgRootProps = Pick<
+  SVGProps<SVGSVGElement>,
+  | 'viewBox'
+  | 'fill'
+  | 'fillRule'
+  | 'clipRule'
+  | 'stroke'
+  | 'strokeWidth'
+  | 'strokeLinecap'
+  | 'strokeLinejoin'
+  | 'strokeMiterlimit'
+  | 'strokeDasharray'
+  | 'strokeDashoffset'
+>
+
+function getSvgAttribute(openTag: string, name: string) {
+  const match = openTag.match(
+    new RegExp(`\\s${name}\\s*=\\s*(["'])(.*?)\\1`, 'i'),
+  )
+  return match?.[2]
+}
+
+function parseSvg(svg: string) {
   const openTagEnd = svg.indexOf('>')
   const closeTagStart = svg.lastIndexOf('</svg>')
+  const openTag = svg.slice(0, openTagEnd + 1)
+  const rootProps: SvgRootProps = {
+    viewBox: getSvgAttribute(openTag, 'viewBox') ?? '0 0 24 24',
+    fill: getSvgAttribute(openTag, 'fill') ?? 'currentColor',
+    fillRule: getSvgAttribute(openTag, 'fill-rule') as SvgRootProps['fillRule'],
+    clipRule: getSvgAttribute(openTag, 'clip-rule') as SvgRootProps['clipRule'],
+    stroke: getSvgAttribute(openTag, 'stroke'),
+    strokeWidth: getSvgAttribute(openTag, 'stroke-width'),
+    strokeLinecap: getSvgAttribute(openTag, 'stroke-linecap') as SvgRootProps['strokeLinecap'],
+    strokeLinejoin: getSvgAttribute(openTag, 'stroke-linejoin') as SvgRootProps['strokeLinejoin'],
+    strokeMiterlimit: getSvgAttribute(openTag, 'stroke-miterlimit'),
+    strokeDasharray: getSvgAttribute(openTag, 'stroke-dasharray'),
+    strokeDashoffset: getSvgAttribute(openTag, 'stroke-dashoffset'),
+  }
 
-  return svg.slice(openTagEnd + 1, closeTagStart)
+  return {
+    content: svg.slice(openTagEnd + 1, closeTagStart),
+    rootProps,
+  }
 }
 
 export function CategoryIcon({
@@ -62,18 +102,18 @@ export function CategoryIcon({
   className,
 }: CategoryIconProps) {
   const iconSvg = svgContent || iconMap[name as CategoryIconName] || iconMap.other
+  const { content, rootProps } = parseSvg(iconSvg)
 
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 24 24"
-      fill="none"
+      {...rootProps}
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       color={color}
       aria-hidden="true"
-      dangerouslySetInnerHTML={{ __html: getSvgContent(iconSvg) }}
+      dangerouslySetInnerHTML={{ __html: content }}
     />
   )
 }
