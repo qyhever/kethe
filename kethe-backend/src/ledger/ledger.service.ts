@@ -64,6 +64,13 @@ interface TransactionRow {
   targetAccountName: string | null
 }
 
+interface TransactionSummaryRow {
+  year: string
+  month: string
+  income: string
+  expense: string
+}
+
 @Injectable()
 export class LedgerService {
   constructor(
@@ -411,22 +418,90 @@ export class LedgerService {
   }
 
   async listTransactions(userId: number, query: TransactionQueryDto) {
-    const qb = this.transactionQuery(this.dataSource.manager, userId, query)
-    const total = await qb.getCount()
-    const rows = await qb
+    const listQuery = this.transactionQuery(
+      this.dataSource.manager,
+      userId,
+      query,
+    )
+    const summaryQuery = this.transactionQuery(
+      this.dataSource.manager,
+      userId,
+      query,
+    )
+      .select([
+        "DATE_FORMAT(CONVERT_TZ(t.transactionTime, '+00:00', '+08:00'), '%Y') year",
+        "DATE_FORMAT(CONVERT_TZ(t.transactionTime, '+00:00', '+08:00'), '%Y-%m') month",
+        'COALESCE(SUM(CASE WHEN t.transactionType = 2 THEN t.amount ELSE 0 END), 0) income',
+        'COALESCE(SUM(CASE WHEN t.transactionType = 1 THEN t.amount ELSE 0 END), 0) expense',
+      ])
+      .groupBy(
+        "DATE_FORMAT(CONVERT_TZ(t.transactionTime, '+00:00', '+08:00'), '%Y')",
+      )
+      .addGroupBy(
+        "DATE_FORMAT(CONVERT_TZ(t.transactionTime, '+00:00', '+08:00'), '%Y-%m')",
+      )
+      .orderBy('year', 'DESC')
+      .addOrderBy('month', 'DESC')
+    const [total, summaryRows] = await Promise.all([
+      listQuery.getCount(),
+      summaryQuery.getRawMany<TransactionSummaryRow>(),
+    ])
+    const rows = await listQuery
       .orderBy('t.transactionTime', 'DESC')
       .addOrderBy('t.id', 'DESC')
-      .offset((query.currentPage - 1) * query.pageSize)
-      .limit(query.pageSize)
       .getRawMany<TransactionRow>()
     const { list, groups } = this.transactionListView(rows)
     return {
       list,
       groups,
+      summaries: this.transactionSummaries(summaryRows),
       total,
       currentPage: query.currentPage,
       pageSize: query.pageSize,
     }
+  }
+
+  private transactionSummaries(rows: TransactionSummaryRow[]) {
+    const years = new Map<
+      string,
+      {
+        year: string
+        income: bigint
+        expense: bigint
+        months: Array<{
+          month: string
+          income: string
+          expense: string
+          balance: string
+        }>
+      }
+    >()
+    for (const row of rows) {
+      const income = BigInt(String(row.income))
+      const expense = BigInt(String(row.expense))
+      const year = years.get(row.year) ?? {
+        year: row.year,
+        income: 0n,
+        expense: 0n,
+        months: [],
+      }
+      year.income += income
+      year.expense += expense
+      year.months.push({
+        month: row.month,
+        income: income.toString(),
+        expense: expense.toString(),
+        balance: (income - expense).toString(),
+      })
+      years.set(row.year, year)
+    }
+    return [...years.values()].map((year) => ({
+      year: year.year,
+      income: year.income.toString(),
+      expense: year.expense.toString(),
+      balance: (year.income - year.expense).toString(),
+      months: year.months,
+    }))
   }
 
   async listRecentTransactions(userId: number, limit: number) {

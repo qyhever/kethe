@@ -121,7 +121,7 @@ describe('LedgerService 流水视图', () => {
     )
   })
 
-  it('应用分页和全部流水筛选条件', async () => {
+  it('查询全部流水并应用筛选条件', async () => {
     const queryBuilder = {
       leftJoin: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
@@ -134,9 +134,23 @@ describe('LedgerService 流水视图', () => {
       limit: jest.fn().mockReturnThis(),
       getRawMany: jest.fn().mockResolvedValue([]),
     }
+    const summaryQueryBuilder = {
+      leftJoin: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      addGroupBy: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([]),
+    }
     const manager = {
       getRepository: jest.fn().mockReturnValue({
-        createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+        createQueryBuilder: jest
+          .fn()
+          .mockReturnValueOnce(queryBuilder)
+          .mockReturnValueOnce(summaryQueryBuilder),
       }),
     }
     const service = new LedgerService(
@@ -156,12 +170,13 @@ describe('LedgerService 流水视图', () => {
       accountId: '20',
       minAmount: '100',
       maxAmount: '5000',
+      keyword: '午餐',
     }
 
     await service.listTransactions(14, query)
 
-    expect(queryBuilder.offset).toHaveBeenCalledWith(40)
-    expect(queryBuilder.limit).toHaveBeenCalledWith(20)
+    expect(queryBuilder.offset).not.toHaveBeenCalled()
+    expect(queryBuilder.limit).not.toHaveBeenCalled()
     expect(queryBuilder.andWhere).toHaveBeenCalledWith(
       '(t.categoryId = :categoryId OR c.parentId = :categoryId)',
       query,
@@ -190,5 +205,95 @@ describe('LedgerService 流水视图', () => {
       't.amount <= :maxAmount',
       query,
     )
+    expect(summaryQueryBuilder.andWhere).toHaveBeenCalledWith(
+      '(t.accountId = :accountId OR t.targetAccountId = :accountId)',
+      query,
+    )
+    expect(summaryQueryBuilder.andWhere).toHaveBeenCalledWith(
+      expect.stringContaining('t.remark LIKE :keyword'),
+      { keyword: '%午餐%', keywordAmount: null },
+    )
+    expect(summaryQueryBuilder.andWhere).toHaveBeenCalledTimes(
+      queryBuilder.andWhere.mock.calls.length,
+    )
+    expect(summaryQueryBuilder.offset).toBeUndefined()
+    expect(summaryQueryBuilder.limit).toBeUndefined()
+    expect(summaryQueryBuilder.select).toHaveBeenLastCalledWith(
+      expect.arrayContaining([
+        expect.stringContaining(
+          "CONVERT_TZ(t.transactionTime, '+00:00', '+08:00')",
+        ),
+        expect.stringContaining(
+          'CASE WHEN t.transactionType = 2 THEN t.amount ELSE 0 END',
+        ),
+        expect.stringContaining(
+          'CASE WHEN t.transactionType = 1 THEN t.amount ELSE 0 END',
+        ),
+      ]),
+    )
+  })
+
+  it('按年和月汇总收支，转账不计入收支', () => {
+    const service = createService() as unknown as {
+      transactionSummaries: (
+        rows: Array<{
+          year: string
+          month: string
+          income: string
+          expense: string
+        }>,
+      ) => unknown
+    }
+
+    expect(
+      service.transactionSummaries([
+        { year: '2026', month: '2026-12', income: '12000', expense: '2000' },
+        { year: '2026', month: '2026-11', income: '0', expense: '3500' },
+        { year: '2025', month: '2025-01', income: '800', expense: '0' },
+      ]),
+    ).toEqual([
+      {
+        year: '2026',
+        income: '12000',
+        expense: '5500',
+        balance: '6500',
+        months: [
+          {
+            month: '2026-12',
+            income: '12000',
+            expense: '2000',
+            balance: '10000',
+          },
+          {
+            month: '2026-11',
+            income: '0',
+            expense: '3500',
+            balance: '-3500',
+          },
+        ],
+      },
+      {
+        year: '2025',
+        income: '800',
+        expense: '0',
+        balance: '800',
+        months: [
+          {
+            month: '2025-01',
+            income: '800',
+            expense: '0',
+            balance: '800',
+          },
+        ],
+      },
+    ])
+  })
+
+  it('无匹配流水时返回空汇总', () => {
+    const service = createService() as unknown as {
+      transactionSummaries: (rows: never[]) => unknown
+    }
+
+    expect(service.transactionSummaries([])).toEqual([])
   })
 })

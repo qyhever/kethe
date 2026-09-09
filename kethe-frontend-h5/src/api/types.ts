@@ -183,9 +183,19 @@ export interface TransactionQuery {
 export interface TransactionPageResult {
   list: LedgerTransaction[]
   groups: DashboardTransactionGroup[]
+  summaries: TransactionYearSummary[]
   total: number
   currentPage: number
   pageSize: number
+}
+
+export interface TransactionMonthSummary extends DashboardSummary {
+  month: string
+}
+
+export interface TransactionYearSummary extends DashboardSummary {
+  year: string
+  months: TransactionMonthSummary[]
 }
 
 export interface DashboardTransactionGroup {
