@@ -28,8 +28,18 @@ Content-Type: application/json
 }
 
 ### 流水分页
-GET {{baseUrl}}/transactions?currentPage=1&pageSize=20&startTime=2026-09-01T00:00:00.000Z&endTime=2026-10-01T00:00:00.000Z
+POST {{baseUrl}}/transactions/query
+Content-Type: application/json
 Authorization: Bearer {{token}}
+
+{
+  "currentPage": 1,
+  "pageSize": 20,
+  "startTime": "2026-09-01T00:00:00.000Z",
+  "endTime": "2026-10-01T00:00:00.000Z",
+  "categoryIds": [],
+  "accountIds": []
+}
 
 ### 首页概览
 GET {{baseUrl}}/dashboard/overview

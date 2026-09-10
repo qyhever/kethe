@@ -240,12 +240,14 @@ export class TransactionQueryDto {
   transactionType?: TransactionType
 
   @IsOptional()
-  @Matches(ID_PATTERN)
-  categoryId?: string
+  @IsArray()
+  @Matches(ID_PATTERN, { each: true })
+  categoryIds?: string[]
 
   @IsOptional()
-  @Matches(ID_PATTERN)
-  accountId?: string
+  @IsArray()
+  @Matches(ID_PATTERN, { each: true })
+  accountIds?: string[]
 
   @IsOptional()
   @Matches(AMOUNT_PATTERN)

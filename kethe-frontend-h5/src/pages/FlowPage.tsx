@@ -1,11 +1,14 @@
 import {
   ArrowLeft,
   CalendarDays,
+  Check,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   CirclePlus,
   CreditCard,
   LayoutGrid,
+  Minus,
   RefreshCw,
   Search,
   SlidersHorizontal,
@@ -34,16 +37,10 @@ interface Filters {
   type: FlowType
   startDate: string
   endDate: string
-  categoryId: string
-  accountId: string
+  categoryIds: string[]
+  accountIds: string[]
   minimum: string
   maximum: string
-}
-interface CategoryOption {
-  id: string
-  label: string
-  type: 1 | 2
-  isChild: boolean
 }
 interface FlowMonthGroup {
   month: string
@@ -61,8 +58,8 @@ const EMPTY_FILTERS: Filters = {
   type: 'all',
   startDate: '',
   endDate: '',
-  categoryId: '',
-  accountId: '',
+  categoryIds: [],
+  accountIds: [],
   minimum: '',
   maximum: '',
 }
@@ -158,29 +155,38 @@ function buildQuery(
       : undefined,
     transactionType: flowTypes.find((item) => item.id === filters.type)
       ?.apiValue,
-    categoryId: filters.categoryId || undefined,
-    accountId: filters.accountId || undefined,
+    categoryIds: filters.categoryIds,
+    accountIds: filters.accountIds,
     minAmount: filters.minimum ? yuanToCents(filters.minimum) : undefined,
     maxAmount: filters.maximum ? yuanToCents(filters.maximum) : undefined,
     keyword: keyword || undefined,
   }
 }
 
-function flattenCategories(categories: LedgerCategory[]) {
-  return categories.flatMap<CategoryOption>((category) => [
-    {
-      id: category.id,
-      label: category.name,
-      type: category.categoryType,
-      isChild: false,
-    },
-    ...category.children.map((child) => ({
-      id: child.id,
-      label: child.name,
-      type: child.categoryType,
-      isChild: true,
-    })),
-  ])
+function categoryIds(category: LedgerCategory) {
+  return [category.id, ...category.children.map((child) => child.id)]
+}
+
+function selectedCategoryLabels(
+  selectedIds: string[],
+  categories: LedgerCategory[],
+) {
+  const selected = new Set(selectedIds)
+  return categories.flatMap((category) => {
+    const ids = categoryIds(category)
+    if (ids.every((id) => selected.has(id))) return [category.name]
+    const labels: string[] = []
+    if (selected.has(category.id)) labels.push(category.name)
+    for (const child of category.children) {
+      if (selected.has(child.id)) labels.push(child.name)
+    }
+    return labels
+  })
+}
+
+function selectionSummary(labels: string[], allLabel: string) {
+  if (!labels.length) return allLabel
+  return `${labels.slice(0, 2).join('、')}${labels.length > 2 ? '…' : ''}`
 }
 
 function groupTransactions(items: LedgerTransaction[]) {
@@ -280,7 +286,7 @@ function FilterSheet({
   onRetryOptions,
 }: {
   draft: Filters
-  categories: CategoryOption[]
+  categories: LedgerCategory[]
   accounts: LedgerAccount[]
   optionsLoading: boolean
   optionsError: string | null
@@ -291,34 +297,94 @@ function FilterSheet({
   onRetryOptions: () => void
 }) {
   const sheetRef = useRef<HTMLElement>(null)
+  const [drawer, setDrawer] = useState<'category' | 'account' | null>(null)
+  const [expanded, setExpanded] = useState<Set<string>>(
+    () => new Set(categories.map((category) => category.id)),
+  )
   const selectedApiType = flowTypes.find(
     (item) => item.id === draft.type,
   )?.apiValue
   const visibleCategories = categories.filter(
-    (item) => !selectedApiType || item.type === selectedApiType,
+    (item) => !selectedApiType || item.categoryType === selectedApiType,
   )
+  const categoryLabels = selectedCategoryLabels(
+    draft.categoryIds,
+    visibleCategories,
+  )
+  const accountNames = accounts
+    .filter((account) => draft.accountIds.includes(account.id))
+    .map((account) => account.name)
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     sheetRef.current?.focus()
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        if (drawer) setDrawer(null)
+        else onClose()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [onClose])
+  }, [drawer, onClose])
   const changeType = (type: FlowType) => {
     const apiType = flowTypes.find((item) => item.id === type)?.apiValue
-    const category = categories.find((item) => item.id === draft.categoryId)
-    const categoryId =
-      apiType === 3 || (category && apiType && category.type !== apiType)
-        ? ''
-        : draft.categoryId
-    onChange({ ...draft, type, categoryId })
+    const validIds = new Set(
+      categories
+        .filter((category) => !apiType || category.categoryType === apiType)
+        .flatMap(categoryIds),
+    )
+    onChange({
+      ...draft,
+      type,
+      categoryIds:
+        apiType === 3
+          ? []
+          : draft.categoryIds.filter((id) => validIds.has(id)),
+    })
   }
+  const toggleId = (ids: string[], selectedIds: string[]) => {
+    const selected = new Set(selectedIds)
+    const shouldSelect = !ids.every((id) => selected.has(id))
+    for (const id of ids) {
+      if (shouldSelect) selected.add(id)
+      else selected.delete(id)
+    }
+    return [...selected]
+  }
+  const toggleCategoryChild = (
+    category: LedgerCategory,
+    childId: string,
+  ) => {
+    const selected = new Set(toggleId([childId], draft.categoryIds))
+    if (
+      category.children.length > 0 &&
+      category.children.every((child) => selected.has(child.id))
+    ) {
+      selected.add(category.id)
+    } else {
+      selected.delete(category.id)
+    }
+    return [...selected]
+  }
+  const renderMark = (checked: boolean, partial = false) => (
+    <span
+      className={`filter-check${checked || partial ? ' is-checked' : ''}`}
+      aria-hidden="true"
+    >
+      {partial ? <Minus size={14} /> : checked ? <Check size={14} /> : null}
+    </span>
+  )
+  const allVisibleCategoryIds = visibleCategories.flatMap(categoryIds)
+  const allCategoriesSelected =
+    allVisibleCategoryIds.length > 0 &&
+    allVisibleCategoryIds.every((id) => draft.categoryIds.includes(id))
+  const allAccountsSelected =
+    accounts.length > 0 &&
+    accounts.every((account) => draft.accountIds.includes(account.id))
   return (
     <div
       className="flow-filter"
@@ -389,48 +455,38 @@ function FilterSheet({
             ))}
           </div>
         </div>
-        <label className="filter-field filter-field--select">
+        <button
+          className="filter-field filter-field--select"
+          type="button"
+          disabled={
+            draft.type === 'transfer' || optionsLoading || !!optionsError
+          }
+          onClick={() => setDrawer('category')}
+        >
           <span className="filter-field__title">
             <LayoutGrid aria-hidden="true" size={24} />
             <strong>分类</strong>
           </span>
-          <select
-            aria-label="分类"
-            disabled={draft.type === 'transfer' || optionsLoading}
-            value={draft.categoryId}
-            onChange={(event) =>
-              onChange({ ...draft, categoryId: event.target.value })
-            }
-          >
-            <option value="">全部分类</option>
-            {visibleCategories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.isChild ? `　${category.label}` : category.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="filter-field filter-field--select">
+          <span className="filter-field__summary">
+            {selectionSummary(categoryLabels, '全部分类')}
+            <ChevronRight size={18} />
+          </span>
+        </button>
+        <button
+          className="filter-field filter-field--select"
+          type="button"
+          disabled={optionsLoading || !!optionsError}
+          onClick={() => setDrawer('account')}
+        >
           <span className="filter-field__title">
             <CreditCard aria-hidden="true" size={24} />
             <strong>账户</strong>
           </span>
-          <select
-            aria-label="账户"
-            disabled={optionsLoading}
-            value={draft.accountId}
-            onChange={(event) =>
-              onChange({ ...draft, accountId: event.target.value })
-            }
-          >
-            <option value="">全部账户</option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          <span className="filter-field__summary">
+            {selectionSummary(accountNames, '全部账户')}
+            <ChevronRight size={18} />
+          </span>
+        </button>
         {optionsLoading && (
           <p className="filter-options-state" role="status">
             正在加载分类和账户…
@@ -478,6 +534,150 @@ function FilterSheet({
             应用筛选
           </button>
         </div>
+        {drawer && (
+          <section
+            className="filter-picker"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="filter-picker-title"
+          >
+            <header className="filter-picker__header">
+              <button
+                type="button"
+                aria-label="返回筛选"
+                onClick={() => setDrawer(null)}
+              >
+                <ArrowLeft size={23} />
+              </button>
+              <h3 id="filter-picker-title">
+                {drawer === 'category' ? '选择分类' : '选择账户'}
+              </h3>
+              <span aria-hidden="true" />
+            </header>
+            <div className="filter-picker__list">
+              <button
+                className="filter-picker__row filter-picker__all"
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...draft,
+                    [drawer === 'category' ? 'categoryIds' : 'accountIds']:
+                      drawer === 'category'
+                        ? allCategoriesSelected
+                          ? []
+                          : allVisibleCategoryIds
+                        : allAccountsSelected
+                          ? []
+                          : accounts.map((account) => account.id),
+                  })
+                }
+              >
+                <strong>全选</strong>
+                {renderMark(
+                  drawer === 'category'
+                    ? allCategoriesSelected
+                    : allAccountsSelected,
+                )}
+              </button>
+              {drawer === 'category'
+                ? visibleCategories.map((category) => {
+                    const ids = categoryIds(category)
+                    const selectedCount = ids.filter((id) =>
+                      draft.categoryIds.includes(id),
+                    ).length
+                    const checked = selectedCount === ids.length
+                    const partial = selectedCount > 0 && !checked
+                    const isExpanded = expanded.has(category.id)
+                    return (
+                      <div className="filter-category" key={category.id}>
+                        <div className="filter-picker__row filter-category__parent">
+                          <button
+                            type="button"
+                            className="filter-category__expand"
+                            aria-label={`${isExpanded ? '收起' : '展开'}${category.name}`}
+                            aria-expanded={isExpanded}
+                            onClick={() =>
+                              setExpanded((current) => {
+                                const next = new Set(current)
+                                if (next.has(category.id)) next.delete(category.id)
+                                else next.add(category.id)
+                                return next
+                              })
+                            }
+                          >
+                            {isExpanded ? (
+                              <ChevronDown size={19} />
+                            ) : (
+                              <ChevronRight size={19} />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            className="filter-category__select"
+                            onClick={() =>
+                              onChange({
+                                ...draft,
+                                categoryIds: toggleId(ids, draft.categoryIds),
+                              })
+                            }
+                          >
+                            <strong>{category.name}</strong>
+                            {renderMark(checked, partial)}
+                          </button>
+                        </div>
+                        {isExpanded &&
+                          category.children.map((child) => {
+                            const childChecked = draft.categoryIds.includes(
+                              child.id,
+                            )
+                            return (
+                              <button
+                                className="filter-picker__row filter-category__child"
+                                type="button"
+                                key={child.id}
+                                onClick={() =>
+                                  onChange({
+                                    ...draft,
+                                    categoryIds: toggleCategoryChild(
+                                      category,
+                                      child.id,
+                                    ),
+                                  })
+                                }
+                              >
+                                <span>{child.name}</span>
+                                {renderMark(childChecked)}
+                              </button>
+                            )
+                          })}
+                      </div>
+                    )
+                  })
+                : accounts.map((account) => {
+                    const checked = draft.accountIds.includes(account.id)
+                    return (
+                      <button
+                        className="filter-picker__row"
+                        type="button"
+                        key={account.id}
+                        onClick={() =>
+                          onChange({
+                            ...draft,
+                            accountIds: toggleId(
+                              [account.id],
+                              draft.accountIds,
+                            ),
+                          })
+                        }
+                      >
+                        <span>{account.name}</span>
+                        {renderMark(checked)}
+                      </button>
+                    )
+                  })}
+            </div>
+          </section>
+        )}
       </section>
     </div>
   )
@@ -504,7 +704,7 @@ export function FlowPage() {
   const [initialError, setInitialError] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
   const [accounts, setAccounts] = useState<LedgerAccount[]>([])
-  const [categories, setCategories] = useState<CategoryOption[]>([])
+  const [categories, setCategories] = useState<LedgerCategory[]>([])
   const [optionsLoading, setOptionsLoading] = useState(true)
   const [optionsError, setOptionsError] = useState<string | null>(null)
   const [optionsRetryKey, setOptionsRetryKey] = useState(0)
@@ -530,7 +730,7 @@ export function FlowPage() {
     Promise.all([fetchCategories(1), fetchCategories(2), fetchAccounts()])
       .then(([expense, income, accountList]) => {
         if (active) {
-          setCategories(flattenCategories([...expense, ...income]))
+          setCategories([...expense, ...income])
           setAccounts(accountList)
         }
       })
@@ -610,14 +810,18 @@ export function FlowPage() {
   const changeMainType = (type: FlowType) =>
     setFilters((current) => {
       const apiType = flowTypes.find((item) => item.id === type)?.apiValue
-      const category = categories.find((item) => item.id === current.categoryId)
+      const validIds = new Set(
+        categories
+          .filter((category) => !apiType || category.categoryType === apiType)
+          .flatMap(categoryIds),
+      )
       return {
         ...current,
         type,
-        categoryId:
-          apiType === 3 || (category && apiType && category.type !== apiType)
-            ? ''
-            : current.categoryId,
+        categoryIds:
+          apiType === 3
+            ? []
+            : current.categoryIds.filter((id) => validIds.has(id)),
       }
     })
   const applyFilters = () => {

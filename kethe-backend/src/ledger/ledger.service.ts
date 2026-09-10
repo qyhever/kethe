@@ -603,15 +603,15 @@ export class LedgerService {
       })
     if (query.transactionType)
       qb.andWhere('t.transactionType = :transactionType', query)
-    if (query.categoryId)
+    if (query.categoryIds?.length)
       qb.andWhere(
-        '(t.categoryId = :categoryId OR c.parentId = :categoryId)',
-        query,
+        '(t.categoryId IN (:...categoryIds) OR c.parentId IN (:...categoryIds))',
+        { categoryIds: query.categoryIds },
       )
-    if (query.accountId)
+    if (query.accountIds?.length)
       qb.andWhere(
-        '(t.accountId = :accountId OR t.targetAccountId = :accountId)',
-        query,
+        '(t.accountId IN (:...accountIds) OR t.targetAccountId IN (:...accountIds))',
+        { accountIds: query.accountIds },
       )
     if (query.minAmount) qb.andWhere('t.amount >= :minAmount', query)
     if (query.maxAmount) qb.andWhere('t.amount <= :maxAmount', query)

@@ -34,6 +34,27 @@ describe('LedgerService 流水视图', () => {
     )
   })
 
+  it('空分类和账户数组不添加筛选条件', () => {
+    const queryBuilder = {
+      leftJoin: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+    }
+    const manager = {
+      getRepository: jest.fn().mockReturnValue({
+        createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+      }),
+    }
+
+    createService().transactionQuery(manager as never, 14, {
+      categoryIds: [],
+      accountIds: [],
+    } as never)
+
+    expect(queryBuilder.andWhere).not.toHaveBeenCalled()
+  })
+
   it('转账没有分类与图标时仍正常返回', () => {
     const service = createService() as unknown as {
       transactionView: (row: Record<string, unknown>) => Record<string, unknown>
@@ -166,8 +187,8 @@ describe('LedgerService 流水视图', () => {
       startTime: '2026-09-01T00:00:00.000Z',
       endTime: '2026-10-01T00:00:00.000Z',
       transactionType: 1,
-      categoryId: '10',
-      accountId: '20',
+      categoryIds: ['10', '11'],
+      accountIds: ['20', '21'],
       minAmount: '100',
       maxAmount: '5000',
       keyword: '午餐',
@@ -178,12 +199,12 @@ describe('LedgerService 流水视图', () => {
     expect(queryBuilder.offset).not.toHaveBeenCalled()
     expect(queryBuilder.limit).not.toHaveBeenCalled()
     expect(queryBuilder.andWhere).toHaveBeenCalledWith(
-      '(t.categoryId = :categoryId OR c.parentId = :categoryId)',
-      query,
+      '(t.categoryId IN (:...categoryIds) OR c.parentId IN (:...categoryIds))',
+      { categoryIds: query.categoryIds },
     )
     expect(queryBuilder.andWhere).toHaveBeenCalledWith(
-      '(t.accountId = :accountId OR t.targetAccountId = :accountId)',
-      query,
+      '(t.accountId IN (:...accountIds) OR t.targetAccountId IN (:...accountIds))',
+      { accountIds: query.accountIds },
     )
     expect(queryBuilder.andWhere).toHaveBeenCalledWith(
       't.transactionType = :transactionType',
@@ -206,8 +227,8 @@ describe('LedgerService 流水视图', () => {
       query,
     )
     expect(summaryQueryBuilder.andWhere).toHaveBeenCalledWith(
-      '(t.accountId = :accountId OR t.targetAccountId = :accountId)',
-      query,
+      '(t.accountId IN (:...accountIds) OR t.targetAccountId IN (:...accountIds))',
+      { accountIds: query.accountIds },
     )
     expect(summaryQueryBuilder.andWhere).toHaveBeenCalledWith(
       expect.stringContaining('t.remark LIKE :keyword'),

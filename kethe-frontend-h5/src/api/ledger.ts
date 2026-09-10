@@ -36,7 +36,7 @@ export function fetchTransactions(
   query: TransactionQuery,
   signal?: AbortSignal,
 ) {
-  return get<TransactionPageResult>('/transactions', query, { signal })
+  return post<TransactionPageResult>('/transactions/query', query, { signal })
 }
 
 export function fetchDashboardOverview(signal?: AbortSignal) {

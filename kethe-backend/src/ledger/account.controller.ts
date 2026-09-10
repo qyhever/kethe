@@ -42,7 +42,7 @@ export class AccountController {
   ) {
     return this.service.listTransactions(userId(request), {
       ...query,
-      accountId: id,
+      accountIds: [id],
     })
   }
 

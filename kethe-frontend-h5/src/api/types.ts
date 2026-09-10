@@ -173,8 +173,8 @@ export interface TransactionQuery {
   startTime?: string
   endTime?: string
   transactionType?: 1 | 2 | 3
-  categoryId?: string
-  accountId?: string
+  categoryIds?: string[]
+  accountIds?: string[]
   minAmount?: string
   maxAmount?: string
   keyword?: string

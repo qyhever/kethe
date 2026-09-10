@@ -3,10 +3,10 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
-  Query,
   Req,
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -23,11 +23,9 @@ const userId = (request: RequestWithContext) => request.user!.id
 export class TransactionController {
   constructor(private readonly service: LedgerService) {}
 
-  @Get()
-  list(
-    @Req() request: RequestWithContext,
-    @Query() query: TransactionQueryDto,
-  ) {
+  @Post('query')
+  @HttpCode(200)
+  list(@Req() request: RequestWithContext, @Body() query: TransactionQueryDto) {
     return this.service.listTransactions(userId(request), query)
   }
 

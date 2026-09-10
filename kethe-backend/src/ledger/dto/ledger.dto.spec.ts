@@ -46,6 +46,46 @@ describe('记账 DTO', () => {
     expect(await validate(dto)).not.toHaveLength(0)
   })
 
+  it('接受合法的多分类、多账户和空数组筛选', async () => {
+    const multiple = plainToInstance(TransactionQueryDto, {
+      categoryIds: ['1', '9007199254740993'],
+      accountIds: ['2', '3'],
+    })
+    const empty = plainToInstance(TransactionQueryDto, {
+      categoryIds: [],
+      accountIds: [],
+    })
+
+    expect(await validate(multiple)).toHaveLength(0)
+    expect(await validate(empty)).toHaveLength(0)
+  })
+
+  it.each([
+    { categoryIds: '1' },
+    { categoryIds: [''] },
+    { categoryIds: ['0'] },
+    { categoryIds: ['-1'] },
+    { categoryIds: ['1.5'] },
+    { accountIds: '2' },
+    { accountIds: ['abc'] },
+  ])('拒绝非法的多选 ID：%j', async (input) => {
+    const dto = plainToInstance(TransactionQueryDto, input)
+    expect(await validate(dto)).not.toHaveLength(0)
+  })
+
+  it.each([{ categoryId: '1' }, { accountId: '2' }])(
+    '拒绝旧版单值查询字段：%j',
+    async (input) => {
+      const dto = plainToInstance(TransactionQueryDto, input)
+      expect(
+        await validate(dto, {
+          whitelist: true,
+          forbidNonWhitelisted: true,
+        }),
+      ).not.toHaveLength(0)
+    },
+  )
+
   it('分类 ID 必须是十进制正整数字符串', async () => {
     const dto = plainToInstance(CreateCategoryDto, {
       categoryType: 1,
