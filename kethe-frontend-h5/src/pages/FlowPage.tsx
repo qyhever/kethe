@@ -29,12 +29,29 @@ import type {
   TransactionYearSummary,
 } from '../api/types'
 import { CategoryIcon } from '../components/CategoryIcon/CategoryIcon'
+import { DatePicker } from '../components/DatePicker'
 import { useToast } from '../components/Toast'
 import './FlowPage.css'
 
 type FlowType = 'all' | 'expense' | 'income' | 'transfer'
+type DatePreset =
+  | 'all'
+  | 'today'
+  | 'yesterday'
+  | 'last7Days'
+  | 'last30Days'
+  | 'thisWeek'
+  | 'lastWeek'
+  | 'thisMonth'
+  | 'lastMonth'
+  | 'thisQuarter'
+  | 'lastQuarter'
+  | 'thisYear'
+  | 'lastYear'
+  | 'custom'
 interface Filters {
   type: FlowType
+  datePreset: DatePreset
   startDate: string
   endDate: string
   categoryIds: string[]
@@ -56,6 +73,7 @@ const DEFAULT_ICON_COLOR = '#64748b'
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 const EMPTY_FILTERS: Filters = {
   type: 'all',
+  datePreset: 'all',
   startDate: '',
   endDate: '',
   categoryIds: [],
@@ -71,9 +89,131 @@ function currentYearFilters(): Filters {
   }).format(new Date())
   return {
     ...EMPTY_FILTERS,
+    datePreset: 'thisYear',
     startDate: `${year}-01-01`,
     endDate: `${year}-12-31`,
   }
+}
+
+const datePresetGroups: Array<
+  Array<{ id: Exclude<DatePreset, 'custom'>; label: string }>
+> = [
+  [{ id: 'all', label: '全部' }],
+  [
+    { id: 'today', label: '今天' },
+    { id: 'yesterday', label: '昨天' },
+    { id: 'last7Days', label: '近 7 天' },
+    { id: 'last30Days', label: '近 30 天' },
+  ],
+  [
+    { id: 'thisWeek', label: '本周' },
+    { id: 'lastWeek', label: '上周' },
+    { id: 'thisMonth', label: '本月' },
+    { id: 'lastMonth', label: '上月' },
+    { id: 'thisQuarter', label: '本季' },
+    { id: 'lastQuarter', label: '上季' },
+    { id: 'thisYear', label: '本年' },
+    { id: 'lastYear', label: '去年' },
+  ],
+]
+const datePresetLabels = new Map<DatePreset, string>([
+  ...datePresetGroups.flat().map(({ id, label }) => [id, label] as const),
+  ['custom', '自定义'],
+])
+
+function dateFromParts(year: number, month: number, day: number) {
+  return `${year.toString().padStart(4, '0')}-${month
+    .toString()
+    .padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+}
+
+function dateParts(date: string) {
+  const [year, month, day] = date.split('-').map(Number)
+  return { year, month, day }
+}
+
+function shiftDate(date: string, days: number) {
+  const { year, month, day } = dateParts(date)
+  const value = new Date(Date.UTC(year, month - 1, day + days))
+  return dateFromParts(
+    value.getUTCFullYear(),
+    value.getUTCMonth() + 1,
+    value.getUTCDate(),
+  )
+}
+
+function daysInMonth(year: number, month: number) {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate()
+}
+
+function endOfMonth(year: number, month: number) {
+  return dateFromParts(year, month, daysInMonth(year, month))
+}
+
+function presetRange(preset: Exclude<DatePreset, 'custom'>, now = new Date()) {
+  const today = shanghaiDateKey(now)
+  const { year, month } = dateParts(today)
+  if (preset === 'all') return { startDate: '', endDate: '' }
+  if (preset === 'today') return { startDate: today, endDate: today }
+  if (preset === 'yesterday') {
+    const yesterday = shiftDate(today, -1)
+    return { startDate: yesterday, endDate: yesterday }
+  }
+  if (preset === 'last7Days') {
+    return { startDate: shiftDate(today, -6), endDate: today }
+  }
+  if (preset === 'last30Days') {
+    return { startDate: shiftDate(today, -29), endDate: today }
+  }
+  if (preset === 'thisWeek' || preset === 'lastWeek') {
+    const weekday = new Date(`${today}T12:00:00+08:00`).getUTCDay()
+    const monday = shiftDate(today, -(weekday === 0 ? 6 : weekday - 1))
+    const startDate = preset === 'lastWeek' ? shiftDate(monday, -7) : monday
+    return { startDate, endDate: shiftDate(startDate, 6) }
+  }
+  if (preset === 'thisMonth') {
+    return {
+      startDate: dateFromParts(year, month, 1),
+      endDate: endOfMonth(year, month),
+    }
+  }
+  if (preset === 'lastMonth') {
+    const previous = new Date(Date.UTC(year, month - 2, 1))
+    const previousYear = previous.getUTCFullYear()
+    const previousMonth = previous.getUTCMonth() + 1
+    return {
+      startDate: dateFromParts(previousYear, previousMonth, 1),
+      endDate: endOfMonth(previousYear, previousMonth),
+    }
+  }
+  if (preset === 'thisQuarter' || preset === 'lastQuarter') {
+    let quarterStartMonth = Math.floor((month - 1) / 3) * 3 + 1
+    let quarterYear = year
+    if (preset === 'lastQuarter') {
+      quarterStartMonth -= 3
+      if (quarterStartMonth < 1) {
+        quarterStartMonth += 12
+        quarterYear -= 1
+      }
+    }
+    return {
+      startDate: dateFromParts(quarterYear, quarterStartMonth, 1),
+      endDate: endOfMonth(quarterYear, quarterStartMonth + 2),
+    }
+  }
+  const targetYear = preset === 'lastYear' ? year - 1 : year
+  return {
+    startDate: `${targetYear}-01-01`,
+    endDate: `${targetYear}-12-31`,
+  }
+}
+
+function formatDateSummary(filters: Filters) {
+  if (filters.datePreset !== 'custom') {
+    return datePresetLabels.get(filters.datePreset) ?? '全部'
+  }
+  const format = (date: string) => (date ? date.replaceAll('-', '.') : '不限')
+  return `${format(filters.startDate)} – ${format(filters.endDate)}`
 }
 const flowTypes: Array<{ id: FlowType; label: string; apiValue?: 1 | 2 | 3 }> =
   [
@@ -297,7 +437,15 @@ function FilterSheet({
   onRetryOptions: () => void
 }) {
   const sheetRef = useRef<HTMLElement>(null)
-  const [drawer, setDrawer] = useState<'category' | 'account' | null>(null)
+  const [drawer, setDrawer] = useState<'date' | 'category' | 'account' | null>(
+    null,
+  )
+  const [customDateSide, setCustomDateSide] = useState<'start' | 'end' | null>(
+    null,
+  )
+  const [lastDatePreset, setLastDatePreset] = useState<
+    Exclude<DatePreset, 'custom'>
+  >(draft.datePreset === 'custom' ? 'thisYear' : draft.datePreset)
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set(categories.map((category) => category.id)),
   )
@@ -314,13 +462,18 @@ function FilterSheet({
   const accountNames = accounts
     .filter((account) => draft.accountIds.includes(account.id))
     .map((account) => account.name)
+  const customDateKey =
+    customDateSide === 'start' ? 'startDate' : 'endDate'
+  const customDate = customDateSide ? draft[customDateKey] : ''
+  const customDateLabel = customDateSide === 'start' ? '开始日期' : '结束日期'
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     sheetRef.current?.focus()
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (drawer) setDrawer(null)
+        if (customDateSide) setCustomDateSide(null)
+        else if (drawer) setDrawer(null)
         else onClose()
       }
     }
@@ -329,7 +482,7 @@ function FilterSheet({
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [drawer, onClose])
+  }, [customDateSide, drawer, onClose])
   const changeType = (type: FlowType) => {
     const apiType = flowTypes.find((item) => item.id === type)?.apiValue
     const validIds = new Set(
@@ -407,35 +560,21 @@ function FilterSheet({
             重置
           </button>
         </header>
-        <div className="filter-field filter-field--date">
-          <div className="filter-field__title">
+        <button
+          className="filter-field filter-field--select filter-field--date"
+          type="button"
+          aria-haspopup="dialog"
+          onClick={() => setDrawer('date')}
+        >
+          <span className="filter-field__title">
             <CalendarDays aria-hidden="true" size={24} />
             <strong>日期范围</strong>
-          </div>
-          <div className="filter-date-inputs">
-            <label>
-              开始日期
-              <input
-                type="date"
-                value={draft.startDate}
-                onChange={(event) =>
-                  onChange({ ...draft, startDate: event.target.value })
-                }
-              />
-            </label>
-            <span>–</span>
-            <label>
-              结束日期
-              <input
-                type="date"
-                value={draft.endDate}
-                onChange={(event) =>
-                  onChange({ ...draft, endDate: event.target.value })
-                }
-              />
-            </label>
-          </div>
-        </div>
+          </span>
+          <span className="filter-field__summary">
+            {formatDateSummary(draft)}
+            <ChevronRight size={18} />
+          </span>
+        </button>
         <div className="filter-field filter-field--types">
           <div className="filter-field__title">
             <SlidersHorizontal aria-hidden="true" size={24} />
@@ -545,15 +684,139 @@ function FilterSheet({
               <button
                 type="button"
                 aria-label="返回筛选"
-                onClick={() => setDrawer(null)}
+                onClick={() => {
+                  setCustomDateSide(null)
+                  setDrawer(null)
+                }}
               >
                 <ArrowLeft size={23} />
               </button>
               <h3 id="filter-picker-title">
-                {drawer === 'category' ? '选择分类' : '选择账户'}
+                {drawer === 'date'
+                  ? '日期范围'
+                  : drawer === 'category'
+                    ? '选择分类'
+                    : '选择账户'}
               </h3>
               <span aria-hidden="true" />
             </header>
+            {drawer === 'date' ? (
+              <div className="date-picker__content">
+                {datePresetGroups.map((group, groupIndex) => (
+                  <div className="date-preset-group" key={groupIndex}>
+                    {group.map((preset) => {
+                      const selected = draft.datePreset === preset.id
+                      return (
+                        <button
+                          className="date-preset-row"
+                          type="button"
+                          key={preset.id}
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => {
+                            onChange({
+                              ...draft,
+                              datePreset: preset.id,
+                              ...presetRange(preset.id),
+                            })
+                            setLastDatePreset(preset.id)
+                            setCustomDateSide(null)
+                          }}
+                        >
+                          <span>{preset.label}</span>
+                          {selected && (
+                            <Check
+                              className="date-preset-row__check"
+                              aria-hidden="true"
+                              size={20}
+                            />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                ))}
+                <div className="date-preset-group date-custom">
+                  <button
+                    className="date-preset-row"
+                    type="button"
+                    role="switch"
+                    aria-checked={draft.datePreset === 'custom'}
+                    onClick={() => {
+                      if (draft.datePreset === 'custom') {
+                        onChange({
+                          ...draft,
+                          datePreset: lastDatePreset,
+                          ...presetRange(lastDatePreset),
+                        })
+                        setCustomDateSide(null)
+                      } else {
+                        setLastDatePreset(draft.datePreset)
+                        onChange({ ...draft, datePreset: 'custom' })
+                        setCustomDateSide('start')
+                      }
+                    }}
+                  >
+                    <span>自定义</span>
+                    <i
+                      className={`date-custom-toggle${draft.datePreset === 'custom' ? ' is-active' : ''}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                  {draft.datePreset === 'custom' && (
+                    <div className="date-custom__body">
+                      {(['start', 'end'] as const).map((side) => {
+                        const key = side === 'start' ? 'startDate' : 'endDate'
+                        const date = draft[key]
+                        const label = side === 'start' ? '开始日期' : '结束日期'
+                        return (
+                          <div className="date-custom__section" key={side}>
+                            <div className="date-custom__heading">
+                              <button
+                                className="date-custom__date"
+                                type="button"
+                                aria-haspopup="dialog"
+                                aria-expanded={customDateSide === side}
+                                aria-controls={`date-picker-popup-${side}`}
+                                disabled={!date}
+                                onClick={() =>
+                                  setCustomDateSide((current) =>
+                                    current === side ? null : side,
+                                  )
+                                }
+                              >
+                                <span>{label}</span>
+                                <strong>
+                                  {date ? date.replaceAll('-', ' / ') : '不限'}
+                                </strong>
+                                {date && <ChevronDown size={17} />}
+                              </button>
+                              <button
+                                className={`date-unlimited${!date ? ' is-active' : ''}`}
+                                type="button"
+                                role="switch"
+                                aria-checked={!date}
+                                aria-label={`${label}不限`}
+                                onClick={() => {
+                                  const nextDate = date
+                                    ? ''
+                                    : shanghaiDateKey(new Date())
+                                  onChange({ ...draft, [key]: nextDate })
+                                  setCustomDateSide(date ? null : side)
+                                }}
+                              >
+                                <span>不限</span>
+                                <i aria-hidden="true" />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
             <div className="filter-picker__list">
               <button
                 className="filter-picker__row filter-picker__all"
@@ -675,10 +938,22 @@ function FilterSheet({
                       </button>
                     )
                   })}
-            </div>
+              </div>
+            )}
           </section>
         )}
       </section>
+      {drawer === 'date' && customDateSide && customDate && (
+        <DatePicker
+          id={`date-picker-popup-${customDateSide}`}
+          label={customDateLabel}
+          value={customDate}
+          onChange={(nextDate) =>
+            onChange({ ...draft, [customDateKey]: nextDate })
+          }
+          onClose={() => setCustomDateSide(null)}
+        />
+      )}
     </div>
   )
 }
