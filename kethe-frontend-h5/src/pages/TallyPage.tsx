@@ -652,7 +652,9 @@ export function TallyPage() {
       if (isEditing) await updateTransaction(transactionId!, payload)
       else await createTransaction(payload)
       toast.success(isEditing ? '修改成功' : '记账成功')
-      navigate(returnTo)
+      navigate(returnTo, {
+        state: returnTo === '/flow' ? { refreshFlow: true } : undefined,
+      })
     } catch (error) {
       toast.error(
         getErrorMessage(

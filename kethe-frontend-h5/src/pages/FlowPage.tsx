@@ -14,8 +14,8 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   fetchAccounts,
   fetchCategories,
@@ -67,6 +67,29 @@ interface FlowYearGroup {
   year: string
   months: FlowMonthGroup[]
 }
+
+interface FlowPageCache {
+  filters: Filters
+  draft: Filters
+  isSearching: boolean
+  search: string
+  debouncedSearch: string
+  items: LedgerTransaction[]
+  summaries: TransactionYearSummary[]
+  collapsedYears: Set<string>
+  collapsedMonths: Set<string>
+  initialLoading: boolean
+  initialError: string | null
+  retryKey: number
+  accounts: LedgerAccount[]
+  categories: LedgerCategory[]
+  optionsLoading: boolean
+  optionsError: string | null
+  optionsRetryKey: number
+  scrollY: number
+}
+
+let flowPageCache: FlowPageCache | null = null
 
 const ZONE = 'Asia/Shanghai'
 const DEFAULT_ICON_COLOR = '#64748b'
@@ -960,31 +983,82 @@ function FilterSheet({
 
 export function FlowPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
-  const [filters, setFilters] = useState<Filters>(currentYearFilters)
-  const [draft, setDraft] = useState<Filters>(currentYearFilters)
+  const restoredCacheRef = useRef(flowPageCache)
+  const restoredCache = restoredCacheRef.current
+  const refreshAfterReturnRef = useRef(
+    (location.state as { refreshFlow?: unknown } | null)?.refreshFlow === true,
+  )
+  const [filters, setFilters] = useState<Filters>(
+    () => restoredCache?.filters ?? currentYearFilters(),
+  )
+  const [draft, setDraft] = useState<Filters>(
+    () => restoredCache?.draft ?? currentYearFilters(),
+  )
   const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [isSearching, setIsSearching] = useState(false)
-  const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [items, setItems] = useState<LedgerTransaction[]>([])
-  const [summaries, setSummaries] = useState<TransactionYearSummary[]>([])
+  const [isSearching, setIsSearching] = useState(
+    restoredCache?.isSearching ?? false,
+  )
+  const [search, setSearch] = useState(restoredCache?.search ?? '')
+  const [debouncedSearch, setDebouncedSearch] = useState(
+    restoredCache?.debouncedSearch ?? '',
+  )
+  const [items, setItems] = useState<LedgerTransaction[]>(
+    restoredCache?.items ?? [],
+  )
+  const [summaries, setSummaries] = useState<TransactionYearSummary[]>(
+    restoredCache?.summaries ?? [],
+  )
   const [collapsedYears, setCollapsedYears] = useState<Set<string>>(
-    () => new Set(),
+    () => new Set(restoredCache?.collapsedYears),
   )
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(
-    () => new Set(),
+    () => new Set(restoredCache?.collapsedMonths),
   )
-  const [initialLoading, setInitialLoading] = useState(true)
-  const [initialError, setInitialError] = useState<string | null>(null)
-  const [retryKey, setRetryKey] = useState(0)
-  const [accounts, setAccounts] = useState<LedgerAccount[]>([])
-  const [categories, setCategories] = useState<LedgerCategory[]>([])
-  const [optionsLoading, setOptionsLoading] = useState(true)
-  const [optionsError, setOptionsError] = useState<string | null>(null)
-  const [optionsRetryKey, setOptionsRetryKey] = useState(0)
+  const [initialLoading, setInitialLoading] = useState(
+    restoredCache?.initialLoading ?? true,
+  )
+  const [initialError, setInitialError] = useState<string | null>(
+    restoredCache?.initialError ?? null,
+  )
+  const [retryKey, setRetryKey] = useState(restoredCache?.retryKey ?? 0)
+  const [accounts, setAccounts] = useState<LedgerAccount[]>(
+    restoredCache?.accounts ?? [],
+  )
+  const [categories, setCategories] = useState<LedgerCategory[]>(
+    restoredCache?.categories ?? [],
+  )
+  const [optionsLoading, setOptionsLoading] = useState(
+    restoredCache?.optionsLoading ?? true,
+  )
+  const [optionsError, setOptionsError] = useState<string | null>(
+    restoredCache?.optionsError ?? null,
+  )
+  const [optionsRetryKey, setOptionsRetryKey] = useState(
+    restoredCache?.optionsRetryKey ?? 0,
+  )
   const requestRef = useRef<AbortController | null>(null)
   const generationRef = useRef(0)
+
+  useLayoutEffect(() => {
+    if (!restoredCache) return
+    const animationFrame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: restoredCache.scrollY })
+    })
+    return () => window.cancelAnimationFrame(animationFrame)
+  }, [restoredCache])
+
+  useEffect(() => {
+    if (!restoredCache) return
+    const timeout = window.setTimeout(() => {
+      if (flowPageCache === restoredCache) flowPageCache = null
+      if (refreshAfterReturnRef.current) {
+        navigate(location.pathname, { replace: true, state: null })
+      }
+    })
+    return () => window.clearTimeout(timeout)
+  }, [location.pathname, navigate, restoredCache])
 
   useEffect(() => {
     if (!search.trim()) {
@@ -999,6 +1073,13 @@ export function FlowPage() {
   }, [search])
 
   useEffect(() => {
+    if (
+      restoredCache &&
+      !restoredCache.optionsLoading &&
+      optionsRetryKey === restoredCache.optionsRetryKey
+    ) {
+      return
+    }
     let active = true
     setOptionsLoading(true)
     setOptionsError(null)
@@ -1021,7 +1102,7 @@ export function FlowPage() {
     return () => {
       active = false
     }
-  }, [optionsRetryKey])
+  }, [optionsRetryKey, restoredCache])
 
   useEffect(
     () => () => {
@@ -1032,13 +1113,25 @@ export function FlowPage() {
   )
 
   useEffect(() => {
+    const isRestoredRequest =
+      restoredCache &&
+      !restoredCache.initialLoading &&
+      filters === restoredCache.filters &&
+      debouncedSearch === restoredCache.debouncedSearch &&
+      retryKey === restoredCache.retryKey
+    if (isRestoredRequest && !refreshAfterReturnRef.current) return
+
     const controller = new AbortController()
     requestRef.current?.abort()
     requestRef.current = controller
     const generation = ++generationRef.current
-    setItems([])
-    setSummaries([])
-    setInitialLoading(true)
+    const keepCachedContent =
+      !!isRestoredRequest && (restoredCache?.items.length ?? 0) > 0
+    if (!keepCachedContent) {
+      setItems([])
+      setSummaries([])
+      setInitialLoading(true)
+    }
     setInitialError(null)
     fetchTransactions(
       buildQuery(filters, debouncedSearch),
@@ -1061,7 +1154,31 @@ export function FlowPage() {
           setInitialLoading(false)
       })
     return () => controller.abort()
-  }, [filters, debouncedSearch, retryKey])
+  }, [filters, debouncedSearch, retryKey, restoredCache])
+
+  const navigateToTally = (path: string) => {
+    flowPageCache = {
+      filters,
+      draft,
+      isSearching,
+      search,
+      debouncedSearch,
+      items,
+      summaries,
+      collapsedYears: new Set(collapsedYears),
+      collapsedMonths: new Set(collapsedMonths),
+      initialLoading,
+      initialError,
+      retryKey,
+      accounts,
+      categories,
+      optionsLoading,
+      optionsError,
+      optionsRetryKey,
+      scrollY: window.scrollY,
+    }
+    navigate(path, { state: { returnTo: '/flow' } })
+  }
 
   const years = useMemo(() => groupTransactions(items), [items])
   const summaryByYear = useMemo(
@@ -1183,7 +1300,7 @@ export function FlowPage() {
             <button
               type="button"
               aria-label="新增流水"
-              onClick={() => navigate('/tally', { state: { returnTo: '/flow' } })}
+              onClick={() => navigateToTally('/tally')}
             >
               <CirclePlus aria-hidden="true" size={29} />
             </button>
@@ -1311,9 +1428,7 @@ export function FlowPage() {
                                   transaction={transaction}
                                   key={transaction.id}
                                   onClick={() =>
-                                    navigate(`/tally/${transaction.id}`, {
-                                      state: { returnTo: '/flow' },
-                                    })
+                                    navigateToTally(`/tally/${transaction.id}`)
                                   }
                                 />
                               ))}
