@@ -390,9 +390,9 @@ function TransactionRow({
         />
       </span>
       <span className="flow-row__copy">
-        <strong>{category}</strong>
+        <strong>{category}{detail ? ` · ${detail}` : ''}</strong>
         <small className="flow-row__subject">
-          {detail || transaction.remark?.trim() || '无备注'}
+          {transaction.remark?.trim() || '无备注'}
         </small>
         <small>{transactionTime(transaction.transactionTime)} · {account}</small>
       </span>
