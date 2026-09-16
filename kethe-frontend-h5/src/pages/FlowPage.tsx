@@ -59,6 +59,26 @@ interface Filters {
   minimum: string
   maximum: string
 }
+
+interface ChartNavigationFilters {
+  startDate: string
+  endDate: string
+  type: 'expense' | 'income'
+  accountId?: string
+  categoryId?: string
+}
+
+function filtersFromChart(value: ChartNavigationFilters): Filters {
+  return {
+    ...EMPTY_FILTERS,
+    type: value.type,
+    datePreset: 'custom',
+    startDate: value.startDate,
+    endDate: value.endDate,
+    accountIds: value.accountId ? [value.accountId] : [],
+    categoryIds: value.categoryId ? [value.categoryId] : [],
+  }
+}
 interface FlowMonthGroup {
   month: string
   list: LedgerTransaction[]
@@ -985,16 +1005,30 @@ export function FlowPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const toast = useToast()
-  const restoredCacheRef = useRef(flowPageCache)
+  const chartNavigationRef = useRef(
+    (location.state as { chartFilters?: ChartNavigationFilters } | null)
+      ?.chartFilters,
+  )
+  const restoredCacheRef = useRef(
+    chartNavigationRef.current ? null : flowPageCache,
+  )
   const restoredCache = restoredCacheRef.current
+  const initialFiltersRef = useRef(
+    chartNavigationRef.current
+      ? filtersFromChart(chartNavigationRef.current)
+      : restoredCache?.filters ?? currentYearFilters(),
+  )
   const refreshAfterReturnRef = useRef(
     (location.state as { refreshFlow?: unknown } | null)?.refreshFlow === true,
   )
   const [filters, setFilters] = useState<Filters>(
-    () => restoredCache?.filters ?? currentYearFilters(),
+    () => initialFiltersRef.current,
   )
   const [draft, setDraft] = useState<Filters>(
-    () => restoredCache?.draft ?? currentYearFilters(),
+    () =>
+      chartNavigationRef.current
+        ? initialFiltersRef.current
+        : restoredCache?.draft ?? currentYearFilters(),
   )
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isSearching, setIsSearching] = useState(
@@ -1040,6 +1074,13 @@ export function FlowPage() {
   )
   const requestRef = useRef<AbortController | null>(null)
   const generationRef = useRef(0)
+
+  useEffect(() => {
+    if (!chartNavigationRef.current) return
+    flowPageCache = null
+    chartNavigationRef.current = undefined
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.pathname, navigate])
 
   useLayoutEffect(() => {
     if (!restoredCache) return

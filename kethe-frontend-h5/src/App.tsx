@@ -9,6 +9,7 @@ import { ToastDemoPage } from './pages/ToastDemoPage'
 import { FlowPage } from './pages/FlowPage'
 import { SearchPage } from './pages/SearchPage'
 import { TallyPage } from './pages/TallyPage'
+import { ChartPage } from './pages/ChartPage'
 import { RequireAnonymous, RequireAuth } from './components/Auth/RouteGuards'
 import { useAuthStore } from './stores/auth'
 
@@ -52,6 +53,7 @@ function App() {
         <Route element={<RequireAuth />}>
           <Route path="/home" element={<HomePage />} />
           <Route path="/flow" element={<FlowPage />} />
+          <Route path="/chart" element={<ChartPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/tally/*" element={<TallyPage />} />
           <Route path="/toast-demo" element={<ToastDemoPage />} />

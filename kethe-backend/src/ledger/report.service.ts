@@ -104,7 +104,7 @@ export class ReportService {
         throw new BadRequestException('结束时间必须晚于开始时间')
     }
     const format = unit === 'month' ? '%Y-%m' : '%Y-%m-%d'
-    const rows = await this.dataSource
+    const qb = this.dataSource
       .getRepository(Transaction)
       .createQueryBuilder('t')
       .select(
@@ -124,6 +124,9 @@ export class ReportService {
         { userId, start, end },
       )
       .andWhere('t.transactionType IN (1, 2)')
+    if (query.accountId)
+      qb.andWhere('t.accountId = :accountId', { accountId: query.accountId })
+    const rows = await qb
       .groupBy('period')
       .orderBy('period', 'ASC')
       .getRawMany<{ period: string; income: string; expense: string }>()
@@ -153,6 +156,8 @@ export class ReportService {
       .createQueryBuilder('t')
       .innerJoin('categories', 'c', 'c.id = t.categoryId')
       .leftJoin('categories', 'p', 'p.id = c.parentId')
+      .leftJoin('category_icons', 'ci', 'ci.id = c.iconId')
+      .leftJoin('category_icons', 'pi', 'pi.id = p.iconId')
       .select(
         query.parentCategoryId ? 'c.id' : 'COALESCE(p.id, c.id)',
         'categoryId',
@@ -160,6 +165,30 @@ export class ReportService {
       .addSelect(
         query.parentCategoryId ? 'c.name' : 'COALESCE(p.name, c.name)',
         'categoryName',
+      )
+      .addSelect(
+        query.parentCategoryId
+          ? 'COALESCE(ci.iconKey, pi.iconKey)'
+          : 'COALESCE(pi.iconKey, ci.iconKey)',
+        'iconKey',
+      )
+      .addSelect(
+        query.parentCategoryId
+          ? 'COALESCE(ci.svgContent, pi.svgContent)'
+          : 'COALESCE(pi.svgContent, ci.svgContent)',
+        'svgContent',
+      )
+      .addSelect(
+        query.parentCategoryId
+          ? 'COALESCE(ci.color, pi.color)'
+          : 'COALESCE(pi.color, ci.color)',
+        'iconColor',
+      )
+      .addSelect(
+        query.parentCategoryId
+          ? '0'
+          : 'EXISTS(SELECT 1 FROM categories child WHERE child.parentId = COALESCE(p.id, c.id) AND child.userId = :userId AND child.deletedAt IS NULL)',
+        'hasChildren',
       )
       .addSelect('SUM(t.amount)', 'amount')
       .where('t.userId = :userId AND t.transactionType = :transactionType', {
@@ -178,11 +207,19 @@ export class ReportService {
       })
     qb.groupBy('categoryId')
       .addGroupBy('categoryName')
+      .addGroupBy('iconKey')
+      .addGroupBy('svgContent')
+      .addGroupBy('iconColor')
+      .addGroupBy('hasChildren')
       .orderBy('amount', 'DESC')
     const rows = await qb.getRawMany<{
       categoryId: string
       categoryName: string
       amount: string
+      iconKey: string | null
+      svgContent: string | null
+      iconColor: string | null
+      hasChildren: boolean | number | string
     }>()
     const total = rows.reduce((sum, row) => sum + BigInt(row.amount), 0n)
     return {
@@ -191,6 +228,10 @@ export class ReportService {
         categoryId: String(row.categoryId),
         categoryName: row.categoryName,
         amount: String(row.amount),
+        iconKey: row.iconKey,
+        svgContent: row.svgContent,
+        iconColor: row.iconColor,
+        hasChildren: Boolean(Number(row.hasChildren)),
         percentage:
           total === 0n
             ? 0

@@ -7,6 +7,10 @@ import type {
   LedgerTransaction,
   TransactionPageResult,
   TransactionQuery,
+  TrendQuery,
+  TrendReport,
+  CategoryReportQuery,
+  CategoryReport,
 } from './types'
 
 export function fetchAccounts() {
@@ -41,4 +45,15 @@ export function fetchTransactions(
 
 export function fetchDashboardOverview(signal?: AbortSignal) {
   return get<DashboardOverview>('/dashboard/overview', undefined, { signal })
+}
+
+export function fetchTrend(query: TrendQuery, signal?: AbortSignal) {
+  return get<TrendReport>('/reports/trend', query, { signal })
+}
+
+export function fetchCategoryReport(
+  query: CategoryReportQuery,
+  signal?: AbortSignal,
+) {
+  return get<CategoryReport>('/reports/categories', query, { signal })
 }

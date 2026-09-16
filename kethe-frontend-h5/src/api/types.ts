@@ -214,3 +214,49 @@ export interface DashboardOverview {
     groups: DashboardTransactionGroup[]
   }
 }
+
+export type ReportView = 'month' | 'year' | 'custom'
+
+export interface TrendQuery {
+  view: ReportView
+  month?: string
+  year?: string
+  startTime?: string
+  endTime?: string
+  accountId?: string
+}
+
+export interface TrendPoint {
+  period: string
+  income: string
+  expense: string
+}
+
+export interface TrendReport {
+  view: ReportView
+  points: TrendPoint[]
+}
+
+export interface CategoryReportItem {
+  categoryId: string
+  categoryName: string
+  amount: string
+  percentage: number
+  iconKey: string | null
+  svgContent: string | null
+  iconColor: string | null
+  hasChildren: boolean
+}
+
+export interface CategoryReport {
+  total: string
+  list: CategoryReportItem[]
+}
+
+export interface CategoryReportQuery {
+  transactionType: 1 | 2
+  startTime: string
+  endTime: string
+  accountId?: string
+  parentCategoryId?: string
+}

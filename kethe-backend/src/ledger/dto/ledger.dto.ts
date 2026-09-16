@@ -292,6 +292,10 @@ export class TrendQueryDto {
   @IsOptional()
   @IsDateString({ strict: true })
   endTime?: string
+
+  @IsOptional()
+  @Matches(ID_PATTERN)
+  accountId?: string
 }
 
 export class CategoryReportQueryDto {

@@ -99,6 +99,12 @@
   --color-info-soft: var(--color-brand-soft);
   --color-income: var(--color-brand);
   --color-expense: var(--color-text-primary);
+  --chart-series-1: #3182f6;
+  --chart-series-2: #20b99a;
+  --chart-series-3: #ffad32;
+  --chart-series-4: #ff745d;
+  --chart-series-5: #8a5cf6;
+  --chart-series-other: #a8b4c5;
 
   /* Spacing — 以 4px 为基础，核心布局遵循 8pt 节奏。 */
   --space-0: 0;
@@ -216,6 +222,12 @@
   --color-danger-soft: rgba(255, 69, 58, 0.13);
   --color-warning: #ffd60a;
   --color-warning-soft: rgba(255, 214, 10, 0.13);
+  --chart-series-1: #409cff;
+  --chart-series-2: #30d5ad;
+  --chart-series-3: #ffc447;
+  --chart-series-4: #ff776d;
+  --chart-series-5: #a57aff;
+  --chart-series-other: #6f7c90;
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.22);
   --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.3);

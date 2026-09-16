@@ -24,6 +24,7 @@ import type {
   LedgerCategory,
   LedgerTransaction,
 } from '../api/types'
+import { AccountSheet } from '../components/AccountSheet'
 import { CategoryIcon } from '../components/CategoryIcon/CategoryIcon'
 import { useToast } from '../components/Toast'
 import './TallyPage.css'
@@ -241,52 +242,6 @@ function NumericKeyboard({
         <button disabled={disabled} type="button" aria-label="小数点" onClick={() => onInput('.')}>.</button>
         <button disabled={disabled} type="button" onClick={() => onInput('0')}>0</button>
       </div>
-    </div>
-  )
-}
-
-function AccountSheet({
-  accounts,
-  loading,
-  selected,
-  excludeId,
-  title,
-  onSelect,
-  onClose,
-}: {
-  accounts: LedgerAccount[]
-  loading: boolean
-  selected?: AccountOption
-  excludeId?: string
-  title: string
-  onSelect: (account: LedgerAccount) => void
-  onClose: () => void
-}) {
-  return (
-    <div className="account-sheet" role="presentation" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose()
-    }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="account-title">
-        <header><h2 id="account-title">{title}</h2><button type="button" onClick={onClose}>取消</button></header>
-        {loading && <p className="tally-status">正在加载账户…</p>}
-        {!loading && accounts.length === 0 && <p className="tally-status">暂无可用账户</p>}
-        {!loading && accounts.map((account) => {
-          const unavailable = account.id === excludeId
-          return (
-            <button
-              className={selected?.id === account.id ? 'is-selected' : undefined}
-              disabled={unavailable}
-              key={account.id}
-              type="button"
-              onClick={() => onSelect(account)}
-            >
-              <WalletCards aria-hidden="true" size={22} />
-              <span>{account.name}</span>
-              {unavailable ? <span className="account-sheet__hint">当前账户</span> : selected?.id === account.id && <span aria-hidden="true">✓</span>}
-            </button>
-          )
-        })}
-      </section>
     </div>
   )
 }
@@ -785,21 +740,25 @@ export function TallyPage() {
         </button>
       </footer>
 
-      {accountPicker && (
-        <AccountSheet
-          accounts={accounts}
-          loading={isLoadingResources}
-          selected={accountPicker === 'account' ? account : targetAccount}
-          excludeId={type === 'transfer' ? (accountPicker === 'account' ? targetAccount?.id : account?.id) : undefined}
-          title={accountPicker === 'target' ? '选择转入账户' : '选择账户'}
-          onClose={() => setAccountPicker(undefined)}
-          onSelect={(nextAccount) => {
-            if (accountPicker === 'target') setTargetAccount(nextAccount)
-            else setAccount(nextAccount)
-            setAccountPicker(undefined)
-          }}
-        />
-      )}
+      <AccountSheet
+        open={Boolean(accountPicker)}
+        accounts={accounts.map((item) => {
+          const excludeId = type === 'transfer'
+            ? accountPicker === 'account' ? targetAccount?.id : account?.id
+            : undefined
+          const disabled = item.id === excludeId
+          return { ...item, disabled, hint: disabled ? '当前账户' : undefined }
+        })}
+        loading={isLoadingResources}
+        selectedId={accountPicker === 'account' ? account?.id : targetAccount?.id}
+        onClose={() => setAccountPicker(undefined)}
+        onSelect={(nextAccount) => {
+          if (!nextAccount.id) return
+          if (accountPicker === 'target') setTargetAccount(nextAccount as AccountOption)
+          else setAccount(nextAccount as AccountOption)
+          setAccountPicker(undefined)
+        }}
+      />
     </main>
   )
 }

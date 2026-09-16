@@ -8,7 +8,6 @@ import {
 } from 'lucide-react'
 import './index.css'
 import { clsx } from 'clsx'
-import { useState } from 'react'
 
 export type TabId = 'home' | 'chart' | 'add' | 'bill' | 'profile'
 
@@ -27,16 +26,13 @@ const tabs: Tab[] = [
 ]
 
 interface TabbarProps {
+  activeTab?: TabId
   onTabClick?: (tabId: TabId) => void
 }
 
-export function Tabbar({ onTabClick }: TabbarProps) {
-  const [activeTab, setActiveTab] = useState<TabId>("home")
-
+export function Tabbar({ activeTab = 'home', onTabClick }: TabbarProps) {
   const handleTabClick = (value: TabId) => {
-    setActiveTab(value)
     onTabClick?.(value)
-    // TODO: 跳转到对应页面
   }
 
   return (

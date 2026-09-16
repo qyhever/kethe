@@ -168,7 +168,7 @@ function TrendValue({ trend }: { trend: DashboardTrend }) {
   )
 }
 
-function MonthlyOverview({ data }: { data: DashboardOverview['month'] }) {
+function MonthlyOverview({ data, onOpenChart }: { data: DashboardOverview['month']; onOpenChart: () => void }) {
   return (
     <section className="overview-card" aria-labelledby="overview-title">
       <div className="overview-card__wash overview-card__wash--one" />
@@ -181,7 +181,7 @@ function MonthlyOverview({ data }: { data: DashboardOverview['month'] }) {
           </p>
           <TrendValue trend={data.trends.expense} />
         </div>
-        <button className="overview-card__chart" type="button" aria-label="查看收支图表">
+        <button className="overview-card__chart" type="button" aria-label="查看收支图表" onClick={onOpenChart}>
           <ChartNoAxesColumnIncreasing aria-hidden="true" size={28} strokeWidth={2.1} />
         </button>
       </div>
@@ -339,6 +339,7 @@ export function HomePage() {
       profile: '我的',
     }
     if (tabId === 'add') return navigate('/tally')
+    if (tabId === 'chart') return navigate('/chart')
     if (tabId !== 'home') toast.info(`${labels[tabId]}功能开发中`)
   }
 
@@ -369,7 +370,7 @@ export function HomePage() {
         )}
         {!loading && data && (
           <>
-            <MonthlyOverview data={data.month} />
+            <MonthlyOverview data={data.month} onOpenChart={() => navigate('/chart')} />
             <section className="period-grid" aria-label="周期统计">
               {periodSummaries.map((summary) => <PeriodSummaryCard key={summary.label} summary={summary} />)}
             </section>
@@ -378,7 +379,7 @@ export function HomePage() {
         )}
         <div className="home-scroll-spacer" aria-hidden="true" />
       </main>
-      <Tabbar onTabClick={handleTabClick} />
+      <Tabbar activeTab="home" onTabClick={handleTabClick} />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import {
   CreateCategoryDto,
   CreateTransactionDto,
   TransactionQueryDto,
+  TrendQueryDto,
 } from './ledger.dto'
 
 describe('记账 DTO', () => {
@@ -96,4 +97,28 @@ describe('记账 DTO', () => {
     dto.parentId = '0'
     expect(await validate(dto)).not.toHaveLength(0)
   })
+
+  it.each(['1', '9007199254740993'])(
+    '趋势筛选接受合法账户 ID %s',
+    async (accountId) => {
+      const dto = plainToInstance(TrendQueryDto, {
+        view: 'month',
+        month: '2026-09',
+        accountId,
+      })
+      expect(await validate(dto)).toHaveLength(0)
+    },
+  )
+
+  it.each(['0', '-1', '1.5', 'abc'])(
+    '趋势筛选拒绝非法账户 ID %s',
+    async (accountId) => {
+      const dto = plainToInstance(TrendQueryDto, {
+        view: 'month',
+        month: '2026-09',
+        accountId,
+      })
+      expect(await validate(dto)).not.toHaveLength(0)
+    },
+  )
 })

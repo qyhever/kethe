@@ -460,72 +460,6 @@ button.tally-form-row:disabled {
   background: var(--color-brand-soft);
 }
 
-.account-sheet {
-  position: fixed;
-  z-index: var(--z-modal);
-  inset: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 18px max(18px, var(--safe-right)) calc(18px + var(--safe-bottom)) max(18px, var(--safe-left));
-  background: var(--color-overlay);
-  animation: tally-fade-in var(--duration-normal) both;
-}
-
-.account-sheet section {
-  width: min(100%, 690px);
-  padding: 8px 18px 18px;
-  border-radius: 25px;
-  background: #fff;
-  box-shadow: var(--shadow-popover);
-  animation: tally-sheet-in var(--duration-normal) var(--ease-emphasized) both;
-}
-
-.account-sheet header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 58px;
-}
-
-.account-sheet h2 {
-  margin: 0;
-  font-size: 19px;
-}
-
-.account-sheet header button {
-  color: var(--tally-blue);
-  background: transparent;
-}
-
-.account-sheet section > button {
-  display: grid;
-  grid-template-columns: 32px 1fr 24px;
-  align-items: center;
-  width: 100%;
-  min-height: 54px;
-  padding: 0 8px;
-  border-top: 1px solid var(--color-separator);
-  color: #263140;
-  background: transparent;
-  text-align: left;
-}
-
-.account-sheet section > button.is-selected {
-  color: var(--tally-blue);
-}
-
-.account-sheet section > button:disabled {
-  color: #a5acb7;
-  cursor: not-allowed;
-}
-
-.account-sheet__hint {
-  color: #a5acb7;
-  font-size: 13px;
-  text-align: right;
-}
-
 @keyframes tally-caret {
   50% { opacity: 0; }
 }
@@ -533,16 +467,6 @@ button.tally-form-row:disabled {
 @keyframes tally-list-in {
   from { opacity: 0; transform: translateY(7px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes tally-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes tally-sheet-in {
-  from { transform: translateY(24px); }
-  to { transform: translateY(0); }
 }
 
 @media (max-width: 560px) {
@@ -639,9 +563,7 @@ button.tally-form-row:disabled {
 
 @media (prefers-reduced-motion: reduce) {
   .tally-amount__caret,
-  .tally-category-list,
-  .account-sheet,
-  .account-sheet section {
+  .tally-category-list {
     animation: none;
   }
 }
