@@ -2,11 +2,8 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
-  BarChart3,
-  CalendarDays,
   ChevronDown,
   ChevronRight,
-  PieChart,
   RefreshCw,
   WalletCards,
 } from 'lucide-react'
@@ -32,7 +29,7 @@ import type {
 } from '../api/types'
 import { AccountSheet } from '../components/AccountSheet'
 import { CategoryIcon } from '../components/CategoryIcon/CategoryIcon'
-import { DatePicker } from '../components/DatePicker'
+import { PeriodSheet, type PeriodOption } from '../components/PeriodSheet'
 import { Tabbar, type TabId } from '../components/Tarbar'
 import { useToast } from '../components/Toast'
 import './ChartPage.css'
@@ -47,8 +44,7 @@ const SERIES = [
 ]
 
 type TransactionKind = 'expense' | 'income'
-type ChartKind = 'bar' | 'pie'
-type DateSide = 'start' | 'end'
+type SelectableReportView = Exclude<ReportView, 'custom'>
 
 interface DateRange {
   startDate: string
@@ -87,18 +83,90 @@ function daysInMonth(year: number, month: number) {
   return new Date(Date.UTC(year, month, 0)).getUTCDate()
 }
 
+function isoWeekStart(year: number, week: number) {
+  const januaryFourth = dateKey(year, 1, 4)
+  const date = new Date(`${januaryFourth}T00:00:00Z`)
+  const weekday = date.getUTCDay() || 7
+  return shiftDate(januaryFourth, 1 - weekday + (week - 1) * 7)
+}
+
+function isoWeekForDate(date: string) {
+  const value = new Date(`${date}T00:00:00Z`)
+  const weekday = value.getUTCDay() || 7
+  const monday = shiftDate(date, 1 - weekday)
+  const thursday = new Date(`${shiftDate(date, 4 - weekday)}T00:00:00Z`)
+  const year = thursday.getUTCFullYear()
+  const firstMonday = isoWeekStart(year, 1)
+  const week = Math.round(
+    (Date.parse(`${monday}T00:00:00Z`) - Date.parse(`${firstMonday}T00:00:00Z`)) /
+      (7 * 86400000),
+  ) + 1
+  return { year, week, monday, value: `${year}-W${String(week).padStart(2, '0')}` }
+}
+
+function createPeriodOptions(view: SelectableReportView, today: string): PeriodOption[] {
+  if (view === 'week') {
+    const current = isoWeekForDate(today)
+    const options: PeriodOption[] = []
+    for (
+      let monday = isoWeekStart(2020, 1);
+      monday <= current.monday;
+      monday = shiftDate(monday, 7)
+    ) {
+      const period = isoWeekForDate(monday)
+      const label =
+        monday === current.monday
+          ? '本周'
+          : monday === shiftDate(current.monday, -7)
+            ? '上周'
+            : `${period.year === current.year ? '' : `${period.year}-`}${String(period.week).padStart(2, '0')}周`
+      options.push({ value: period.value, label })
+    }
+    return options.reverse()
+  }
+
+  const currentYear = Number(today.slice(0, 4))
+  if (view === 'year') {
+    return Array.from({ length: currentYear - 2020 + 1 }, (_, index) => {
+      const year = currentYear - index
+      return {
+        value: String(year),
+        label: year === currentYear ? '今年' : year === currentYear - 1 ? '去年' : `${year}年`,
+      }
+    })
+  }
+
+  const currentMonth = Number(today.slice(5, 7))
+  const currentIndex = currentYear * 12 + currentMonth - 1
+  const firstIndex = 2020 * 12
+  return Array.from({ length: currentIndex - firstIndex + 1 }, (_, index) => {
+    const valueIndex = currentIndex - index
+    const year = Math.floor(valueIndex / 12)
+    const month = (valueIndex % 12) + 1
+    const value = `${year}-${String(month).padStart(2, '0')}`
+    return {
+      value,
+      label: index === 0 ? '本月' : index === 1 ? '上月' : `${year === currentYear ? '' : `${year}-`}${String(month).padStart(2, '0')}月`,
+    }
+  })
+}
+
 function toApiDate(date: string) {
   return new Date(`${date}T00:00:00+08:00`).toISOString()
 }
 
 function rangeForView(
-  view: ReportView,
+  view: SelectableReportView,
+  week: string,
   month: string,
   year: string,
-  custom: DateRange,
 ): DateRange {
-  if (view === 'custom') return custom
   if (view === 'year') return { startDate: `${year}-01-01`, endDate: `${year}-12-31` }
+  if (view === 'week') {
+    const [weekYear, weekNumber] = week.split('-W').map(Number)
+    const startDate = isoWeekStart(weekYear, weekNumber)
+    return { startDate, endDate: shiftDate(startDate, 6) }
+  }
   const [monthYear, monthNumber] = month.split('-').map(Number)
   return {
     startDate: `${month}-01`,
@@ -106,7 +174,13 @@ function rangeForView(
   }
 }
 
-function previousRange(view: ReportView, range: DateRange): DateRange {
+function previousRange(view: SelectableReportView, range: DateRange): DateRange {
+  if (view === 'week') {
+    return {
+      startDate: shiftDate(range.startDate, -7),
+      endDate: shiftDate(range.endDate, -7),
+    }
+  }
   if (view === 'month') {
     const { year, month } = dateParts(range.startDate)
     const previous = new Date(Date.UTC(year, month - 2, 1))
@@ -121,21 +195,7 @@ function previousRange(view: ReportView, range: DateRange): DateRange {
     const year = Number(range.startDate.slice(0, 4)) - 1
     return { startDate: `${year}-01-01`, endDate: `${year}-12-31` }
   }
-  const start = Date.UTC(...([
-    dateParts(range.startDate).year,
-    dateParts(range.startDate).month - 1,
-    dateParts(range.startDate).day,
-  ] as [number, number, number]))
-  const end = Date.UTC(...([
-    dateParts(range.endDate).year,
-    dateParts(range.endDate).month - 1,
-    dateParts(range.endDate).day,
-  ] as [number, number, number]))
-  const days = Math.round((end - start) / 86400000) + 1
-  return {
-    startDate: shiftDate(range.startDate, -days),
-    endDate: shiftDate(range.startDate, -1),
-  }
+  return range
 }
 
 function formatCents(value: string | bigint) {
@@ -168,14 +228,14 @@ function periodLabel(period: string, view: ReportView) {
   return `${month}/${day}`
 }
 
-function BarChartView({
+function LineChartView({
   points,
   kind,
   view,
 }: {
   points: TrendPoint[]
   kind: TransactionKind
-  view: ReportView
+  view: SelectableReportView
 }) {
   const [selected, setSelected] = useState<number | null>(null)
   const values = points.map((point) =>
@@ -190,14 +250,16 @@ function BarChartView({
   const bottom = 38
   const plotWidth = width - left - 12
   const plotHeight = height - top - bottom
-  const slot = plotWidth / Math.max(points.length, 1)
-  const barWidth = Math.max(4, Math.min(20, slot * 0.62))
+  const slot = plotWidth / Math.max(points.length - 1, 1)
   const labelEvery = Math.max(1, Math.ceil(points.length / 6))
-  const selectBar = (index: number) => setSelected(index)
-  const handleKey = (event: KeyboardEvent<SVGRectElement>, index: number) => {
+  const coordinates = values.map((value, index) => ({
+    x: points.length === 1 ? left + plotWidth / 2 : left + index * slot,
+    y: top + plotHeight - (Number(value) / numericMax) * plotHeight,
+  }))
+  const handleKey = (event: KeyboardEvent<SVGCircleElement>, index: number) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      selectBar(index)
+      setSelected(index)
     }
   }
 
@@ -206,7 +268,7 @@ function BarChartView({
   }
 
   return (
-    <svg className="trend-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${kind === 'expense' ? '支出' : '收入'}趋势柱状图`}>
+    <svg className="trend-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${kind === 'expense' ? '支出' : '收入'}趋势折线图`}>
       {[0, 1, 2, 3].map((line) => {
         const y = top + (plotHeight / 3) * line
         const amount = BigInt(Math.round((numericMax * (3 - line)) / 3))
@@ -219,37 +281,37 @@ function BarChartView({
           </g>
         )
       })}
+      <polyline
+        className="trend-chart__line"
+        points={coordinates.map(({ x, y }) => `${x},${y}`).join(' ')}
+      />
       {points.map((point, index) => {
         const value = values[index]
-        const barHeight = Math.max(value > 0n ? 3 : 0, (Number(value) / numericMax) * plotHeight)
-        const x = left + index * slot + (slot - barWidth) / 2
-        const y = top + plotHeight - barHeight
+        const { x, y } = coordinates[index]
         const isSelected = selected === index
         return (
           <g key={point.period}>
-            <rect
-              x={x}
-              y={y}
-              width={barWidth}
-              height={barHeight}
-              rx={barWidth / 2}
-              className={`trend-chart__bar${isSelected ? ' is-selected' : ''}`}
+            <circle
+              cx={x}
+              cy={y}
+              r={isSelected ? 7 : 5}
+              className={`trend-chart__point${isSelected ? ' is-selected' : ''}`}
               role="button"
               tabIndex={0}
               aria-label={`${point.period}，${formatCents(value)}元`}
-              onClick={() => selectBar(index)}
+              onClick={() => setSelected(index)}
               onKeyDown={(event) => handleKey(event, index)}
             />
             {(index % labelEvery === 0 || index === points.length - 1) && (
-              <text x={x + barWidth / 2} y={height - 12} textAnchor="middle" className="trend-chart__axis">
+              <text x={x} y={height - 12} textAnchor="middle" className="trend-chart__axis">
                 {periodLabel(point.period, view)}
               </text>
             )}
             {isSelected && (
               <g className="trend-chart__tooltip">
-                <rect x={Math.max(4, Math.min(width - 132, x - 52))} y={Math.max(2, y - 55)} width="128" height="46" rx="10" />
-                <text x={Math.max(68, Math.min(width - 68, x + barWidth / 2))} y={Math.max(19, y - 38)} textAnchor="middle">{periodLabel(point.period, view)}</text>
-                <text x={Math.max(68, Math.min(width - 68, x + barWidth / 2))} y={Math.max(35, y - 22)} textAnchor="middle">¥ {formatCents(value)}</text>
+                <rect x={Math.max(4, Math.min(width - 132, x - 64))} y={Math.max(2, y - 55)} width="128" height="46" rx="10" />
+                <text x={Math.max(68, Math.min(width - 68, x))} y={Math.max(19, y - 38)} textAnchor="middle">{periodLabel(point.period, view)}</text>
+                <text x={Math.max(68, Math.min(width - 68, x))} y={Math.max(35, y - 22)} textAnchor="middle">¥ {formatCents(value)}</text>
               </g>
             )}
           </g>
@@ -316,16 +378,16 @@ export function ChartPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const today = useMemo(shanghaiToday, [])
+  const currentWeek = useMemo(() => isoWeekForDate(today).value, [today])
   const [kind, setKind] = useState<TransactionKind>('expense')
-  const [view, setView] = useState<ReportView>('month')
+  const [view, setView] = useState<SelectableReportView>('month')
+  const [week, setWeek] = useState(currentWeek)
   const [month, setMonth] = useState(today.slice(0, 7))
   const [year, setYear] = useState(today.slice(0, 4))
-  const [custom, setCustom] = useState<DateRange>({ startDate: shiftDate(today, -6), endDate: today })
-  const [dateSide, setDateSide] = useState<DateSide | null>(null)
+  const [periodOpen, setPeriodOpen] = useState(false)
   const [accountId, setAccountId] = useState<string>()
   const [accounts, setAccounts] = useState<LedgerAccount[]>([])
   const [accountOpen, setAccountOpen] = useState(false)
-  const [chartKind, setChartKind] = useState<ChartKind>('bar')
   const [points, setPoints] = useState<TrendPoint[]>([])
   const [previousPoints, setPreviousPoints] = useState<TrendPoint[]>([])
   const [categories, setCategories] = useState<CategoryReport>({ total: '0', list: [] })
@@ -335,10 +397,17 @@ export function ChartPage() {
   const [retryKey, setRetryKey] = useState(0)
 
   const range = useMemo(
-    () => rangeForView(view, month, year, custom),
-    [custom, month, view, year],
+    () => rangeForView(view, week, month, year),
+    [month, view, week, year],
   )
   const priorRange = useMemo(() => previousRange(view, range), [range, view])
+  const periodOptions = useMemo(
+    () => createPeriodOptions(view, today),
+    [today, view],
+  )
+  const selectedPeriod = view === 'week' ? week : view === 'month' ? month : year
+  const selectedPeriodLabel =
+    periodOptions.find((option) => option.value === selectedPeriod)?.label ?? selectedPeriod
   const accountName = accounts.find((item) => item.id === accountId)?.name ?? '全部账户'
 
   useEffect(() => {
@@ -353,7 +422,7 @@ export function ChartPage() {
 
   useEffect(() => {
     setParent(null)
-  }, [accountId, kind, month, view, year, custom.startDate, custom.endDate])
+  }, [accountId, kind, month, view, week, year])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -365,11 +434,11 @@ export function ChartPage() {
       accountId,
     }
     const currentQuery =
-      view === 'month'
-        ? { view, month, accountId }
-        : view === 'year'
-          ? { view, year, accountId }
-          : { view, ...commonRange }
+      view === 'week'
+        ? { view, week, accountId }
+        : view === 'month'
+          ? { view, month, accountId }
+          : { view, year, accountId }
     Promise.all([
       fetchTrend(currentQuery, controller.signal),
       fetchTrend(
@@ -403,12 +472,12 @@ export function ChartPage() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [accountId, kind, month, parent, priorRange, range, retryKey, view, year])
+  }, [accountId, kind, month, parent, priorRange, range, retryKey, view, week, year])
 
   const total = sumPoints(points, kind)
   const previousTotal = sumPoints(previousPoints, kind)
   const trend = percentChange(total, previousTotal)
-  const compareLabel = view === 'month' ? '较上月' : view === 'year' ? '较上年' : '较上期'
+  const compareLabel = view === 'week' ? '较上周' : view === 'month' ? '较上月' : '较上年'
 
   const openFlow = (categoryId?: string) =>
     navigate('/flow', {
@@ -428,14 +497,6 @@ export function ChartPage() {
     if (tab === 'add') return navigate('/tally')
     if (tab === 'bill') return navigate('/flow')
     toast.info('我的功能开发中')
-  }
-
-  const chooseCustomDate = (value: string) => {
-    if (dateSide === 'start') {
-      setCustom((current) => ({ startDate: value, endDate: value > current.endDate ? value : current.endDate }))
-    } else {
-      setCustom((current) => ({ startDate: value < current.startDate ? value : current.startDate, endDate: value }))
-    }
   }
 
   return (
@@ -458,20 +519,14 @@ export function ChartPage() {
             </button>
           </div>
           <div className="period-segment" aria-label="统计周期">
-            {([['month', '月'], ['year', '年'], ['custom', '自定义']] as const).map(([value, label]) => (
-              <button key={value} className={view === value ? 'is-active' : ''} type="button" onClick={() => setView(value)}>{label}</button>
+            {([['week', '周'], ['month', '月'], ['year', '年']] as const).map(([value, label]) => (
+              <button key={value} className={view === value ? 'is-active' : ''} type="button" onClick={() => { setView(value); setPeriodOpen(false) }}>{label}</button>
             ))}
           </div>
           <div className="date-controls">
-            {view === 'month' && <input aria-label="选择月份" type="month" value={month} onChange={(event) => event.target.value && setMonth(event.target.value)} />}
-            {view === 'year' && <input aria-label="选择年份" type="number" min="1900" max="9999" value={year} onChange={(event) => /^\d{4}$/.test(event.target.value) && setYear(event.target.value)} />}
-            {view === 'custom' && (
-              <>
-                <button type="button" onClick={() => setDateSide('start')}><CalendarDays size={16} />{custom.startDate}</button>
-                <span>至</span>
-                <button type="button" onClick={() => setDateSide('end')}><CalendarDays size={16} />{custom.endDate}</button>
-              </>
-            )}
+            <button type="button" onClick={() => setPeriodOpen(true)}>
+              {selectedPeriodLabel}<ChevronDown aria-hidden="true" size={16} />
+            </button>
           </div>
         </header>
 
@@ -492,11 +547,7 @@ export function ChartPage() {
                 {!trend ? <span>--</span> : <>{trend.direction === 'up' ? <ArrowUp size={15} /> : trend.direction === 'down' ? <ArrowDown size={15} /> : null}<span>{trend.percentage.toFixed(1)}%</span></>}
               </div>
               <div className="trend-card__visual">
-                {chartKind === 'bar' ? <BarChartView points={points} kind={kind} view={view} /> : categories.list.length ? <Donut report={categories} kind={kind} /> : <div className="chart-empty">当前范围暂无分类数据</div>}
-              </div>
-              <div className="chart-kind-switch">
-                <button className={chartKind === 'bar' ? 'is-active' : ''} type="button" onClick={() => setChartKind('bar')}><BarChart3 size={18} />柱状图</button>
-                <button className={chartKind === 'pie' ? 'is-active' : ''} type="button" onClick={() => setChartKind('pie')}><PieChart size={18} />饼图</button>
+                <LineChartView points={points} kind={kind} view={view} />
               </div>
             </section>
 
@@ -548,7 +599,19 @@ export function ChartPage() {
           setAccountOpen(false)
         }}
       />
-      {dateSide && <DatePicker label={dateSide === 'start' ? '选择开始日期' : '选择结束日期'} value={dateSide === 'start' ? custom.startDate : custom.endDate} onChange={chooseCustomDate} onClose={() => setDateSide(null)} />}
+      <PeriodSheet
+        open={periodOpen}
+        title={`选择${view === 'week' ? '周' : view === 'month' ? '月' : '年'}`}
+        options={periodOptions}
+        selectedValue={selectedPeriod}
+        onClose={() => setPeriodOpen(false)}
+        onSelect={(option) => {
+          if (view === 'week') setWeek(option.value)
+          else if (view === 'month') setMonth(option.value)
+          else setYear(option.value)
+          setPeriodOpen(false)
+        }}
+      />
     </div>
   )
 }

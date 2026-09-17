@@ -88,7 +88,10 @@ export class ReportService {
     let start: Date
     let end: Date
     let unit: 'day' | 'month' = 'day'
-    if (query.view === 'month') {
+    if (query.view === 'week') {
+      if (!query.week) throw new BadRequestException('周视图必须提供 week')
+      ;({ start, end } = this.weekRange(query.week))
+    } else if (query.view === 'month') {
       if (!query.month) throw new BadRequestException('月视图必须提供 month')
       ;({ start, end } = this.monthRange(query.month))
     } else if (query.view === 'year') {
@@ -358,6 +361,15 @@ export class ReportService {
   private monthRange(month: string) {
     const start = dayjs.tz(`${month}-01`, ZONE).startOf('month')
     return this.range(start, start.add(1, 'month'))
+  }
+
+  private weekRange(week: string) {
+    const [yearText, weekText] = week.split('-W')
+    const start = dayjs
+      .tz(`${yearText}-01-04`, ZONE)
+      .startOf('isoWeek')
+      .add(Number(weekText) - 1, 'week')
+    return this.range(start, start.add(1, 'week'))
   }
 
   private yearRange(year: string) {

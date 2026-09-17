@@ -14,6 +14,7 @@ import {
   MaxLength,
   Min,
   ValidateNested,
+  ValidateBy,
 } from 'class-validator'
 import { AccountType } from '../../user/enums/account-type.enum'
 import { TransactionType } from '../entities/transaction.entity'
@@ -21,6 +22,33 @@ import { TransactionType } from '../entities/transaction.entity'
 const ID_PATTERN = /^[1-9]\d*$/
 const AMOUNT_PATTERN = /^(0|[1-9]\d*)$/
 const POSITIVE_AMOUNT_PATTERN = /^[1-9]\d*$/
+const ISO_WEEK_PATTERN = /^(\d{4})-W(0[1-9]|[1-4]\d|5[0-3])$/
+
+function isLeapYear(year: number) {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+}
+
+function isoWeeksInYear(year: number) {
+  const januaryFirst = new Date(Date.UTC(year, 0, 1)).getUTCDay() || 7
+  return januaryFirst === 4 || (januaryFirst === 3 && isLeapYear(year))
+    ? 53
+    : 52
+}
+
+function IsIsoWeek() {
+  return ValidateBy({
+    name: 'isIsoWeek',
+    validator: {
+      validate(value: unknown) {
+        if (typeof value !== 'string') return false
+        const matched = ISO_WEEK_PATTERN.exec(value)
+        if (!matched) return false
+        return Number(matched[2]) <= isoWeeksInYear(Number(matched[1]))
+      },
+      defaultMessage: () => 'week must be a valid ISO week in YYYY-Www format',
+    },
+  })
+}
 const toNumber = ({ value }: { value: unknown }): unknown =>
   value === undefined ? undefined : Number(value)
 const toBoolean = ({ value }: { value: unknown }): unknown =>
@@ -274,8 +302,12 @@ export class YearQueryDto {
 }
 
 export class TrendQueryDto {
-  @IsIn(['month', 'year', 'custom'])
-  view!: 'month' | 'year' | 'custom'
+  @IsIn(['week', 'month', 'year', 'custom'])
+  view!: 'week' | 'month' | 'year' | 'custom'
+
+  @IsOptional()
+  @IsIsoWeek()
+  week?: string
 
   @IsOptional()
   @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)

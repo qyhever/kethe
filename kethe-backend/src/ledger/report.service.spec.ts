@@ -168,6 +168,59 @@ describe('ReportService chart reports', () => {
     })
   })
 
+  it.each([
+    {
+      week: '2026-W38',
+      first: '2026-09-14',
+      last: '2026-09-20',
+      start: '2026-09-13T16:00:00.000Z',
+      end: '2026-09-20T16:00:00.000Z',
+    },
+    {
+      week: '2020-W01',
+      first: '2019-12-30',
+      last: '2020-01-05',
+      start: '2019-12-29T16:00:00.000Z',
+      end: '2020-01-05T16:00:00.000Z',
+    },
+  ])(
+    '周趋势按 ISO 周补齐 7 天：$week',
+    async ({ week, first, last, start, end }) => {
+      const qb = queryBuilder([
+        { period: first, expense: '800', income: '200' },
+      ])
+      const dataSource = {
+        getRepository: () => ({ createQueryBuilder: () => qb }),
+      }
+      const service = new ReportService(dataSource as never, {} as never)
+
+      const result = await service.trend(14, {
+        view: 'week',
+        week,
+        accountId: '7',
+      })
+
+      expect(qb.where).toHaveBeenCalledWith(
+        't.userId = :userId AND t.transactionTime >= :start AND t.transactionTime < :end',
+        { userId: 14, start: new Date(start), end: new Date(end) },
+      )
+      expect(qb.andWhere).toHaveBeenCalledWith('t.accountId = :accountId', {
+        accountId: '7',
+      })
+      expect(result.points).toHaveLength(7)
+      expect(result.points[0]).toEqual({
+        period: first,
+        expense: '800',
+        income: '200',
+      })
+      expect(result.points[6]).toEqual({
+        period: last,
+        expense: '0',
+        income: '0',
+      })
+    },
+  )
+
   it('一级分类返回父分类图标、占比和子分类标记', async () => {
     const qb = queryBuilder([
       {

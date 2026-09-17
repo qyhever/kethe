@@ -215,10 +215,11 @@ export interface DashboardOverview {
   }
 }
 
-export type ReportView = 'month' | 'year' | 'custom'
+export type ReportView = 'week' | 'month' | 'year' | 'custom'
 
 export interface TrendQuery {
   view: ReportView
+  week?: string
   month?: string
   year?: string
   startTime?: string

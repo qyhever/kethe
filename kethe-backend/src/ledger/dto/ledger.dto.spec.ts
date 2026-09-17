@@ -121,4 +121,24 @@ describe('记账 DTO', () => {
       expect(await validate(dto)).not.toHaveLength(0)
     },
   )
+
+  it.each(['2026-W01', '2020-W53', '2025-W52'])(
+    '趋势筛选接受合法 ISO 周 %s',
+    async (week) => {
+      const dto = plainToInstance(TrendQueryDto, { view: 'week', week })
+      expect(await validate(dto)).toHaveLength(0)
+    },
+  )
+
+  it.each([
+    '2026-01',
+    '2026-W1',
+    '2026-W00',
+    '2026-W54',
+    '2021-W53',
+    'abcd-W01',
+  ])('趋势筛选拒绝非法 ISO 周 %s', async (week) => {
+    const dto = plainToInstance(TrendQueryDto, { view: 'week', week })
+    expect(await validate(dto)).not.toHaveLength(0)
+  })
 })
