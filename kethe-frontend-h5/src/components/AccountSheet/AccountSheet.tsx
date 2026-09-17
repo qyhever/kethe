@@ -37,11 +37,12 @@ export function AccountSheet({
       setRendered(true)
       return
     }
+    if (!rendered) return
 
     setVisible(false)
     const timer = window.setTimeout(() => setRendered(false), EXIT_DURATION)
     return () => window.clearTimeout(timer)
-  }, [open])
+  }, [open, rendered])
 
   useEffect(() => {
     if (!open || !rendered) return
