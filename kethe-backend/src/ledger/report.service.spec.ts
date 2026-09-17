@@ -261,6 +261,7 @@ describe('ReportService chart reports', () => {
       iconColor: '#3182F6',
       hasChildren: true,
     })
+    expect(qb.groupBy).toHaveBeenCalledWith('COALESCE(p.id, c.id)')
   })
 
   it('二级分类查询附加父分类条件并处理空数据', async () => {
@@ -280,6 +281,7 @@ describe('ReportService chart reports', () => {
     expect(qb.andWhere).toHaveBeenCalledWith('c.parentId = :parentId', {
       parentId: '10',
     })
+    expect(qb.groupBy).toHaveBeenCalledWith('c.id')
     expect(result).toEqual({ total: '0', list: [] })
   })
 })

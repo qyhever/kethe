@@ -208,7 +208,7 @@ export class ReportService {
       qb.andWhere('c.parentId = :parentId', {
         parentId: query.parentCategoryId,
       })
-    qb.groupBy('categoryId')
+    qb.groupBy(query.parentCategoryId ? 'c.id' : 'COALESCE(p.id, c.id)')
       .addGroupBy('categoryName')
       .addGroupBy('iconKey')
       .addGroupBy('svgContent')
