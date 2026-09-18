@@ -1,0 +1,377 @@
+.bill-page {
+  min-height: 100dvh;
+  color: var(--color-text-primary);
+  background:
+    radial-gradient(circle at 94% 4%, rgba(221, 235, 255, 0.5), transparent 20rem),
+    var(--color-background-secondary);
+}
+
+.bill-content {
+  width: 100%;
+  min-height: calc(100dvh - var(--tabbar-full-height));
+  padding: calc(var(--safe-top) + 24px) max(var(--page-gutter), var(--safe-right)) 28px max(var(--page-gutter), var(--safe-left));
+}
+
+.bill-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 18px;
+}
+
+.bill-header h1 {
+  margin: 0;
+  font: var(--font-weight-bold) 30px/1 var(--font-family-display);
+  letter-spacing: -0.8px;
+}
+
+.bill-header__balance {
+  width: 116px;
+  justify-self: end;
+}
+
+.bill-year-select {
+  width: fit-content;
+  min-width: 116px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 14px 0 17px;
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-text-primary);
+  background: var(--color-fill-secondary);
+  font: var(--font-weight-medium) 20px/1 var(--font-family-sans);
+  cursor: pointer;
+}
+
+.bill-year-select svg {
+  flex: none;
+  pointer-events: none;
+}
+
+.bill-year-select:focus-visible,
+.bill-month-row:focus-visible,
+.bill-error button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.bill-loaded {
+  display: grid;
+  gap: 20px;
+}
+
+.bill-summary {
+  position: relative;
+  min-height: 242px;
+  overflow: hidden;
+  padding: 27px 28px 24px;
+  border: 1px solid rgba(201, 224, 255, 0.68);
+  border-radius: var(--radius-2xl);
+  background:
+    radial-gradient(circle at 43% 5%, rgba(255, 255, 255, 0.95), transparent 44%),
+    linear-gradient(120deg, #e9f3ff 0%, #f7fbff 48%, #e4f0ff 100%);
+  box-shadow: var(--shadow-sm), var(--shadow-inner-highlight);
+  animation: bill-rise 420ms var(--ease-emphasized) both;
+}
+
+.bill-summary span {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  line-height: 1.2;
+}
+
+.bill-summary strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 9px;
+  color: #111821;
+  font-family: var(--font-family-display);
+  font-size: clamp(29px, 7.3vw, 43px);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -1px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bill-summary strong.is-long {
+  font-size: clamp(24px, 6.2vw, 37px);
+}
+
+.bill-summary__primary {
+  position: relative;
+  z-index: 1;
+  max-width: 70%;
+}
+
+.bill-summary__metrics {
+  position: absolute;
+  z-index: 1;
+  right: 28px;
+  bottom: 29px;
+  left: 28px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bill-summary__metrics > div {
+  min-width: 0;
+}
+
+.bill-summary__metrics > div + div {
+  padding-left: 25px;
+  border-left: 1px solid var(--color-separator);
+}
+
+.bill-summary__metrics strong {
+  font-size: clamp(20px, 4.6vw, 28px);
+  letter-spacing: -0.5px;
+}
+
+.bill-summary__metrics strong.is-long {
+  font-size: clamp(17px, 3.9vw, 24px);
+}
+
+.bill-summary__metrics strong.is-income {
+  color: var(--color-income);
+}
+
+.bill-summary__bars {
+  position: absolute;
+  z-index: 0;
+  right: 24px;
+  bottom: 31px;
+  width: 22%;
+  height: 137px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.bill-summary__bars i {
+  width: 28%;
+  height: 44%;
+  border-radius: 12px 12px 3px 3px;
+  background: linear-gradient(180deg, rgba(123, 176, 255, 0.22), rgba(211, 229, 255, 0.28));
+}
+
+.bill-summary__bars i:nth-child(2) { height: 70%; }
+.bill-summary__bars i:nth-child(3) { height: 100%; }
+
+.bill-months {
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-2xl);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-sm);
+  animation: bill-rise 480ms 55ms var(--ease-emphasized) both;
+}
+
+.bill-months__header,
+.bill-month-row {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.12fr) 18px;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.bill-months__header {
+  min-height: 62px;
+  padding: 0 18px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-small);
+}
+
+.bill-months__header span:not(:first-child) {
+  text-align: right;
+}
+
+.bill-months__header i {
+  width: 18px;
+}
+
+.bill-months__body {
+  padding: 0 18px;
+  border-top: 1px solid var(--color-separator);
+}
+
+.bill-month-row {
+  width: 100%;
+  min-height: 56px;
+  padding: 0;
+  border-radius: 0;
+  color: #263143;
+  background: transparent;
+  font-size: clamp(13px, 2.5vw, 17px);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  transition: background-color var(--duration-fast), transform var(--duration-fast);
+}
+
+.bill-month-row + .bill-month-row {
+  border-top: 1px solid var(--color-separator);
+}
+
+.bill-month-row span:not(:first-child) {
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bill-month-row span.is-long {
+  font-size: 0.78em;
+  letter-spacing: -0.25px;
+}
+
+.bill-month-row__balance {
+  color: var(--color-brand);
+  font-weight: var(--font-weight-medium);
+}
+
+.bill-month-row__balance.is-negative {
+  color: var(--color-danger);
+}
+
+.bill-month-row svg {
+  color: var(--color-text-placeholder);
+}
+
+.bill-month-row:hover {
+  background: var(--color-fill-tertiary);
+}
+
+.bill-month-row:active {
+  background: var(--color-fill-secondary);
+  transform: scale(0.995);
+}
+
+.bill-error {
+  min-height: 250px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-2xl);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-raised);
+  text-align: center;
+}
+
+.bill-error p { margin: 0; }
+
+.bill-error button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 15px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  color: var(--color-on-brand);
+  background: var(--color-brand);
+}
+
+.bill-skeleton {
+  display: grid;
+  gap: 20px;
+}
+
+.bill-skeleton__summary,
+.bill-skeleton__table {
+  overflow: hidden;
+  border-radius: var(--radius-2xl);
+  background: var(--color-surface-raised);
+}
+
+.bill-skeleton__summary {
+  height: 242px;
+}
+
+.bill-skeleton__table {
+  display: grid;
+  padding: 0 18px;
+}
+
+.bill-skeleton__table i {
+  height: 56px;
+  border-bottom: 1px solid var(--color-separator);
+}
+
+.bill-skeleton__table i:first-child { height: 62px; }
+
+.bill-skeleton__summary::after,
+.bill-skeleton__table i::after {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(100deg, var(--color-fill-secondary) 20%, var(--color-fill-tertiary) 42%, var(--color-fill-secondary) 64%);
+  background-size: 210% 100%;
+  content: '';
+  animation: bill-shimmer 1.35s linear infinite;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@keyframes bill-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bill-shimmer {
+  to { background-position: -210% 0; }
+}
+
+@media (max-width: 430px) {
+  .bill-content {
+    padding-right: max(14px, var(--safe-right));
+    padding-left: max(14px, var(--safe-left));
+  }
+
+  .bill-header__balance,
+  .bill-year-select { padding-right: 11px; padding-left: 14px; font-size: 18px; }
+  .bill-summary { min-height: 226px; padding: 24px 20px 22px; }
+  .bill-summary__metrics { right: 20px; bottom: 25px; left: 20px; }
+  .bill-summary__metrics > div + div { padding-left: 14px; }
+  .bill-summary__bars { right: 17px; bottom: 27px; width: 20%; height: 124px; gap: 6px; }
+  .bill-months__header,
+  .bill-month-row { grid-template-columns: 43px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.13fr) 14px; column-gap: 3px; }
+  .bill-months__header { padding: 0 11px; font-size: 12px; }
+  .bill-months__body { padding: 0 11px; }
+  .bill-month-row { min-height: 54px; font-size: 13px; }
+  .bill-month-row svg { width: 14px; }
+}
+
+@media (min-width: 560px) {
+  .bill-content { padding-right: 30px; padding-left: 30px; }
+  .bill-month-row { min-height: 60px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bill-summary,
+  .bill-months,
+  .bill-skeleton__summary::after,
+  .bill-skeleton__table i::after {
+    animation: none;
+  }
+
+  .bill-month-row { transition: none; }
+}

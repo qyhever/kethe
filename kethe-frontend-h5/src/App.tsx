@@ -10,6 +10,7 @@ import { FlowPage } from './pages/FlowPage'
 import { SearchPage } from './pages/SearchPage'
 import { TallyPage } from './pages/TallyPage'
 import { ChartPage } from './pages/ChartPage'
+import { BillPage } from './pages/BillPage'
 import { RequireAnonymous, RequireAuth } from './components/Auth/RouteGuards'
 import { useAuthStore } from './stores/auth'
 
@@ -54,6 +55,7 @@ function App() {
           <Route path="/home" element={<HomePage />} />
           <Route path="/flow" element={<FlowPage />} />
           <Route path="/chart" element={<ChartPage />} />
+          <Route path="/bill" element={<BillPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/tally/*" element={<TallyPage />} />
           <Route path="/toast-demo" element={<ToastDemoPage />} />

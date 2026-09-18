@@ -463,7 +463,7 @@ export function ChartPage() {
     navigate('/flow', {
       state: {
         returnTo: '/chart',
-        chartFilters: {
+        flowFilters: {
           ...range,
           type: kind,
           accountId,
@@ -486,7 +486,7 @@ export function ChartPage() {
     if (tab === 'chart') return
     if (tab === 'home') return navigate('/home')
     if (tab === 'add') return navigate('/tally')
-    if (tab === 'bill') return navigate('/flow', { state: { returnTo: '/chart' } })
+    if (tab === 'bill') return navigate('/bill')
     toast.info('我的功能开发中')
   }
 

@@ -381,7 +381,9 @@ export function TallyPage() {
   const tallyPath = isEditing ? `/tally/${transactionId}` : '/tally'
   const routeState = location.state as { returnTo?: unknown } | null
   const returnTo =
-    routeState?.returnTo === '/flow' || routeState?.returnTo === '/home'
+    routeState?.returnTo === '/flow' ||
+    routeState?.returnTo === '/home' ||
+    routeState?.returnTo === '/bill'
       ? routeState.returnTo
       : isEditing
         ? '/flow'

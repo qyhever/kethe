@@ -1,7 +1,6 @@
 
 .tabbar-container {
-  height: var(--tabbar-full-height);
-  padding-bottom: var(--safe-bottom);
+  height: calc(var(--tabbar-full-height) + var(--safe-bottom));
 }
 
 .tabbar {
@@ -11,7 +10,7 @@
   right: auto;
   bottom: 0;
   width: min(100%, 750px);
-  height: var(--tabbar-height);
+  height: calc(var(--tabbar-height) + var(--safe-bottom));
   transform: translateX(-50%);
   padding: 0 0 var(--safe-bottom);
   box-sizing: border-box;

@@ -11,6 +11,7 @@ import type {
   TrendReport,
   CategoryReportQuery,
   CategoryReport,
+  YearlyBill,
 } from './types'
 
 export function fetchAccounts() {
@@ -49,6 +50,10 @@ export function fetchTransactions(
 
 export function fetchDashboardOverview(signal?: AbortSignal) {
   return get<DashboardOverview>('/dashboard/overview', undefined, { signal })
+}
+
+export function fetchYearlyBill(year: string, signal?: AbortSignal) {
+  return get<YearlyBill>('/bills/yearly', { year }, { signal })
 }
 
 export function fetchTrend(query: TrendQuery, signal?: AbortSignal) {

@@ -415,6 +415,7 @@ export function HomePage() {
     }
     if (tabId === 'add') return navigate('/tally')
     if (tabId === 'chart') return navigate('/chart')
+    if (tabId === 'bill') return navigate('/bill')
     if (tabId !== 'home') toast.info(`${labels[tabId]}功能开发中`)
   }
 

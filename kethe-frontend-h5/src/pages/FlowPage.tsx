@@ -65,15 +65,15 @@ interface Filters {
   maximum: string
 }
 
-interface ChartNavigationFilters {
+interface FlowNavigationFilters {
   startDate: string
   endDate: string
-  type: 'expense' | 'income'
+  type: 'all' | 'expense' | 'income'
   accountId?: string
   categoryId?: string
 }
 
-function filtersFromChart(value: ChartNavigationFilters): Filters {
+function filtersFromNavigation(value: FlowNavigationFilters): Filters {
   return {
     ...EMPTY_FILTERS,
     type: value.type,
@@ -85,12 +85,16 @@ function filtersFromChart(value: ChartNavigationFilters): Filters {
   }
 }
 
-function chartFiltersFromSearch(search: string): ChartNavigationFilters | undefined {
+function navigationFiltersFromSearch(search: string): FlowNavigationFilters | undefined {
   const params = new URLSearchParams(search)
   const startDate = params.get('startDate')
   const endDate = params.get('endDate')
   const type = params.get('type')
-  if (!startDate || !endDate || (type !== 'expense' && type !== 'income'))
+  if (
+    !startDate ||
+    !endDate ||
+    (type !== 'all' && type !== 'expense' && type !== 'income')
+  )
     return undefined
 
   return {
@@ -111,6 +115,7 @@ interface FlowYearGroup {
 }
 
 interface FlowPageCache {
+  returnTo: '/home' | '/chart' | '/bill'
   filters: Filters
   draft: Filters
   isSearching: boolean
@@ -1029,28 +1034,35 @@ export function FlowPage() {
   const toast = useToast()
   const navigationStateRef = useRef(
     location.state as {
-      chartFilters?: ChartNavigationFilters
+      flowFilters?: FlowNavigationFilters
+      chartFilters?: FlowNavigationFilters
       refreshFlow?: unknown
       returnTo?: unknown
     } | null,
   )
-  const returnToRef = useRef(
-    navigationStateRef.current?.returnTo === '/chart' ? '/chart' : '/home',
+  const searchNavigationFiltersRef = useRef(
+    navigationFiltersFromSearch(location.search),
   )
-  const searchChartFiltersRef = useRef(chartFiltersFromSearch(location.search))
-  const stateChartFiltersRef = useRef(
-    navigationStateRef.current?.chartFilters,
+  const stateNavigationFiltersRef = useRef(
+    navigationStateRef.current?.flowFilters ??
+      navigationStateRef.current?.chartFilters,
   )
-  const chartNavigationRef = useRef(
-    searchChartFiltersRef.current ?? stateChartFiltersRef.current,
+  const navigationFiltersRef = useRef(
+    searchNavigationFiltersRef.current ?? stateNavigationFiltersRef.current,
   )
   const restoredCacheRef = useRef(
-    chartNavigationRef.current ? null : flowPageCache,
+    navigationFiltersRef.current ? null : flowPageCache,
   )
   const restoredCache = restoredCacheRef.current
+  const navigationReturnTo = navigationStateRef.current?.returnTo
+  const returnTarget: '/home' | '/chart' | '/bill' =
+    navigationReturnTo === '/chart' || navigationReturnTo === '/bill'
+      ? navigationReturnTo
+      : restoredCache?.returnTo ?? '/home'
+  const stableReturnToRef = useRef(returnTarget)
   const initialFiltersRef = useRef(
-    chartNavigationRef.current
-      ? filtersFromChart(chartNavigationRef.current)
+    navigationFiltersRef.current
+      ? filtersFromNavigation(navigationFiltersRef.current)
       : restoredCache?.filters ?? currentYearFilters(),
   )
   const refreshAfterReturnRef = useRef(
@@ -1061,7 +1073,7 @@ export function FlowPage() {
   )
   const [draft, setDraft] = useState<Filters>(
     () =>
-      chartNavigationRef.current
+      navigationFiltersRef.current
         ? initialFiltersRef.current
         : restoredCache?.draft ?? currentYearFilters(),
   )
@@ -1115,13 +1127,13 @@ export function FlowPage() {
   const deletionRefreshScrollRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (!chartNavigationRef.current) return
+    if (!navigationFiltersRef.current) return
     flowPageCache = null
-    chartNavigationRef.current = undefined
-    if (stateChartFiltersRef.current && !searchChartFiltersRef.current) {
+    navigationFiltersRef.current = undefined
+    if (stateNavigationFiltersRef.current && !searchNavigationFiltersRef.current) {
       navigate(
         { pathname: location.pathname, search: location.search },
-        { replace: true, state: { returnTo: returnToRef.current } },
+        { replace: true, state: { returnTo: stableReturnToRef.current } },
       )
     }
   }, [location.pathname, location.search, navigate])
@@ -1251,6 +1263,7 @@ export function FlowPage() {
   const navigateToTally = (path: string) => {
     setOpenTransactionId(null)
     flowPageCache = {
+      returnTo: stableReturnToRef.current,
       filters,
       draft,
       isSearching,
@@ -1364,8 +1377,14 @@ export function FlowPage() {
           <button
             className="flow-navbar__back"
             type="button"
-            aria-label={returnToRef.current === '/chart' ? '返回图表' : '返回首页'}
-            onClick={() => navigate(returnToRef.current)}
+            aria-label={
+              stableReturnToRef.current === '/chart'
+                ? '返回图表'
+                : stableReturnToRef.current === '/bill'
+                  ? '返回账单'
+                  : '返回首页'
+            }
+            onClick={() => navigate(stableReturnToRef.current)}
           >
             <ArrowLeft aria-hidden="true" size={27} />
           </button>

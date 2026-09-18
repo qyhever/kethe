@@ -215,6 +215,17 @@ export interface DashboardOverview {
   }
 }
 
+export interface BillMonthSummary {
+  period: string
+  income: string
+  expense: string
+}
+
+export interface YearlyBill extends DashboardSummary {
+  year: string
+  months: BillMonthSummary[]
+}
+
 export type ReportView = 'week' | 'month' | 'year' | 'custom'
 
 export interface TrendQuery {
