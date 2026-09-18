@@ -189,6 +189,19 @@
   animation: flow-month-open var(--duration-normal) var(--ease-emphasized) both;
 }
 
+.flow-month__rows > .swipe-cell + .swipe-cell::before {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 18px;
+  left: 69px;
+  height: 1px;
+  background: var(--color-separator);
+  content: '';
+  pointer-events: none;
+  transform: scaleY(.5);
+}
+
 .flow-row {
   position: relative;
   display: grid;
@@ -205,17 +218,6 @@
   cursor: pointer;
   text-align: left;
   transition: background-color var(--duration-fast) var(--ease-standard);
-}
-
-.flow-row + .flow-row::before {
-  position: absolute;
-  top: 0;
-  right: 18px;
-  left: 69px;
-  height: 1px;
-  background: var(--color-separator);
-  content: '';
-  transform: scaleY(.5);
 }
 
 .flow-row:hover { background: rgba(240, 246, 255, .55); }
@@ -472,7 +474,7 @@
   .flow-month__summary small { gap: 5px; font-size: 12px; }
   .flow-month__rows { border-radius: 16px; }
   .flow-row { grid-template-columns: 34px 44px minmax(0, 1fr) auto; gap: 9px; min-height: 84px; padding: 8px 11px; }
-  .flow-row + .flow-row::before { right: 11px; left: 54px; }
+  .flow-month__rows > .swipe-cell + .swipe-cell::before { right: 11px; left: 54px; }
   .flow-row__icon { width: 44px; height: 44px; }
   .flow-row strong { font-size: 15px; }
   .flow-row__date strong { font-size: 20px; }

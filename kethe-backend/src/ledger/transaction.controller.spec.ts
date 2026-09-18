@@ -34,4 +34,16 @@ describe('TransactionController 路由', () => {
     )
     expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('/')
   })
+
+  it('使用 DELETE /transactions/:id 删除流水', () => {
+    const handler = Object.getOwnPropertyDescriptor(
+      TransactionController.prototype,
+      'remove',
+    )!.value as object
+
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.DELETE,
+    )
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(':id')
+  })
 })

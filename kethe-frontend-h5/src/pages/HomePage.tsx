@@ -5,13 +5,15 @@ import {
   ChartNoAxesColumnIncreasing,
   ChevronRight,
   Minus,
+  Pencil,
   RefreshCw,
   Sun,
+  Trash2,
   type LucideIcon,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fetchDashboardOverview } from '../api/ledger'
+import { deleteTransaction, fetchDashboardOverview } from '../api/ledger'
 import type {
   DashboardOverview,
   DashboardSummary,
@@ -20,7 +22,9 @@ import type {
   LedgerTransaction,
 } from '../api/types'
 import { CategoryIcon } from '../components/CategoryIcon/CategoryIcon'
+import { Dialog } from '../components/Dialog'
 import { Navbar } from '../components/Navbar'
+import { SwipeCell } from '../components/SwipeCell'
 import { Tabbar, type TabId } from '../components/Tarbar'
 import { useToast } from '../components/Toast'
 import './HomePage.css'
@@ -219,7 +223,19 @@ function PeriodSummaryCard({ summary }: { summary: PeriodSummaryData }) {
   )
 }
 
-function TransactionRow({ transaction }: { transaction: LedgerTransaction }) {
+function TransactionRow({
+  transaction,
+  open,
+  onOpenChange,
+  onEdit,
+  onDelete,
+}: {
+  transaction: LedgerTransaction
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
   const isTransfer = transaction.transactionType === 3
   const category = isTransfer
     ? '转账'
@@ -232,34 +248,64 @@ function TransactionRow({ transaction }: { transaction: LedgerTransaction }) {
     ? `${transaction.accountName || '未知账户'} → ${transaction.targetAccountName || '未知账户'}`
     : transaction.accountName
   return (
-    <div className="transaction-row">
-      <span
-        className="transaction-row__icon"
-        style={{ backgroundColor: transaction.iconColor || DEFAULT_ICON_COLOR }}
-      >
-        <CategoryIcon
-          name={transaction.iconKey || 'other'}
-          svgContent={transaction.svgContent}
-          size={28}
-          color="#fff"
-        />
-      </span>
-      <span className="transaction-row__description">
-        <span className="transaction-row__name">
-          {category}
-          {detail && <><span className="transaction-row__dot">·</span>{detail}</>}
+    <SwipeCell
+      actionWidth={144}
+      open={open}
+      onOpenChange={onOpenChange}
+      actions={
+        <>
+          <button type="button" onClick={onEdit}>
+            <Pencil aria-hidden="true" size={17} />
+            编辑
+          </button>
+          <button type="button" onClick={onDelete}>
+            <Trash2 aria-hidden="true" size={17} />
+            删除
+          </button>
+        </>
+      }
+    >
+      <button className="transaction-row" type="button" onClick={onEdit}>
+        <span
+          className="transaction-row__icon"
+          style={{ backgroundColor: transaction.iconColor || DEFAULT_ICON_COLOR }}
+        >
+          <CategoryIcon
+            name={transaction.iconKey || 'other'}
+            svgContent={transaction.svgContent}
+            size={28}
+            color="#fff"
+          />
         </span>
-        <span className="transaction-row__account">{account}</span>
-      </span>
-      <span className="transaction-row__time">{transactionTime(transaction.transactionTime)}</span>
-      <span className={`transaction-row__amount transaction-row__amount--${isTransfer ? 'transfer' : transaction.transactionType === 2 ? 'income' : 'expense'}`}>
-        {formatTransactionAmount(transaction)}
-      </span>
-    </div>
+        <span className="transaction-row__description">
+          <span className="transaction-row__name">
+            {category}
+            {detail && <><span className="transaction-row__dot">·</span>{detail}</>}
+          </span>
+          <span className="transaction-row__account">{account}</span>
+        </span>
+        <span className="transaction-row__time">{transactionTime(transaction.transactionTime)}</span>
+        <span className={`transaction-row__amount transaction-row__amount--${isTransfer ? 'transfer' : transaction.transactionType === 2 ? 'income' : 'expense'}`}>
+          {formatTransactionAmount(transaction)}
+        </span>
+      </button>
+    </SwipeCell>
   )
 }
 
-function TransactionGroupView({ group }: { group: DashboardTransactionGroup }) {
+function TransactionGroupView({
+  group,
+  openId,
+  onOpenChange,
+  onEdit,
+  onDelete,
+}: {
+  group: DashboardTransactionGroup
+  openId: string | null
+  onOpenChange: (id: string, open: boolean) => void
+  onEdit: (transaction: LedgerTransaction) => void
+  onDelete: (transaction: LedgerTransaction) => void
+}) {
   const heading = groupHeading(group.date)
   return (
     <section className="transaction-group" aria-labelledby={`group-${group.date}`}>
@@ -268,7 +314,16 @@ function TransactionGroupView({ group }: { group: DashboardTransactionGroup }) {
         <p><span>支出 ¥ {formatCents(group.expense)}</span><span className="is-income">收入 ¥ {formatCents(group.income)}</span></p>
       </header>
       <div className="transaction-group__list">
-        {group.list.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} />)}
+        {group.list.map((transaction) => (
+          <TransactionRow
+            key={transaction.id}
+            transaction={transaction}
+            open={openId === transaction.id}
+            onOpenChange={(open) => onOpenChange(transaction.id, open)}
+            onEdit={() => onEdit(transaction)}
+            onDelete={() => onDelete(transaction)}
+          />
+        ))}
       </div>
     </section>
   )
@@ -277,9 +332,17 @@ function TransactionGroupView({ group }: { group: DashboardTransactionGroup }) {
 function RecentTransactions({
   groups,
   onViewMore,
+  openId,
+  onOpenChange,
+  onEdit,
+  onDelete,
 }: {
   groups: DashboardTransactionGroup[]
   onViewMore: () => void
+  openId: string | null
+  onOpenChange: (id: string, open: boolean) => void
+  onEdit: (transaction: LedgerTransaction) => void
+  onDelete: (transaction: LedgerTransaction) => void
 }) {
   return (
     <section className="recent-card" aria-labelledby="recent-title">
@@ -288,7 +351,16 @@ function RecentTransactions({
       </header>
       <div className="recent-card__body">
         {groups.length ? (
-          groups.map((group) => <TransactionGroupView group={group} key={group.date} />)
+          groups.map((group) => (
+            <TransactionGroupView
+              group={group}
+              key={group.date}
+              openId={openId}
+              onOpenChange={onOpenChange}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))
         ) : (
           <div className="home-state home-state--empty">暂无流水，去记下第一笔吧</div>
         )}
@@ -307,6 +379,9 @@ export function HomePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
+  const [openTransactionId, setOpenTransactionId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<LedgerTransaction | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const toast = useToast()
 
   const load = useCallback((signal: AbortSignal) => {
@@ -353,6 +428,28 @@ export function HomePage() {
     () => limitRecentTransactionGroups(data?.recent.groups ?? []),
     [data],
   )
+  const openEditor = (transaction: LedgerTransaction) => {
+    setOpenTransactionId(null)
+    navigate(`/tally/${transaction.id}`, { state: { returnTo: '/home' } })
+  }
+  const requestDelete = (transaction: LedgerTransaction) => {
+    setOpenTransactionId(null)
+    setPendingDelete(transaction)
+  }
+  const confirmDelete = async () => {
+    if (!pendingDelete || deleting) return
+    setDeleting(true)
+    try {
+      await deleteTransaction(pendingDelete.id)
+      setPendingDelete(null)
+      toast.success('流水已删除，账户余额已同步调整')
+      setRetryKey((key) => key + 1)
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : '删除流水失败')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="home-page">
@@ -374,12 +471,30 @@ export function HomePage() {
             <section className="period-grid" aria-label="周期统计">
               {periodSummaries.map((summary) => <PeriodSummaryCard key={summary.label} summary={summary} />)}
             </section>
-            <RecentTransactions groups={recentGroups} onViewMore={() => navigate('/flow')} />
+            <RecentTransactions
+              groups={recentGroups}
+              onViewMore={() => navigate('/flow')}
+              openId={openTransactionId}
+              onOpenChange={(id, open) => setOpenTransactionId(open ? id : null)}
+              onEdit={openEditor}
+              onDelete={requestDelete}
+            />
           </>
         )}
         <div className="home-scroll-spacer" aria-hidden="true" />
       </main>
       <Tabbar activeTab="home" onTabClick={handleTabClick} />
+      <Dialog
+        open={pendingDelete !== null}
+        title="删除流水"
+        description="确定删除这笔流水吗？删除后账户余额将同步调整。"
+        confirmText="删除"
+        cancelText="取消"
+        danger
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
 }

@@ -1,0 +1,62 @@
+.swipe-cell {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-surface-raised);
+}
+
+.swipe-cell__actions {
+  position: absolute;
+  inset: 0 0 0 auto;
+  display: flex;
+  width: var(--swipe-action-width);
+}
+
+.swipe-cell__actions > button {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 0;
+  color: var(--color-text-inverse);
+  background: var(--color-brand);
+  font: inherit;
+  font-size: var(--font-size-footnote);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.swipe-cell__actions > button:last-child {
+  background: var(--color-danger);
+}
+
+.swipe-cell__actions > button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: -4px;
+}
+
+.swipe-cell__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: inherit;
+  touch-action: pan-y;
+  transition: transform var(--duration-normal) var(--ease-emphasized);
+  will-change: transform;
+}
+
+.swipe-cell--dragging .swipe-cell__content {
+  transition: none;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-cell__content {
+    transition-duration: 0.01ms;
+  }
+}

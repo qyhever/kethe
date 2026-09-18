@@ -1,3 +1,5 @@
+import { NotFoundException } from '@nestjs/common'
+import { Transaction, TransactionType } from './entities/transaction.entity'
 import { LedgerService } from './ledger.service'
 
 describe('LedgerService 流水视图', () => {
@@ -316,5 +318,123 @@ describe('LedgerService 流水视图', () => {
     }
 
     expect(service.transactionSummaries([])).toEqual([])
+  })
+})
+
+describe('LedgerService 删除流水', () => {
+  function setupDelete(transaction: Partial<Transaction> | null) {
+    const transactionRepository = {
+      findOne: jest.fn().mockResolvedValue(transaction),
+      softRemove: jest.fn().mockResolvedValue(transaction),
+    }
+    const accountIds = transaction
+      ? [transaction.accountId, transaction.targetAccountId].filter(
+          (id): id is string => !!id,
+        )
+      : []
+    const accountRepository = {
+      find: jest.fn().mockImplementation(() =>
+        Promise.resolve(
+          accountIds.map((id) => ({
+            id,
+            userId: 14,
+            currentBalance: id === '2' ? '5000' : '10000',
+          })),
+        ),
+      ),
+      save: jest
+        .fn()
+        .mockImplementation((accounts) => Promise.resolve(accounts)),
+    }
+    const manager = {
+      getRepository: jest.fn((entity) =>
+        entity === Transaction ? transactionRepository : accountRepository,
+      ),
+    }
+    const dataSource = {
+      transaction: jest.fn((work: (value: typeof manager) => unknown) =>
+        work(manager),
+      ),
+    }
+    const service = new LedgerService(
+      dataSource as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    )
+    return { service, transactionRepository, accountRepository, manager }
+  }
+
+  it.each([
+    {
+      label: '支出',
+      transactionType: TransactionType.EXPENSE,
+      targetAccountId: null,
+      expectedBalances: ['11000'],
+    },
+    {
+      label: '收入',
+      transactionType: TransactionType.INCOME,
+      targetAccountId: null,
+      expectedBalances: ['9000'],
+    },
+    {
+      label: '转账',
+      transactionType: TransactionType.TRANSFER,
+      targetAccountId: '2',
+      expectedBalances: ['11000', '4000'],
+    },
+  ])(
+    '删除$label流水时回滚账户余额并软删除',
+    async ({ transactionType, targetAccountId, expectedBalances }) => {
+      const transaction = {
+        id: '9',
+        userId: 14,
+        transactionType,
+        amount: '1000',
+        accountId: '1',
+        targetAccountId,
+      }
+      const { service, transactionRepository, accountRepository } =
+        setupDelete(transaction)
+
+      await expect(service.deleteTransaction(14, '9')).resolves.toBeNull()
+
+      expect(transactionRepository.findOne).toHaveBeenCalledWith({
+        where: { id: '9', userId: 14 },
+        lock: { mode: 'pessimistic_write' },
+      })
+      expect(accountRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ userId: 14 }),
+          lock: { mode: 'pessimistic_write' },
+        }),
+      )
+      expect(accountRepository.save).toHaveBeenCalledWith(
+        expect.arrayContaining(
+          expectedBalances.map((currentBalance) =>
+            expect.objectContaining({ currentBalance }),
+          ),
+        ),
+      )
+      expect(transactionRepository.softRemove).toHaveBeenCalledWith(transaction)
+    },
+  )
+
+  it('不存在或不属于当前用户的流水不会调整账户', async () => {
+    const { service, transactionRepository, accountRepository } =
+      setupDelete(null)
+
+    await expect(service.deleteTransaction(14, '9')).rejects.toBeInstanceOf(
+      NotFoundException,
+    )
+
+    expect(transactionRepository.findOne).toHaveBeenCalledWith({
+      where: { id: '9', userId: 14 },
+      lock: { mode: 'pessimistic_write' },
+    })
+    expect(accountRepository.find).not.toHaveBeenCalled()
+    expect(transactionRepository.softRemove).not.toHaveBeenCalled()
   })
 })

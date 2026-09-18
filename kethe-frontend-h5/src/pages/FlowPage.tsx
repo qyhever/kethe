@@ -9,14 +9,17 @@ import {
   CreditCard,
   LayoutGrid,
   Minus,
+  Pencil,
   RefreshCw,
   Search,
   SlidersHorizontal,
+  Trash2,
   X,
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
+  deleteTransaction,
   fetchAccounts,
   fetchCategories,
   fetchTransactions,
@@ -30,6 +33,8 @@ import type {
 } from '../api/types'
 import { CategoryIcon } from '../components/CategoryIcon/CategoryIcon'
 import { DatePicker } from '../components/DatePicker'
+import { Dialog } from '../components/Dialog'
+import { SwipeCell } from '../components/SwipeCell'
 import { useToast } from '../components/Toast'
 import './FlowPage.css'
 
@@ -1093,8 +1098,12 @@ export function FlowPage() {
   const [optionsRetryKey, setOptionsRetryKey] = useState(
     restoredCache?.optionsRetryKey ?? 0,
   )
+  const [openTransactionId, setOpenTransactionId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<LedgerTransaction | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const requestRef = useRef<AbortController | null>(null)
   const generationRef = useRef(0)
+  const deletionRefreshScrollRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!chartNavigationRef.current) return
@@ -1193,7 +1202,8 @@ export function FlowPage() {
     requestRef.current = controller
     const generation = ++generationRef.current
     const keepCachedContent =
-      !!isRestoredRequest && (restoredCache?.items.length ?? 0) > 0
+      (!!isRestoredRequest && (restoredCache?.items.length ?? 0) > 0) ||
+      deletionRefreshScrollRef.current !== null
     if (!keepCachedContent) {
       setItems([])
       setSummaries([])
@@ -1217,13 +1227,20 @@ export function FlowPage() {
           )
       })
       .finally(() => {
-        if (!controller.signal.aborted && generation === generationRef.current)
+        if (!controller.signal.aborted && generation === generationRef.current) {
           setInitialLoading(false)
+          const scrollY = deletionRefreshScrollRef.current
+          deletionRefreshScrollRef.current = null
+          if (scrollY !== null) {
+            window.requestAnimationFrame(() => window.scrollTo({ top: scrollY }))
+          }
+        }
       })
     return () => controller.abort()
   }, [filters, debouncedSearch, retryKey, restoredCache])
 
   const navigateToTally = (path: string) => {
+    setOpenTransactionId(null)
     flowPageCache = {
       filters,
       draft,
@@ -1245,6 +1262,30 @@ export function FlowPage() {
       scrollY: window.scrollY,
     }
     navigate(path, { state: { returnTo: '/flow' } })
+  }
+
+  const requestDelete = (transaction: LedgerTransaction) => {
+    setOpenTransactionId(null)
+    setPendingDelete(transaction)
+  }
+
+  const confirmDelete = async () => {
+    if (!pendingDelete || deleting) return
+    setDeleting(true)
+    try {
+      const deletedId = pendingDelete.id
+      await deleteTransaction(deletedId)
+      deletionRefreshScrollRef.current = window.scrollY
+      flowPageCache = null
+      setItems((current) => current.filter((item) => item.id !== deletedId))
+      setPendingDelete(null)
+      toast.success('流水已删除，账户余额已同步调整')
+      setRetryKey((key) => key + 1)
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : '删除流水失败')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const years = useMemo(() => groupTransactions(items), [items])
@@ -1491,13 +1532,45 @@ export function FlowPage() {
                               id={`flow-month-rows-${month.month}`}
                             >
                               {month.list.map((transaction) => (
-                                <TransactionRow
-                                  transaction={transaction}
+                                <SwipeCell
                                   key={transaction.id}
-                                  onClick={() =>
-                                    navigateToTally(`/tally/${transaction.id}`)
+                                  actionWidth={144}
+                                  open={openTransactionId === transaction.id}
+                                  onOpenChange={(open) =>
+                                    setOpenTransactionId(
+                                      open ? transaction.id : null,
+                                    )
                                   }
-                                />
+                                  actions={
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          navigateToTally(
+                                            `/tally/${transaction.id}`,
+                                          )
+                                        }
+                                      >
+                                        <Pencil aria-hidden="true" size={17} />
+                                        编辑
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => requestDelete(transaction)}
+                                      >
+                                        <Trash2 aria-hidden="true" size={17} />
+                                        删除
+                                      </button>
+                                    </>
+                                  }
+                                >
+                                  <TransactionRow
+                                    transaction={transaction}
+                                    onClick={() =>
+                                      navigateToTally(`/tally/${transaction.id}`)
+                                    }
+                                  />
+                                </SwipeCell>
                               ))}
                             </div>
                           )}
@@ -1534,6 +1607,17 @@ export function FlowPage() {
           onRetryOptions={() => setOptionsRetryKey((key) => key + 1)}
         />
       )}
+      <Dialog
+        open={pendingDelete !== null}
+        title="删除流水"
+        description="确定删除这笔流水吗？删除后账户余额将同步调整。"
+        confirmText="删除"
+        cancelText="取消"
+        danger
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
 }

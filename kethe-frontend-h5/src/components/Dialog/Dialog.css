@@ -1,0 +1,119 @@
+.dialog-backdrop {
+  position: fixed;
+  z-index: var(--z-modal);
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--color-overlay);
+  backdrop-filter: blur(5px);
+  animation: dialog-backdrop-in var(--duration-fast) var(--ease-standard) both;
+}
+
+.dialog-panel {
+  width: min(100%, 330px);
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  outline: 0;
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-popover);
+  animation: dialog-panel-in var(--duration-normal) var(--ease-emphasized) both;
+}
+
+.dialog-panel__copy {
+  padding: 25px 24px 22px;
+  text-align: center;
+}
+
+.dialog-panel h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-title-3);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.dialog-panel p {
+  margin: 10px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-relaxed);
+}
+
+.dialog-panel__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--color-separator);
+}
+
+.dialog-panel__actions button {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  color: var(--color-brand);
+  background: transparent;
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.dialog-panel__actions button + button {
+  border-left: 1px solid var(--color-separator);
+}
+
+.dialog-panel__actions button:hover:not(:disabled) {
+  background: var(--color-fill-tertiary);
+}
+
+.dialog-panel__actions button:focus-visible {
+  position: relative;
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: -4px;
+}
+
+.dialog-panel__actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.dialog-panel__actions .dialog-panel__confirm--danger {
+  color: var(--color-danger);
+}
+
+.dialog-panel__spinner {
+  animation: dialog-spin 800ms linear infinite;
+}
+
+@keyframes dialog-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@keyframes dialog-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog-backdrop,
+  .dialog-panel {
+    animation-duration: 0.01ms;
+  }
+
+  .dialog-panel__spinner {
+    animation-duration: 1.5s;
+  }
+}

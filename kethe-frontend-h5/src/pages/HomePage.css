@@ -383,14 +383,17 @@
   width: 100%;
   min-height: 76px;
   padding: 9px 0;
+  border: 0;
   border-bottom: 1px solid #f0f2f4;
   color: var(--home-ink);
+  font: inherit;
   background: transparent;
+  cursor: pointer;
   text-align: left;
   transition: background-color 160ms ease;
 }
 
-.transaction-row:last-child {
+.transaction-group__list > .swipe-cell:last-child .transaction-row {
   border-bottom: 0;
 }
 

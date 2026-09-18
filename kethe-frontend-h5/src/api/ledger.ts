@@ -1,4 +1,4 @@
-import { get, patch, post } from '../utils/request'
+import { del, get, patch, post } from '../utils/request'
 import type {
   CreateTransactionPayload,
   DashboardOverview,
@@ -34,6 +34,10 @@ export function updateTransaction(
   payload: CreateTransactionPayload,
 ) {
   return patch<LedgerTransaction>(`/transactions/${id}`, payload)
+}
+
+export function deleteTransaction(id: string) {
+  return del<null>(`/transactions/${id}`)
 }
 
 export function fetchTransactions(
