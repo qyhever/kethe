@@ -1027,10 +1027,19 @@ export function FlowPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const toast = useToast()
+  const navigationStateRef = useRef(
+    location.state as {
+      chartFilters?: ChartNavigationFilters
+      refreshFlow?: unknown
+      returnTo?: unknown
+    } | null,
+  )
+  const returnToRef = useRef(
+    navigationStateRef.current?.returnTo === '/chart' ? '/chart' : '/home',
+  )
   const searchChartFiltersRef = useRef(chartFiltersFromSearch(location.search))
   const stateChartFiltersRef = useRef(
-    (location.state as { chartFilters?: ChartNavigationFilters } | null)
-      ?.chartFilters,
+    navigationStateRef.current?.chartFilters,
   )
   const chartNavigationRef = useRef(
     searchChartFiltersRef.current ?? stateChartFiltersRef.current,
@@ -1045,7 +1054,7 @@ export function FlowPage() {
       : restoredCache?.filters ?? currentYearFilters(),
   )
   const refreshAfterReturnRef = useRef(
-    (location.state as { refreshFlow?: unknown } | null)?.refreshFlow === true,
+    navigationStateRef.current?.refreshFlow === true,
   )
   const [filters, setFilters] = useState<Filters>(
     () => initialFiltersRef.current,
@@ -1112,7 +1121,7 @@ export function FlowPage() {
     if (stateChartFiltersRef.current && !searchChartFiltersRef.current) {
       navigate(
         { pathname: location.pathname, search: location.search },
-        { replace: true, state: null },
+        { replace: true, state: { returnTo: returnToRef.current } },
       )
     }
   }, [location.pathname, location.search, navigate])
@@ -1355,8 +1364,8 @@ export function FlowPage() {
           <button
             className="flow-navbar__back"
             type="button"
-            aria-label="返回首页"
-            onClick={() => navigate('/home')}
+            aria-label={returnToRef.current === '/chart' ? '返回图表' : '返回首页'}
+            onClick={() => navigate(returnToRef.current)}
           >
             <ArrowLeft aria-hidden="true" size={27} />
           </button>

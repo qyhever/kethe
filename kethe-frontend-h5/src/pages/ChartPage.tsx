@@ -462,6 +462,7 @@ export function ChartPage() {
   const openFlow = (categoryId?: string) =>
     navigate('/flow', {
       state: {
+        returnTo: '/chart',
         chartFilters: {
           ...range,
           type: kind,
@@ -478,14 +479,14 @@ export function ChartPage() {
       categoryId,
     })
     if (accountId) search.set('accountId', accountId)
-    navigate(`/flow?${search.toString()}`)
+    navigate(`/flow?${search.toString()}`, { state: { returnTo: '/chart' } })
   }
 
   const handleTab = (tab: TabId) => {
     if (tab === 'chart') return
     if (tab === 'home') return navigate('/home')
     if (tab === 'add') return navigate('/tally')
-    if (tab === 'bill') return navigate('/flow')
+    if (tab === 'bill') return navigate('/flow', { state: { returnTo: '/chart' } })
     toast.info('我的功能开发中')
   }
 
