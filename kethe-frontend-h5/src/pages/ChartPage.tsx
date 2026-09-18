@@ -471,6 +471,16 @@ export function ChartPage() {
       },
     })
 
+  const openRankingFlow = (categoryId: string) => {
+    const search = new URLSearchParams({
+      ...range,
+      type: kind,
+      categoryId,
+    })
+    if (accountId) search.set('accountId', accountId)
+    navigate(`/flow?${search.toString()}`)
+  }
+
   const handleTab = (tab: TabId) => {
     if (tab === 'chart') return
     if (tab === 'home') return navigate('/home')
@@ -551,7 +561,7 @@ export function ChartPage() {
                 <ol>
                   {categories.list.map((item, index) => (
                     <li key={item.categoryId}>
-                      <button type="button" onClick={() => item.hasChildren && !parent ? setParent(item) : openFlow(item.categoryId)}>
+                      <button type="button" onClick={() => openRankingFlow(item.categoryId)}>
                         <span className={`ranking-number${index === 0 ? ' is-first' : ''}`}>{index + 1}</span>
                         <span className="ranking-icon" style={{ color: item.iconColor ?? 'var(--color-brand)' }}><CategoryIcon name={item.iconKey ?? 'other'} svgContent={item.svgContent} size={22} /></span>
                         <span className="ranking-main">

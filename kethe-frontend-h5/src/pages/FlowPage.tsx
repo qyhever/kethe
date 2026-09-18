@@ -79,6 +79,23 @@ function filtersFromChart(value: ChartNavigationFilters): Filters {
     categoryIds: value.categoryId ? [value.categoryId] : [],
   }
 }
+
+function chartFiltersFromSearch(search: string): ChartNavigationFilters | undefined {
+  const params = new URLSearchParams(search)
+  const startDate = params.get('startDate')
+  const endDate = params.get('endDate')
+  const type = params.get('type')
+  if (!startDate || !endDate || (type !== 'expense' && type !== 'income'))
+    return undefined
+
+  return {
+    startDate,
+    endDate,
+    type,
+    accountId: params.get('accountId') || undefined,
+    categoryId: params.get('categoryId') || undefined,
+  }
+}
 interface FlowMonthGroup {
   month: string
   list: LedgerTransaction[]
@@ -1005,9 +1022,13 @@ export function FlowPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const toast = useToast()
-  const chartNavigationRef = useRef(
+  const searchChartFiltersRef = useRef(chartFiltersFromSearch(location.search))
+  const stateChartFiltersRef = useRef(
     (location.state as { chartFilters?: ChartNavigationFilters } | null)
       ?.chartFilters,
+  )
+  const chartNavigationRef = useRef(
+    searchChartFiltersRef.current ?? stateChartFiltersRef.current,
   )
   const restoredCacheRef = useRef(
     chartNavigationRef.current ? null : flowPageCache,
@@ -1079,8 +1100,13 @@ export function FlowPage() {
     if (!chartNavigationRef.current) return
     flowPageCache = null
     chartNavigationRef.current = undefined
-    navigate(location.pathname, { replace: true, state: null })
-  }, [location.pathname, navigate])
+    if (stateChartFiltersRef.current && !searchChartFiltersRef.current) {
+      navigate(
+        { pathname: location.pathname, search: location.search },
+        { replace: true, state: null },
+      )
+    }
+  }, [location.pathname, location.search, navigate])
 
   useLayoutEffect(() => {
     if (!restoredCache) return
