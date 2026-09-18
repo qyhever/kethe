@@ -21,6 +21,16 @@
   animation: dialog-panel-in var(--duration-normal) var(--ease-emphasized) both;
 }
 
+.dialog-backdrop--closing {
+  animation-name: dialog-backdrop-out;
+}
+
+.dialog-backdrop--closing .dialog-panel {
+  animation-name: dialog-panel-out;
+  animation-duration: var(--duration-fast);
+  animation-timing-function: var(--ease-standard);
+}
+
 .dialog-panel__copy {
   padding: 25px 24px 22px;
   text-align: center;
@@ -98,6 +108,19 @@
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.97);
+  }
+}
+
+@keyframes dialog-backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-panel-out {
+  to {
+    opacity: 0;
+    transform: translateY(5px) scale(0.98);
   }
 }
 

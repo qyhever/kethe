@@ -1,4 +1,11 @@
-import { useEffect, useId, useRef, type KeyboardEvent } from 'react'
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type AnimationEvent,
+  type KeyboardEvent,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { LoaderCircle } from 'lucide-react'
 import './Dialog.css'
@@ -35,9 +42,14 @@ export function Dialog({
   const cancelRef = useRef<HTMLButtonElement>(null)
   const restoreFocusRef = useRef<HTMLElement | null>(null)
   const confirmingRef = useRef(false)
+  const [mounted, setMounted] = useState(open)
 
   useEffect(() => {
-    if (!open) return
+    if (open) setMounted(true)
+  }, [open])
+
+  useEffect(() => {
+    if (!mounted) return
     restoreFocusRef.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
@@ -49,14 +61,14 @@ export function Dialog({
       document.body.style.overflow = previousOverflow
       restoreFocusRef.current?.focus()
     }
-  }, [open])
+  }, [mounted])
 
-  if (!open) return null
+  if (!mounted) return null
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault()
-      if (!loading) onCancel()
+      if (open && !loading) onCancel()
       return
     }
     if (event.key !== 'Tab') return
@@ -81,9 +93,12 @@ export function Dialog({
 
   return createPortal(
     <div
-      className="dialog-backdrop"
+      className={`dialog-backdrop${open ? '' : ' dialog-backdrop--closing'}`}
+      onAnimationEnd={(event: AnimationEvent<HTMLDivElement>) => {
+        if (event.target === event.currentTarget && !open) setMounted(false)
+      }}
       onPointerDown={(event) => {
-        if (!loading && event.target === event.currentTarget) onCancel()
+        if (open && !loading && event.target === event.currentTarget) onCancel()
       }}
     >
       <div
