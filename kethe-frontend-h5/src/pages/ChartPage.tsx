@@ -321,33 +321,13 @@ function LineChartView({
   )
 }
 
-function displayCategories(list: CategoryReportItem[]) {
-  if (list.length <= 5) return list
-  const first = list.slice(0, 5)
-  const rest = list.slice(5)
-  const amount = rest.reduce((sum, item) => sum + BigInt(item.amount), 0n)
-  return [
-    ...first,
-    {
-      categoryId: 'other',
-      categoryName: '其他',
-      amount: amount.toString(),
-      percentage: rest.reduce((sum, item) => sum + item.percentage, 0),
-      iconKey: 'other',
-      svgContent: null,
-      iconColor: null,
-      hasChildren: false,
-    },
-  ]
-}
-
 function Donut({ report, kind }: { report: CategoryReport; kind: TransactionKind }) {
-  const items = displayCategories(report.list)
+  const items = report.list
   let cursor = 0
   const stops = items.map((item, index) => {
     const start = cursor
     cursor += item.percentage
-    const color = index === 5 ? 'var(--chart-series-other)' : SERIES[index % SERIES.length]
+    const color = item.iconColor ?? SERIES[index % SERIES.length]
     return `${color} ${start}% ${cursor}%`
   })
   const style = {
@@ -364,7 +344,7 @@ function Donut({ report, kind }: { report: CategoryReport; kind: TransactionKind
       <div className="category-legend">
         {items.map((item, index) => (
           <div className="category-legend__item" key={item.categoryId}>
-            <i style={{ background: index === 5 ? 'var(--chart-series-other)' : SERIES[index % SERIES.length] }} />
+            <i style={{ background: item.iconColor ?? SERIES[index % SERIES.length] }} />
             <span>{item.categoryName}</span>
             <strong>{item.percentage.toFixed(1)}%</strong>
           </div>
@@ -569,7 +549,7 @@ export function ChartPage() {
               </header>
               {categories.list.length ? (
                 <ol>
-                  {categories.list.slice(0, 5).map((item, index) => (
+                  {categories.list.map((item, index) => (
                     <li key={item.categoryId}>
                       <button type="button" onClick={() => item.hasChildren && !parent ? setParent(item) : openFlow(item.categoryId)}>
                         <span className={`ranking-number${index === 0 ? ' is-first' : ''}`}>{index + 1}</span>
