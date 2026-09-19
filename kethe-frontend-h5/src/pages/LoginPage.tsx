@@ -69,13 +69,9 @@ export function LoginPage() {
             value={password}
           />
         </div>
-        <button
-          className="auth-form__forgot"
-          type="button"
-          onClick={() => toast.info('请联系管理员重置密码')}
-        >
+        <Link className="auth-form__forgot" to="/reset-password">
           忘记密码？
-        </button>
+        </Link>
         <button className="auth-form__submit" disabled={submitting} type="submit">
           {submitting ? '登录中…' : '登录'}
         </button>

@@ -36,6 +36,12 @@ export interface RegisterPayload {
   verificationCode: string
 }
 
+export interface PasswordResetPayload {
+  email: string
+  verificationCode: string
+  newPassword: string
+}
+
 export interface ClipboardItem {
   id: number
   userId: number

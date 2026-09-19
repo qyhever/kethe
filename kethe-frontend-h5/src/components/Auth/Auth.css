@@ -177,12 +177,14 @@
 
 .auth-form__forgot {
   display: block;
+  width: fit-content;
   min-height: 44px;
   margin: 0 0 7px auto;
   padding: 10px 5px 8px 16px;
   color: var(--color-text-secondary);
   background: transparent;
   font-size: 15px;
+  text-decoration: none;
 }
 
 .auth-form__submit {
