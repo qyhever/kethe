@@ -124,6 +124,7 @@ export class UserController {
   }
 
   @Patch()
+  @Public()
   @ApiOperation({
     summary: '更新用户',
     description:
