@@ -11,6 +11,8 @@ import { SearchPage } from './pages/SearchPage'
 import { TallyPage } from './pages/TallyPage'
 import { ChartPage } from './pages/ChartPage'
 import { BillPage } from './pages/BillPage'
+import { ProfilePage } from './pages/ProfilePage'
+import { ProfilePlaceholderPage } from './pages/ProfilePlaceholderPage'
 import { RequireAnonymous, RequireAuth } from './components/Auth/RouteGuards'
 import { useAuthStore } from './stores/auth'
 
@@ -56,6 +58,16 @@ function App() {
           <Route path="/flow" element={<FlowPage />} />
           <Route path="/chart" element={<ChartPage />} />
           <Route path="/bill" element={<BillPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/user" element={<ProfilePlaceholderPage title="个人资料" />} />
+          <Route path="/profile/settings" element={<ProfilePlaceholderPage title="设置" />} />
+          <Route path="/profile/categories" element={<ProfilePlaceholderPage title="分类设置" />} />
+          <Route path="/profile/accounts" element={<ProfilePlaceholderPage title="账户设置" />} />
+          <Route path="/profile/export" element={<ProfilePlaceholderPage title="数据导出" />} />
+          <Route path="/profile/theme" element={<ProfilePlaceholderPage title="主题设置" />} />
+          <Route path="/profile/currency" element={<ProfilePlaceholderPage title="货币设置" />} />
+          <Route path="/profile/about" element={<ProfilePlaceholderPage title="关于产品" />} />
+          <Route path="/profile/feedback" element={<ProfilePlaceholderPage title="意见反馈" />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/tally/*" element={<TallyPage />} />
           <Route path="/toast-demo" element={<ToastDemoPage />} />

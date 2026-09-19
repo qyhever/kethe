@@ -406,17 +406,10 @@ export function HomePage() {
   }, [load, retryKey])
 
   const handleTabClick = (tabId: TabId) => {
-    const labels: Record<TabId, string> = {
-      home: '首页',
-      chart: '图表',
-      add: '记账',
-      bill: '账单',
-      profile: '我的',
-    }
     if (tabId === 'add') return navigate('/tally')
     if (tabId === 'chart') return navigate('/chart')
     if (tabId === 'bill') return navigate('/bill')
-    if (tabId !== 'home') toast.info(`${labels[tabId]}功能开发中`)
+    if (tabId === 'profile') return navigate('/profile')
   }
 
   const periodSummaries: PeriodSummaryData[] = data

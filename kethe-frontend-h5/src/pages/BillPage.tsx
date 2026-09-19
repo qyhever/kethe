@@ -5,7 +5,6 @@ import { fetchYearlyBill } from '../api/ledger'
 import type { BillMonthSummary, YearlyBill } from '../api/types'
 import { PeriodSheet, type PeriodOption } from '../components/PeriodSheet'
 import { Tabbar, type TabId } from '../components/Tarbar'
-import { useToast } from '../components/Toast'
 import './BillPage.css'
 
 const ZONE = 'Asia/Shanghai'
@@ -66,7 +65,6 @@ function BillSkeleton() {
 
 export function BillPage() {
   const navigate = useNavigate()
-  const toast = useToast()
   const thisYear = useMemo(currentShanghaiYear, [])
   const yearOptions = useMemo<PeriodOption[]>(
     () => Array.from({ length: 10 }, (_, index) => {
@@ -124,7 +122,7 @@ export function BillPage() {
     if (tab === 'home') return navigate('/home')
     if (tab === 'chart') return navigate('/chart')
     if (tab === 'add') return navigate('/tally', { state: { returnTo: '/bill' } })
-    toast.info('我的功能开发中')
+    navigate('/profile')
   }
 
   return (

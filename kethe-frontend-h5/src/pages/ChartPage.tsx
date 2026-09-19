@@ -487,7 +487,7 @@ export function ChartPage() {
     if (tab === 'home') return navigate('/home')
     if (tab === 'add') return navigate('/tally')
     if (tab === 'bill') return navigate('/bill')
-    toast.info('我的功能开发中')
+    navigate('/profile')
   }
 
   return (
