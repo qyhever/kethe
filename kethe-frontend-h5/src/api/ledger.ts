@@ -1,4 +1,4 @@
-import { del, get, patch, post } from '../utils/request'
+import { del, get, patch, post, put } from '../utils/request'
 import type {
   CreateTransactionPayload,
   DashboardOverview,
@@ -12,6 +12,10 @@ import type {
   CategoryReportQuery,
   CategoryReport,
   YearlyBill,
+  CategoryIconResource,
+  CategoryPayload,
+  UpdateCategoryPayload,
+  CategoryRemovalResult,
 } from './types'
 
 export function fetchAccounts() {
@@ -20,6 +24,26 @@ export function fetchAccounts() {
 
 export function fetchCategories(categoryType: 1 | 2) {
   return get<LedgerCategory[]>('/categories', { categoryType })
+}
+
+export function fetchCategoryIcons() {
+  return get<CategoryIconResource[]>('/category-icons')
+}
+
+export function createCategory(payload: CategoryPayload) {
+  return post<LedgerCategory>('/categories', payload)
+}
+
+export function updateCategory(id: string, payload: UpdateCategoryPayload) {
+  return patch<LedgerCategory>(`/categories/${id}`, payload)
+}
+
+export function removeCategory(id: string) {
+  return del<CategoryRemovalResult>(`/categories/${id}`)
+}
+
+export function orderCategories(items: { id: string; sortOrder: number }[]) {
+  return put<null>('/categories/order', { items })
 }
 
 export function createTransaction(payload: CreateTransactionPayload) {

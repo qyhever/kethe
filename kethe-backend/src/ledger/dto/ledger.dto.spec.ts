@@ -3,6 +3,7 @@ import { validate } from 'class-validator'
 import {
   CreateCategoryDto,
   CreateTransactionDto,
+  UpdateCategoryDto,
   TransactionQueryDto,
   TrendQueryDto,
 } from './ledger.dto'
@@ -96,6 +97,27 @@ describe('记账 DTO', () => {
     expect(await validate(dto)).toHaveLength(0)
     dto.parentId = '0'
     expect(await validate(dto)).not.toHaveLength(0)
+  })
+
+  it('分类名称最多 12 字且备注最多 50 字', async () => {
+    const valid = plainToInstance(CreateCategoryDto, {
+      categoryType: 1,
+      name: '十二字以内分类',
+      remark: '可选备注',
+    })
+    expect(await validate(valid)).toHaveLength(0)
+
+    const invalid = plainToInstance(CreateCategoryDto, {
+      categoryType: 1,
+      name: '这是一个超过十二个字的分类名称',
+      remark: '备'.repeat(51),
+    })
+    expect(await validate(invalid)).not.toHaveLength(0)
+  })
+
+  it('更新分类允许将 parentId 清空', async () => {
+    const dto = plainToInstance(UpdateCategoryDto, { parentId: null })
+    expect(await validate(dto)).toHaveLength(0)
   })
 
   it.each(['1', '9007199254740993'])(

@@ -11,6 +11,9 @@ export class CategoryIcon {
   @Column({ type: 'varchar', length: 64 })
   iconName!: string
 
+  @Column({ type: 'varchar', length: 32, default: 'other' })
+  groupKey!: string
+
   @Column({ type: 'mediumtext' })
   svgContent!: string
 

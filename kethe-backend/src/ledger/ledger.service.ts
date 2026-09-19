@@ -33,6 +33,7 @@ interface CategoryRow {
   categoryType: number
   parentId: string | null
   name: string
+  remark: string | null
   iconId: string | null
   systemKey: string | null
   isSystemDefault: boolean
@@ -102,6 +103,7 @@ export class LedgerService {
         'c.categoryType categoryType',
         'c.parentId parentId',
         'c.name name',
+        'c.remark remark',
         'c.iconId iconId',
         'c.systemKey systemKey',
         'c.isSystemDefault isSystemDefault',
@@ -112,6 +114,7 @@ export class LedgerService {
         'i.color iconColor',
       ])
       .where('c.userId = :userId', { userId })
+      .andWhere('c.isEnabled = :isEnabled', { isEnabled: true })
       .orderBy('c.sortOrder', 'ASC')
       .addOrderBy('c.id', 'ASC')
     if (categoryType)
@@ -147,7 +150,11 @@ export class LedgerService {
   async createCategory(userId: number, dto: CreateCategoryDto) {
     let parent: Category | null = null
     if (dto.parentId) {
-      parent = await this.categories.findOneBy({ id: dto.parentId, userId })
+      parent = await this.categories.findOneBy({
+        id: dto.parentId,
+        userId,
+        isEnabled: true,
+      })
       if (!parent) throw new BadRequestException('父分类不存在或无权访问')
       if (parent.parentId) throw new BadRequestException('支出分类最多支持两级')
       if (dto.categoryType !== 1 || parent.categoryType !== dto.categoryType) {
@@ -167,6 +174,7 @@ export class LedgerService {
       categoryType: dto.categoryType,
       parentId: parent?.id ?? null,
       name: dto.name.trim(),
+      remark: dto.remark?.trim() || null,
       iconId: dto.iconId ?? null,
       systemKey: null,
       isSystemDefault: false,
@@ -185,7 +193,31 @@ export class LedgerService {
     ) {
       throw new BadRequestException('分类图标不存在或已停用')
     }
+    if (dto.parentId !== undefined) {
+      if (dto.parentId === id)
+        throw new BadRequestException('分类不能作为自己的父分类')
+      if (dto.parentId === null) {
+        entity.parentId = null
+      } else {
+        if (entity.categoryType !== 1)
+          throw new BadRequestException('收入不支持子分类')
+        const parent = await this.categories.findOneBy({
+          id: dto.parentId,
+          userId,
+          isEnabled: true,
+        })
+        if (!parent) throw new BadRequestException('父分类不存在或无权访问')
+        if (parent.categoryType !== entity.categoryType)
+          throw new BadRequestException('父子分类类型必须一致')
+        if (parent.parentId)
+          throw new BadRequestException('支出分类最多支持两级')
+        if (await this.categories.existsBy({ parentId: id, userId }))
+          throw new BadRequestException('包含子分类的一级分类不能设为子分类')
+        entity.parentId = parent.id
+      }
+    }
     if (dto.name !== undefined) entity.name = dto.name.trim()
+    if (dto.remark !== undefined) entity.remark = dto.remark?.trim() || null
     if (dto.iconId !== undefined) entity.iconId = dto.iconId
     if (dto.sortOrder !== undefined) entity.sortOrder = dto.sortOrder
     if (dto.isEnabled !== undefined) entity.isEnabled = dto.isEnabled
@@ -199,6 +231,15 @@ export class LedgerService {
     const entities = await this.categories.findBy({ userId, id: In(uniqueIds) })
     if (entities.length !== uniqueIds.length)
       throw new BadRequestException('分类不存在或无权访问')
+    if (entities.length > 1) {
+      const first = entities[0]
+      const sameLevel = entities.every(
+        (entity) =>
+          entity.categoryType === first.categoryType &&
+          entity.parentId === first.parentId,
+      )
+      if (!sameLevel) throw new BadRequestException('只能排序同级分类')
+    }
     const order = new Map(dto.items.map((item) => [item.id, item.sortOrder]))
     for (const entity of entities)
       entity.sortOrder = order.get(String(entity.id))!
@@ -212,10 +253,18 @@ export class LedgerService {
     const referenced = await this.transactions.existsBy({ categoryId: id })
     const hasChildren = await this.categories.existsBy({ parentId: id, userId })
     if (entity.isSystemDefault || referenced || hasChildren) {
-      throw new ConflictException('系统默认、已使用或包含子分类的分类只能停用')
+      entity.isEnabled = false
+      await this.categories.save(entity)
+      if (hasChildren) {
+        await this.categories.update(
+          { parentId: id, userId },
+          { isEnabled: false },
+        )
+      }
+      return { action: 'disabled' as const }
     }
     await this.categories.softRemove(entity)
-    return null
+    return { action: 'deleted' as const }
   }
 
   async listAccounts(userId: number) {

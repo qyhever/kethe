@@ -103,6 +103,7 @@ export interface LedgerCategory {
   categoryType: 1 | 2
   parentId: string | null
   name: string
+  remark: string | null
   iconId: string | null
   systemKey: string | null
   isSystemDefault: boolean
@@ -112,6 +113,32 @@ export interface LedgerCategory {
   svgContent: string | null
   iconColor: string | null
   children: LedgerCategory[]
+}
+
+export interface CategoryIconResource {
+  id: string
+  iconKey: string
+  iconName: string
+  groupKey: string
+  svgContent: string
+  color: string
+  isSystemDefault: boolean
+  isEnabled: boolean
+}
+
+export interface CategoryPayload {
+  categoryType: 1 | 2
+  parentId?: string | null
+  name: string
+  iconId?: string
+  sortOrder?: number
+  remark?: string | null
+}
+
+export type UpdateCategoryPayload = Omit<CategoryPayload, 'categoryType'>
+
+export interface CategoryRemovalResult {
+  action: 'deleted' | 'disabled'
 }
 
 export interface CreateTransactionPayload {

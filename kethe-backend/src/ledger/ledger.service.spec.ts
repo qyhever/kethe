@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { Transaction, TransactionType } from './entities/transaction.entity'
 import { LedgerService } from './ledger.service'
 
@@ -321,6 +321,188 @@ describe('LedgerService 流水视图', () => {
   })
 })
 
+describe('LedgerService 分类设置', () => {
+  function setup() {
+    const categories = {
+      create: jest.fn((value: Record<string, unknown>) => value),
+      save: jest.fn((value: Record<string, unknown>) => Promise.resolve(value)),
+      findOneBy: jest.fn(),
+      existsBy: jest.fn(),
+      findBy: jest.fn(),
+      softRemove: jest.fn().mockResolvedValue(undefined),
+      update: jest.fn().mockResolvedValue(undefined),
+    }
+    const icons = {
+      existsBy: jest.fn().mockResolvedValue(true),
+      find: jest.fn().mockResolvedValue([]),
+    }
+    const transactions = { existsBy: jest.fn() }
+    const service = new LedgerService(
+      {} as never,
+      categories as never,
+      {} as never,
+      icons as never,
+      transactions as never,
+    )
+    return { service, categories, icons, transactions }
+  }
+
+  it('创建分类时持久化备注并清理空白', async () => {
+    const { service, categories } = setup()
+    await service.createCategory(14, {
+      categoryType: 1,
+      name: '  早餐  ',
+      remark: '  工作日  ',
+      iconId: '1',
+    })
+
+    expect(categories.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 14,
+        name: '早餐',
+        remark: '工作日',
+        iconId: '1',
+      }),
+    )
+  })
+
+  it('拒绝把含子分类的一级分类改成子分类', async () => {
+    const { service, categories } = setup()
+    categories.findOneBy
+      .mockResolvedValueOnce({
+        id: '10',
+        userId: 14,
+        categoryType: 1,
+        parentId: null,
+      })
+      .mockResolvedValueOnce({
+        id: '20',
+        userId: 14,
+        categoryType: 1,
+        parentId: null,
+        isEnabled: true,
+      })
+    categories.existsBy.mockResolvedValue(true)
+
+    await expect(
+      service.updateCategory(14, '10', { parentId: '20' }),
+    ).rejects.toThrow('包含子分类的一级分类不能设为子分类')
+  })
+
+  it('允许叶子支出分类变更到同类型一级分类并更新备注', async () => {
+    const { service, categories } = setup()
+    const category = {
+      id: '10',
+      userId: 14,
+      categoryType: 1,
+      parentId: null,
+      remark: null,
+    }
+    categories.findOneBy.mockResolvedValueOnce(category).mockResolvedValueOnce({
+      id: '20',
+      userId: 14,
+      categoryType: 1,
+      parentId: null,
+      isEnabled: true,
+    })
+    categories.existsBy.mockResolvedValue(false)
+
+    await service.updateCategory(14, '10', {
+      parentId: '20',
+      remark: '  通勤  ',
+    })
+
+    expect(categories.save).toHaveBeenCalledWith(
+      expect.objectContaining({ parentId: '20', remark: '通勤' }),
+    )
+  })
+
+  it('拒绝跨层级排序', async () => {
+    const { service, categories } = setup()
+    categories.findBy.mockResolvedValue([
+      { id: '1', categoryType: 1, parentId: null },
+      { id: '2', categoryType: 1, parentId: '1' },
+    ])
+
+    await expect(
+      service.orderCategories(14, {
+        items: [
+          { id: '1', sortOrder: 0 },
+          { id: '2', sortOrder: 1 },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException)
+  })
+
+  it('保存同级分类排序', async () => {
+    const { service, categories } = setup()
+    categories.findBy.mockResolvedValue([
+      { id: '1', categoryType: 1, parentId: null, sortOrder: 9 },
+      { id: '2', categoryType: 1, parentId: null, sortOrder: 8 },
+    ])
+
+    await service.orderCategories(14, {
+      items: [
+        { id: '1', sortOrder: 0 },
+        { id: '2', sortOrder: 1 },
+      ],
+    })
+
+    expect(categories.save).toHaveBeenCalledWith([
+      expect.objectContaining({ id: '1', sortOrder: 0 }),
+      expect.objectContaining({ id: '2', sortOrder: 1 }),
+    ])
+  })
+
+  it('未使用的自定义叶子分类执行软删除', async () => {
+    const { service, categories, transactions } = setup()
+    const category = { id: '1', userId: 14, isSystemDefault: false }
+    categories.findOneBy.mockResolvedValue(category)
+    transactions.existsBy.mockResolvedValue(false)
+    categories.existsBy.mockResolvedValue(false)
+
+    await expect(service.deleteCategory(14, '1')).resolves.toEqual({
+      action: 'deleted',
+    })
+    expect(categories.softRemove).toHaveBeenCalledWith(category)
+  })
+
+  it('含子分类的分类执行停用并级联停用子分类', async () => {
+    const { service, categories, transactions } = setup()
+    const category = {
+      id: '1',
+      userId: 14,
+      isSystemDefault: false,
+      isEnabled: true,
+    }
+    categories.findOneBy.mockResolvedValue(category)
+    transactions.existsBy.mockResolvedValue(false)
+    categories.existsBy.mockResolvedValue(true)
+
+    await expect(service.deleteCategory(14, '1')).resolves.toEqual({
+      action: 'disabled',
+    })
+    expect(categories.save).toHaveBeenCalledWith(
+      expect.objectContaining({ isEnabled: false }),
+    )
+    expect(categories.update).toHaveBeenCalledWith(
+      { parentId: '1', userId: 14 },
+      { isEnabled: false },
+    )
+  })
+
+  it('图标查询保留分组字段', async () => {
+    const { service, icons } = setup()
+    icons.find.mockResolvedValue([
+      { id: '7', iconKey: 'food', groupKey: 'food', isEnabled: true },
+    ])
+
+    await expect(service.listIcons()).resolves.toEqual([
+      expect.objectContaining({ id: '7', groupKey: 'food' }),
+    ])
+  })
+})
+
 describe('LedgerService 删除流水', () => {
   function setupDelete(transaction: Partial<Transaction> | null) {
     const transactionRepository = {
@@ -407,6 +589,7 @@ describe('LedgerService 删除流水', () => {
       })
       expect(accountRepository.find).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           where: expect.objectContaining({ userId: 14 }),
           lock: { mode: 'pessimistic_write' },
         }),
@@ -414,6 +597,7 @@ describe('LedgerService 删除流水', () => {
       expect(accountRepository.save).toHaveBeenCalledWith(
         expect.arrayContaining(
           expectedBalances.map((currentBalance) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             expect.objectContaining({ currentBalance }),
           ),
         ),

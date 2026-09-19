@@ -197,6 +197,19 @@ export function patch<T = any>(
   })
 }
 
+export function put<T = any>(
+  url: string,
+  data?: any,
+  options?: Omit<RequestOptions, 'url' | 'data' | 'method'>,
+) {
+  return request<T>({
+    method: 'PUT',
+    url,
+    data,
+    ...options,
+  })
+}
+
 export function del<T = any>(
   url: string,
   options?: Omit<RequestOptions, 'url' | 'method'>,

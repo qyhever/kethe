@@ -21,8 +21,11 @@ export class Category {
   @Column({ type: 'bigint', unsigned: true, nullable: true })
   parentId!: string | null
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: 12 })
   name!: string
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  remark!: string | null
 
   @Column({ type: 'bigint', unsigned: true, nullable: true })
   iconId!: string | null

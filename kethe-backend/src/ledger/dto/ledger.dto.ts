@@ -68,8 +68,13 @@ export class CreateCategoryDto {
   parentId?: string
 
   @IsString()
-  @Length(1, 50)
+  @Length(1, 12)
   name!: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  remark?: string | null
 
   @IsOptional()
   @Matches(ID_PATTERN)
@@ -91,9 +96,26 @@ export class CategoryListQueryDto {
 
 export class UpdateCategoryDto {
   @IsOptional()
+  @ValidateBy({
+    name: 'isNullablePositiveId',
+    validator: {
+      validate: (value: unknown) =>
+        value === null || (typeof value === 'string' && ID_PATTERN.test(value)),
+      defaultMessage: () =>
+        'parentId must be null or a positive integer string',
+    },
+  })
+  parentId?: string | null
+
+  @IsOptional()
   @IsString()
-  @Length(1, 50)
+  @Length(1, 12)
   name?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  remark?: string | null
 
   @IsOptional()
   @Matches(ID_PATTERN)

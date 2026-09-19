@@ -101,7 +101,9 @@ export function CategoryIcon({
   color,
   className,
 }: CategoryIconProps) {
-  const iconSvg = svgContent || iconMap[name as CategoryIconName] || iconMap.other
+  // 已有分类沿用应用内经过设计的图标；接口 SVG 只为扩展图标兜底，
+  // 避免服务端的简化占位图覆盖原有图标风格。
+  const iconSvg = iconMap[name as CategoryIconName] || svgContent || iconMap.other
   const { content, rootProps } = parseSvg(iconSvg)
 
   return (
