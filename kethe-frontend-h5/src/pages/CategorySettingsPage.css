@@ -1,5 +1,11 @@
 .category-settings {
+  height: 100vh;
+  height: 100dvh;
   min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   padding: calc(var(--safe-top) + 12px) max(18px, var(--safe-right)) calc(104px + var(--safe-bottom)) max(18px, var(--safe-left));
   background:
     radial-gradient(circle at 90% 3%, color-mix(in srgb, var(--color-brand) 7%, transparent), transparent 28%),
@@ -72,7 +78,7 @@
 }
 
 .category-settings__list {
-  overflow: hidden;
+  overflow-x: hidden;
   border-block: 1px solid var(--color-border-subtle);
 }
 
