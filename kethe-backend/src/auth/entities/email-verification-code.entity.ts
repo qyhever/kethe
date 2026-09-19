@@ -2,6 +2,10 @@ import { Column, Entity, Index } from 'typeorm'
 import { BaseEntity } from '../../common/entities/base.entity'
 
 export const REGISTRATION_PURPOSE = 'register'
+export const RESET_PASSWORD_PURPOSE = 'reset_password'
+
+export type VerificationCodePurpose =
+  typeof REGISTRATION_PURPOSE | typeof RESET_PASSWORD_PURPOSE
 
 @Entity({ name: 'email_verification_codes', synchronize: false })
 @Index('uk_email_verification_code_email_purpose', ['email', 'purpose'], {

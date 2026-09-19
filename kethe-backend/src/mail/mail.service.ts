@@ -6,6 +6,10 @@ import nodemailer, { type Transporter } from 'nodemailer'
 import type Mail from 'nodemailer/lib/mailer'
 import { ResponseMessageEnum } from '../common/enums/response-message.enum'
 import type { EnvironmentVariables } from '../config/environment.validation'
+import {
+  REGISTRATION_PURPOSE,
+  type VerificationCodePurpose,
+} from '../auth/entities/email-verification-code.entity'
 
 const verificationCodeHtmlTemplate = readFileSync(
   join(__dirname, 'templates', 'verification-code.html'),
@@ -48,13 +52,16 @@ export class MailService {
     email: string,
     code: string,
     validMinutes: number,
+    purpose: VerificationCodePurpose = REGISTRATION_PURPOSE,
   ): Promise<void> {
+    const isRegistration = purpose === REGISTRATION_PURPOSE
+    const scene = isRegistration ? '注册' : '重置密码'
     await this.send({
       from: this.from,
       to: email,
-      subject: '注册邮箱验证码',
-      text: `您的注册验证码是 ${code}，${validMinutes} 分钟内有效。请勿将验证码告知他人。`,
-      html: this.renderVerificationCodeHtml(code, validMinutes),
+      subject: isRegistration ? '注册邮箱验证码' : '重置密码验证码',
+      text: `您的${scene}验证码是 ${code}，${validMinutes} 分钟内有效。请勿将验证码告知他人。`,
+      html: this.renderVerificationCodeHtml(code, validMinutes, scene),
     })
   }
 
@@ -89,10 +96,12 @@ export class MailService {
   private renderVerificationCodeHtml(
     code: string,
     validMinutes: number,
+    scene: string,
   ): string {
     return verificationCodeHtmlTemplate
       .replace('{{CODE}}', code)
       .replace('{{VALID_MINUTES}}', validMinutes.toString())
+      .replaceAll('{{SCENE}}', this.escapeHtml(scene))
   }
 
   private escapeHtml(value: string): string {

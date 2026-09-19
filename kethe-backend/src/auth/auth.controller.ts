@@ -4,11 +4,13 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  Patch,
   Post,
   Req,
 } from '@nestjs/common'
-import { ApiOperation, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import {
+  ApiAccessTokenErrorResponse,
   ApiValidationErrorResponse,
   ApiWrappedCreatedResponse,
   ApiWrappedOkResponse,
@@ -24,6 +26,9 @@ import { RefreshTokenDto } from './dto/refresh-token.dto'
 import { RegisterDto } from './dto/register.dto'
 import { SendRegistrationCodeDto } from './dto/send-registration-code.dto'
 import { VerificationCodeService } from './verification-code.service'
+import { SendPasswordResetCodeDto } from './dto/send-password-reset-code.dto'
+import { ResetPasswordDto } from './dto/reset-password.dto'
+import { ChangePasswordDto } from './dto/change-password.dto'
 
 @ApiTags('认证')
 @Controller('auth')
@@ -50,6 +55,65 @@ export class AuthController {
   @ApiValidationErrorResponse()
   sendRegistrationCode(@Body() dto: SendRegistrationCodeDto) {
     return this.verificationCodeService.sendRegistrationCode(dto.email)
+  }
+
+  @Post('password-reset-code')
+  @Public()
+  @SuccessMessage(ResponseMessageEnum.PASSWORD_RESET_CODE_SENT)
+  @ApiOperation({
+    summary: '发送重置密码验证码',
+    description:
+      '若邮箱已注册则发送重置密码验证码。邮箱未注册、发送过频或邮件发送失败时均返回中性成功响应',
+  })
+  @ApiWrappedCreatedResponse({
+    description: '重置密码验证码请求已处理',
+    message: ResponseMessageEnum.PASSWORD_RESET_CODE_SENT,
+    data: { type: 'null' },
+  })
+  @ApiValidationErrorResponse()
+  sendPasswordResetCode(@Body() dto: SendPasswordResetCodeDto) {
+    return this.verificationCodeService.sendPasswordResetCode(dto.email)
+  }
+
+  @Post('reset-password')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @SuccessMessage(ResponseMessageEnum.PASSWORD_RESET_SUCCESS)
+  @ApiOperation({
+    summary: '重置密码',
+    description:
+      '校验重置密码验证码并更新密码。成功后需使用新密码重新登录，不签发新令牌',
+  })
+  @ApiWrappedOkResponse({
+    description: '重置密码请求已处理',
+    message: ResponseMessageEnum.PASSWORD_RESET_SUCCESS,
+    data: { type: 'null' },
+  })
+  @ApiValidationErrorResponse()
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto)
+  }
+
+  @Patch('password')
+  @HttpCode(HttpStatus.OK)
+  @SuccessMessage(ResponseMessageEnum.PASSWORD_CHANGE_SUCCESS)
+  @ApiBearerAuth()
+  @ApiAccessTokenErrorResponse()
+  @ApiOperation({
+    summary: '修改密码',
+    description: '校验当前密码后为当前登录用户更新密码',
+  })
+  @ApiWrappedOkResponse({
+    description: '修改密码请求已处理',
+    message: ResponseMessageEnum.PASSWORD_CHANGE_SUCCESS,
+    data: { type: 'null' },
+  })
+  @ApiValidationErrorResponse()
+  changePassword(
+    @Body() dto: ChangePasswordDto,
+    @Req() request: RequestWithContext,
+  ) {
+    return this.authService.changePassword(request.user!.id, dto)
   }
 
   @Post('register')

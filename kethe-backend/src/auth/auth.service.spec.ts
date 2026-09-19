@@ -36,6 +36,9 @@ describe('AuthService', () => {
     existsByEmail: jest.Mock
     createRegistrationUser: jest.Mock
     findLoginUserByEmail: jest.Mock
+    findPasswordUserByEmail: jest.Mock
+    findPasswordUserById: jest.Mock
+    savePassword: jest.Mock
     findOne: jest.Mock
   }
   let jwtService: {
@@ -45,6 +48,7 @@ describe('AuthService', () => {
   let verificationCodeService: {
     normalizeEmail: jest.Mock
     verifyRegistrationCode: jest.Mock
+    verifyPasswordResetCode: jest.Mock
     consume: jest.Mock
   }
   let defaultUserDataService: { initialize: jest.Mock }
@@ -63,11 +67,15 @@ describe('AuthService', () => {
       existsByEmail: jest.fn().mockResolvedValue(false),
       createRegistrationUser: jest.fn(),
       findLoginUserByEmail: jest.fn(),
+      findPasswordUserByEmail: jest.fn(),
+      findPasswordUserById: jest.fn(),
+      savePassword: jest.fn(),
       findOne: jest.fn(),
     }
     verificationCodeService = {
       normalizeEmail: jest.fn().mockReturnValue('user@example.com'),
       verifyRegistrationCode: jest.fn(),
+      verifyPasswordResetCode: jest.fn(),
       consume: jest.fn(),
     }
     defaultUserDataService = { initialize: jest.fn() }
@@ -503,5 +511,157 @@ describe('AuthService', () => {
     })
     expect(userService.createRegistrationUser).toHaveBeenCalledTimes(1)
     expect(verificationCodeService.consume).toHaveBeenCalledTimes(1)
+  })
+
+  describe('resetPassword', () => {
+    const resetDto = {
+      email: 'USER@example.com',
+      verificationCode: '123456',
+      newPassword: 'new-password',
+    }
+
+    it('应该在同一事务中更新密码并消费验证码', async () => {
+      const codeRecord = { id: 3 } as EmailVerificationCode
+      const user = {
+        id: 7,
+        password: await hash('old-password', 10),
+      } as User
+      verificationCodeService.verifyPasswordResetCode.mockResolvedValue(
+        codeRecord,
+      )
+      userService.findPasswordUserByEmail.mockResolvedValue(user)
+
+      await expect(service.resetPassword(resetDto)).resolves.toBeNull()
+
+      expect(
+        verificationCodeService.verifyPasswordResetCode,
+      ).toHaveBeenCalledWith('user@example.com', '123456', manager)
+      expect(userService.savePassword).toHaveBeenCalledWith(
+        user,
+        'new-password',
+        manager,
+      )
+      expect(verificationCodeService.consume).toHaveBeenCalledWith(
+        codeRecord,
+        manager,
+      )
+    })
+
+    it('验证码失败时不应该更新密码', async () => {
+      verificationCodeService.verifyPasswordResetCode.mockResolvedValue({
+        error: true,
+        message: ResponseMessageEnum.VERIFICATION_CODE_INVALID_OR_EXPIRED,
+      })
+
+      await expect(service.resetPassword(resetDto)).resolves.toEqual({
+        error: true,
+        message: ResponseMessageEnum.VERIFICATION_CODE_INVALID_OR_EXPIRED,
+      })
+      expect(userService.findPasswordUserByEmail).not.toHaveBeenCalled()
+      expect(userService.savePassword).not.toHaveBeenCalled()
+      expect(verificationCodeService.consume).not.toHaveBeenCalled()
+    })
+
+    it('新密码与原密码相同时应该拒绝且不消费验证码', async () => {
+      verificationCodeService.verifyPasswordResetCode.mockResolvedValue({
+        id: 3,
+      })
+      userService.findPasswordUserByEmail.mockResolvedValue({
+        id: 7,
+        password: await hash('new-password', 10),
+      })
+
+      await expect(service.resetPassword(resetDto)).resolves.toEqual({
+        error: true,
+        message: ResponseMessageEnum.NEW_PASSWORD_SAME_AS_OLD,
+      })
+      expect(userService.savePassword).not.toHaveBeenCalled()
+      expect(verificationCodeService.consume).not.toHaveBeenCalled()
+    })
+
+    it('密码保存失败时不应该消费验证码', async () => {
+      verificationCodeService.verifyPasswordResetCode.mockResolvedValue({
+        id: 3,
+      })
+      userService.findPasswordUserByEmail.mockResolvedValue({
+        id: 7,
+        password: await hash('old-password', 10),
+      })
+      userService.savePassword.mockRejectedValue(new Error('DB error'))
+
+      await expect(service.resetPassword(resetDto)).rejects.toThrow('DB error')
+      expect(verificationCodeService.consume).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('changePassword', () => {
+    it('当前密码正确时应该更新密码', async () => {
+      const user = {
+        id: 7,
+        password: await hash('current-password', 10),
+      } as User
+      userService.findPasswordUserById.mockResolvedValue(user)
+
+      await expect(
+        service.changePassword(7, {
+          currentPassword: 'current-password',
+          newPassword: 'new-password',
+        }),
+      ).resolves.toBeNull()
+      expect(userService.savePassword).toHaveBeenCalledWith(
+        user,
+        'new-password',
+      )
+    })
+
+    it('当前密码错误时应该拒绝', async () => {
+      userService.findPasswordUserById.mockResolvedValue({
+        id: 7,
+        password: await hash('current-password', 10),
+      })
+
+      await expect(
+        service.changePassword(7, {
+          currentPassword: 'wrong-password',
+          newPassword: 'new-password',
+        }),
+      ).resolves.toEqual({
+        error: true,
+        message: ResponseMessageEnum.CURRENT_PASSWORD_INCORRECT,
+      })
+      expect(userService.savePassword).not.toHaveBeenCalled()
+    })
+
+    it('用户不存在时应该返回业务失败', async () => {
+      userService.findPasswordUserById.mockResolvedValue(null)
+
+      await expect(
+        service.changePassword(999, {
+          currentPassword: 'current-password',
+          newPassword: 'new-password',
+        }),
+      ).resolves.toEqual({
+        error: true,
+        message: ResponseMessageEnum.USER_NOT_FOUND,
+      })
+    })
+
+    it('新密码与原密码相同时应该拒绝', async () => {
+      userService.findPasswordUserById.mockResolvedValue({
+        id: 7,
+        password: await hash('same-password', 10),
+      })
+
+      await expect(
+        service.changePassword(7, {
+          currentPassword: 'same-password',
+          newPassword: 'same-password',
+        }),
+      ).resolves.toEqual({
+        error: true,
+        message: ResponseMessageEnum.NEW_PASSWORD_SAME_AS_OLD,
+      })
+      expect(userService.savePassword).not.toHaveBeenCalled()
+    })
   })
 })

@@ -73,6 +73,32 @@ export class UserService {
     return this.userRepository.findLoginUserByEmail(email)
   }
 
+  findPasswordUserByEmail(
+    email: string,
+    manager?: EntityManager,
+  ): Promise<User | null> {
+    return this.userRepository.findPasswordUserByEmail(email, manager)
+  }
+
+  findPasswordUserById(
+    id: number,
+    manager?: EntityManager,
+  ): Promise<User | null> {
+    return this.userRepository.findPasswordUserById(id, manager)
+  }
+
+  async savePassword(
+    user: User,
+    password: string,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const bcryptRounds = this.configService.get('BCRYPT_ROUNDS', {
+      infer: true,
+    })
+    user.password = await hash(password, bcryptRounds)
+    await this.userRepository.save(user, manager)
+  }
+
   existsByUsername(
     username: string,
     manager?: EntityManager,

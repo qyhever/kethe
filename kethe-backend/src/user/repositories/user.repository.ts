@@ -20,6 +20,16 @@ export abstract class UserRepository {
 
   abstract findLoginUserByEmail(email: string): Promise<User | null>
 
+  abstract findPasswordUserByEmail(
+    email: string,
+    manager?: EntityManager,
+  ): Promise<User | null>
+
+  abstract findPasswordUserById(
+    id: number,
+    manager?: EntityManager,
+  ): Promise<User | null>
+
   abstract create(data: Partial<User>, manager?: EntityManager): User
 
   abstract save(user: User, manager?: EntityManager): Promise<User>

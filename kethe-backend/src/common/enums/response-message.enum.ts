@@ -17,4 +17,9 @@ export enum ResponseMessageEnum {
   VERIFICATION_CODE_EMAIL_SEND_FAILED = '验证码邮件发送失败，请稍后重试',
   VERIFICATION_CODE_INVALID_OR_EXPIRED = '验证码无效或已过期',
   VERIFICATION_CODE_INCORRECT = '验证码错误',
+  PASSWORD_RESET_CODE_SENT = '若该邮箱已注册，重置密码验证码将发送至该邮箱',
+  PASSWORD_RESET_SUCCESS = '密码重置成功',
+  PASSWORD_CHANGE_SUCCESS = '密码修改成功',
+  CURRENT_PASSWORD_INCORRECT = '当前密码错误',
+  NEW_PASSWORD_SAME_AS_OLD = '新密码不能与原密码相同',
 }

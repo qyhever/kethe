@@ -30,6 +30,26 @@ export class TypeOrmUserRepository implements UserRepository {
     })
   }
 
+  findPasswordUserByEmail(
+    email: string,
+    manager?: EntityManager,
+  ): Promise<User | null> {
+    return this.getRepository(manager).findOne({
+      where: { email },
+      select: { id: true, password: true },
+    })
+  }
+
+  findPasswordUserById(
+    id: number,
+    manager?: EntityManager,
+  ): Promise<User | null> {
+    return this.getRepository(manager).findOne({
+      where: { id },
+      select: { id: true, password: true },
+    })
+  }
+
   create(data: Partial<User>, manager?: EntityManager): User {
     return this.getRepository(manager).create(data)
   }

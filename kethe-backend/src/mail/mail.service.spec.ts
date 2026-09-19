@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import nodemailer from 'nodemailer'
 import { ResponseMessageEnum } from '../common/enums/response-message.enum'
 import type { EnvironmentVariables } from '../config/environment.validation'
+import { RESET_PASSWORD_PURPOSE } from '../auth/entities/email-verification-code.entity'
 import { MailService } from './mail.service'
 
 type SendMailOptions = {
@@ -73,11 +74,29 @@ describe('MailService', () => {
     })
     expect(html).toContain('MINGYE CARPOOL')
     expect(html).toContain('明叶同行')
-    expect(html).toContain('安全登录与注册验证邮件')
+    expect(html).toContain('安全注册验证邮件')
     expect(html).toContain('123456')
     expect(html).toContain('10 分钟内有效')
     expect(html).not.toContain('{{CODE}}')
     expect(html).not.toContain('{{VALID_MINUTES}}')
+  })
+
+  it('应该发送重置密码场景的邮件', async () => {
+    await service.sendVerificationCode(
+      'user@example.com',
+      '654321',
+      10,
+      RESET_PASSWORD_PURPOSE,
+    )
+
+    const resetHtml: unknown = expect.stringContaining('完成重置密码操作')
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: '重置密码验证码',
+        text: '您的重置密码验证码是 654321，10 分钟内有效。请勿将验证码告知他人。',
+        html: resetHtml,
+      }),
+    )
   })
 
   it('应该使用配置中的发件人发送纯文本邮件', async () => {

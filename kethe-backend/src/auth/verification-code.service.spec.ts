@@ -7,6 +7,7 @@ import { UserService } from '../user/user.service'
 import {
   EmailVerificationCode,
   REGISTRATION_PURPOSE,
+  RESET_PASSWORD_PURPOSE,
 } from './entities/email-verification-code.entity'
 import { VerificationCodeRepository } from './repositories/verification-code.repository'
 import { VerificationCodeService } from './verification-code.service'
@@ -63,6 +64,10 @@ describe('VerificationCodeService', () => {
     service = module.get(VerificationCodeService)
   })
 
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
   it('应该生成六位验证码且只存储摘要', async () => {
     repository.getCurrent.mockResolvedValue(null)
 
@@ -88,6 +93,68 @@ describe('VerificationCodeService', () => {
       service.sendRegistrationCode('user@example.com'),
     ).resolves.toEqual({ error: true, message: '邮箱已注册' })
     expect(repository.saveLatest).not.toHaveBeenCalled()
+  })
+
+  it('应该为已注册邮箱发送独立用途的重置密码验证码', async () => {
+    userService.existsByEmail.mockResolvedValue(true)
+    repository.getCurrent.mockResolvedValue(null)
+
+    await expect(
+      service.sendPasswordResetCode(' USER@example.com '),
+    ).resolves.toBeUndefined()
+
+    expect(repository.saveLatest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'user@example.com',
+        purpose: RESET_PASSWORD_PURPOSE,
+      }),
+    )
+    expect(mailService.sendVerificationCode).toHaveBeenCalledWith(
+      'user@example.com',
+      expect.stringMatching(/^\d{6}$/),
+      10,
+      RESET_PASSWORD_PURPOSE,
+    )
+  })
+
+  it('未注册邮箱的重置验证码请求应该中性成功', async () => {
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation()
+    userService.existsByEmail.mockResolvedValue(false)
+
+    await expect(
+      service.sendPasswordResetCode('missing@example.com'),
+    ).resolves.toBeUndefined()
+    expect(repository.getCurrent).not.toHaveBeenCalled()
+    expect(mailService.sendVerificationCode).not.toHaveBeenCalled()
+  })
+
+  it('重置验证码限频应该中性成功', async () => {
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation()
+    userService.existsByEmail.mockResolvedValue(true)
+    repository.getCurrent.mockResolvedValue(
+      createRecord({ sentAt: new Date(Date.now() - 1_000) }),
+    )
+
+    await expect(
+      service.sendPasswordResetCode('user@example.com'),
+    ).resolves.toBeUndefined()
+    expect(repository.saveLatest).not.toHaveBeenCalled()
+  })
+
+  it('重置验证码邮件失败应该使记录失效并中性成功', async () => {
+    jest.spyOn(Logger.prototype, 'error').mockImplementation()
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation()
+    userService.existsByEmail.mockResolvedValue(true)
+    repository.getCurrent.mockResolvedValue(null)
+    mailService.sendVerificationCode.mockRejectedValue(new Error('SMTP down'))
+
+    await expect(
+      service.sendPasswordResetCode('user@example.com'),
+    ).resolves.toBeUndefined()
+    expect(repository.invalidate).toHaveBeenCalledWith(
+      'user@example.com',
+      RESET_PASSWORD_PURPOSE,
+    )
   })
 
   it('60 秒内不应该重复发送', async () => {
@@ -145,7 +212,11 @@ describe('VerificationCodeService', () => {
   it('错误验证码应该累计失败次数', async () => {
     repository.getCurrent.mockResolvedValue(
       createRecord({
-        codeHash: service.hashCode('user@example.com', '123456'),
+        codeHash: service.hashCode(
+          'user@example.com',
+          REGISTRATION_PURPOSE,
+          '123456',
+        ),
       }),
     )
 
@@ -172,7 +243,11 @@ describe('VerificationCodeService', () => {
 
   it('正确验证码应该通过并可被消费', async () => {
     const record = createRecord({
-      codeHash: service.hashCode('user@example.com', '123456'),
+      codeHash: service.hashCode(
+        'user@example.com',
+        REGISTRATION_PURPOSE,
+        '123456',
+      ),
     })
     repository.getCurrent.mockResolvedValue(record)
 
@@ -181,5 +256,28 @@ describe('VerificationCodeService', () => {
     ).resolves.toBe(record)
     await service.consume(record, manager)
     expect(repository.consume).toHaveBeenCalledWith(record, manager)
+  })
+
+  it('注册验证码不应该用于重置密码', async () => {
+    repository.getCurrent.mockResolvedValue(
+      createRecord({
+        purpose: RESET_PASSWORD_PURPOSE,
+        codeHash: service.hashCode(
+          'user@example.com',
+          REGISTRATION_PURPOSE,
+          '123456',
+        ),
+      }),
+    )
+
+    await expect(
+      service.verifyPasswordResetCode('user@example.com', '123456', manager),
+    ).resolves.toEqual({ error: true, message: '验证码错误' })
+    expect(repository.getCurrent).toHaveBeenCalledWith(
+      'user@example.com',
+      RESET_PASSWORD_PURPOSE,
+      manager,
+      true,
+    )
   })
 })

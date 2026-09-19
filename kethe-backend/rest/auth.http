@@ -24,6 +24,24 @@ Content-Type: application/json
   "verificationCode": "160304"
 }
 
+### send password reset verification code (always returns a neutral response)
+post http://{{host}}/api/auth/password-reset-code HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com"
+}
+
+### reset password with verification code
+post http://{{host}}/api/auth/reset-password HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "verificationCode": "123456",
+  "newPassword": "new-password123"
+}
+
 ### login
 post http://{{host}}/api/auth/login HTTP/1.1
 Content-Type: application/json
@@ -39,6 +57,16 @@ Content-Type: application/json
 
 {
   "refreshToken": "replace-with-refresh-token"
+}
+
+### change current user's password
+patch http://{{host}}/api/auth/password HTTP/1.1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "testuser123",
+  "newPassword": "new-password123"
 }
 
 ### current user

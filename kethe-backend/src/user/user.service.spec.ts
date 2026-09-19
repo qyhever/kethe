@@ -29,6 +29,8 @@ describe('UserService', () => {
       findAll: jest.fn(),
       findPage: jest.fn(),
       findLoginUserByEmail: jest.fn(),
+      findPasswordUserByEmail: jest.fn(),
+      findPasswordUserById: jest.fn(),
       findById: jest.fn(),
       findByIds: jest.fn(),
       save: jest.fn(),
@@ -256,6 +258,44 @@ describe('UserService', () => {
       expect(userRepository.findLoginUserByEmail).toHaveBeenCalledWith(
         'admin@example.com',
       )
+    })
+  })
+
+  describe('密码内部能力', () => {
+    it('应该在事务管理器中按邮箱读取密码用户', async () => {
+      const user = { id: 1, password: 'password-hash' } as User
+      userRepository.findPasswordUserByEmail.mockResolvedValue(user)
+
+      await expect(
+        service.findPasswordUserByEmail('admin@example.com', manager),
+      ).resolves.toBe(user)
+      expect(userRepository.findPasswordUserByEmail).toHaveBeenCalledWith(
+        'admin@example.com',
+        manager,
+      )
+    })
+
+    it('应该按用户 ID 读取密码用户', async () => {
+      const user = { id: 1, password: 'password-hash' } as User
+      userRepository.findPasswordUserById.mockResolvedValue(user)
+
+      await expect(service.findPasswordUserById(1)).resolves.toBe(user)
+      expect(userRepository.findPasswordUserById).toHaveBeenCalledWith(
+        1,
+        undefined,
+      )
+    })
+
+    it('应该使用配置轮数哈希并保存新密码', async () => {
+      const user = { id: 1, password: 'old-password-hash' } as User
+      userRepository.save.mockResolvedValue(user)
+
+      await service.savePassword(user, 'new-password', manager)
+
+      expect(user.password).not.toBe('new-password')
+      expect(getRounds(user.password)).toBe(10)
+      await expect(compare('new-password', user.password)).resolves.toBe(true)
+      expect(userRepository.save).toHaveBeenCalledWith(user, manager)
     })
   })
 

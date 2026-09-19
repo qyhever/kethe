@@ -16,6 +16,8 @@ import { UserService } from '../user/user.service'
 import { DefaultUserDataService } from '../user/default-user-data.service'
 import { RegisterDto } from './dto/register.dto'
 import { LoginDto } from './dto/login.dto'
+import { ResetPasswordDto } from './dto/reset-password.dto'
+import { ChangePasswordDto } from './dto/change-password.dto'
 import { VerificationCodeService } from './verification-code.service'
 
 export interface LoginSuccessNotificationContext {
@@ -268,5 +270,71 @@ export class AuthService {
       }
       throw error
     }
+  }
+
+  resetPassword(dto: ResetPasswordDto): Promise<null | ServiceErrorResult> {
+    const email = this.verificationCodeService.normalizeEmail(dto.email)
+
+    return this.dataSource.transaction(async (manager) => {
+      const verificationCode =
+        await this.verificationCodeService.verifyPasswordResetCode(
+          email,
+          dto.verificationCode,
+          manager,
+        )
+      if ('error' in verificationCode) return verificationCode
+
+      const user = await this.userService.findPasswordUserByEmail(
+        email,
+        manager,
+      )
+      if (!user) {
+        return {
+          error: true as const,
+          message: ResponseMessageEnum.USER_NOT_FOUND,
+        }
+      }
+
+      if (await compare(dto.newPassword, user.password)) {
+        return {
+          error: true as const,
+          message: ResponseMessageEnum.NEW_PASSWORD_SAME_AS_OLD,
+        }
+      }
+
+      await this.userService.savePassword(user, dto.newPassword, manager)
+      await this.verificationCodeService.consume(verificationCode, manager)
+      return null
+    })
+  }
+
+  async changePassword(
+    userId: number,
+    dto: ChangePasswordDto,
+  ): Promise<null | ServiceErrorResult> {
+    const user = await this.userService.findPasswordUserById(userId)
+    if (!user) {
+      return {
+        error: true,
+        message: ResponseMessageEnum.USER_NOT_FOUND,
+      }
+    }
+
+    if (!(await compare(dto.currentPassword, user.password))) {
+      return {
+        error: true,
+        message: ResponseMessageEnum.CURRENT_PASSWORD_INCORRECT,
+      }
+    }
+
+    if (await compare(dto.newPassword, user.password)) {
+      return {
+        error: true,
+        message: ResponseMessageEnum.NEW_PASSWORD_SAME_AS_OLD,
+      }
+    }
+
+    await this.userService.savePassword(user, dto.newPassword)
+    return null
   }
 }

@@ -33,8 +33,13 @@ describe('AuthController (e2e)', () => {
       .mockResolvedValue(undefined),
     refresh: jest.fn(),
     register: jest.fn(),
+    resetPassword: jest.fn(),
+    changePassword: jest.fn(),
   }
-  const verificationCodeService = { sendRegistrationCode: jest.fn() }
+  const verificationCodeService = {
+    sendRegistrationCode: jest.fn(),
+    sendPasswordResetCode: jest.fn(),
+  }
   const jwtService = { verifyAsync: jest.fn() }
   const userService = {
     batchDelete: jest.fn(),
@@ -112,6 +117,95 @@ describe('AuthController (e2e)', () => {
       .expect(({ body }: { body: { success: boolean } }) => {
         expect(body.success).toBe(true)
       })
+  })
+
+  it('POST /auth/password-reset-code 应该无需令牌并返回中性成功响应', async () => {
+    verificationCodeService.sendPasswordResetCode.mockResolvedValue(undefined)
+
+    await request(app.getHttpServer())
+      .post('/api/auth/password-reset-code')
+      .send({ email: ' USER@example.com ' })
+      .expect(201)
+      .expect({
+        success: true,
+        data: null,
+        message: ResponseMessageEnum.PASSWORD_RESET_CODE_SENT,
+      })
+
+    expect(verificationCodeService.sendPasswordResetCode).toHaveBeenCalledWith(
+      'user@example.com',
+    )
+  })
+
+  it('POST /auth/reset-password 应该无需令牌并以 HTTP 200 重置密码', async () => {
+    authService.resetPassword.mockResolvedValue(null)
+
+    await request(app.getHttpServer())
+      .post('/api/auth/reset-password')
+      .send({
+        email: ' USER@example.com ',
+        verificationCode: '123456',
+        newPassword: 'new-password',
+      })
+      .expect(200)
+      .expect({
+        success: true,
+        data: null,
+        message: ResponseMessageEnum.PASSWORD_RESET_SUCCESS,
+      })
+
+    expect(authService.resetPassword).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      verificationCode: '123456',
+      newPassword: 'new-password',
+    })
+  })
+
+  it('POST /auth/reset-password 应该拒绝非六位数字验证码和额外字段', async () => {
+    await request(app.getHttpServer())
+      .post('/api/auth/reset-password')
+      .send({
+        email: 'user@example.com',
+        verificationCode: '12345a',
+        newPassword: 'new-password',
+        unexpected: true,
+      })
+      .expect(200)
+      .expect(({ body }: { body: { success: boolean } }) => {
+        expect(body.success).toBe(false)
+      })
+
+    expect(authService.resetPassword).not.toHaveBeenCalled()
+  })
+
+  it('PATCH /auth/password 应该要求有效访问令牌', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/auth/password')
+      .send({ currentPassword: 'password', newPassword: 'new-password' })
+      .expect(401)
+
+    expect(authService.changePassword).not.toHaveBeenCalled()
+  })
+
+  it('PATCH /auth/password 应该使用令牌中的用户 ID 修改密码', async () => {
+    jwtService.verifyAsync.mockResolvedValue({ sub: 7, type: 'access' })
+    authService.changePassword.mockResolvedValue(null)
+
+    await request(app.getHttpServer())
+      .patch('/api/auth/password')
+      .set('Authorization', 'Bearer valid-access-token')
+      .send({ currentPassword: 'password', newPassword: 'new-password' })
+      .expect(200)
+      .expect({
+        success: true,
+        data: null,
+        message: ResponseMessageEnum.PASSWORD_CHANGE_SUCCESS,
+      })
+
+    expect(authService.changePassword).toHaveBeenCalledWith(7, {
+      currentPassword: 'password',
+      newPassword: 'new-password',
+    })
   })
 
   it('POST /auth/register 不应该接受客户端设置 isEnabled', async () => {

@@ -86,6 +86,30 @@ describe('TypeOrmUserRepository', () => {
     })
   })
 
+  it('应该按邮箱显式读取密码摘要', async () => {
+    const user = { id: 1, password: 'password-hash' } as User
+    typeOrmRepository.findOne.mockResolvedValue(user)
+
+    await expect(
+      repository.findPasswordUserByEmail('admin@example.com'),
+    ).resolves.toBe(user)
+    expect(typeOrmRepository.findOne).toHaveBeenCalledWith({
+      where: { email: 'admin@example.com' },
+      select: { id: true, password: true },
+    })
+  })
+
+  it('应该按 ID 显式读取密码摘要', async () => {
+    const user = { id: 1, password: 'password-hash' } as User
+    typeOrmRepository.findOne.mockResolvedValue(user)
+
+    await expect(repository.findPasswordUserById(1)).resolves.toBe(user)
+    expect(typeOrmRepository.findOne).toHaveBeenCalledWith({
+      where: { id: 1 },
+      select: { id: true, password: true },
+    })
+  })
+
   it('应该创建并保存用户实体', async () => {
     const data = { username: 'admin' }
     const user = { id: 1, ...data } as User
