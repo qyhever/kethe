@@ -1,6 +1,16 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common'
 import { Transaction, TransactionType } from './entities/transaction.entity'
 import { LedgerService } from './ledger.service'
+import { Account } from '../user/entities/account.entity'
+import {
+  AccountNature,
+  AccountSubType,
+  AccountType,
+} from '../user/enums/account-type.enum'
 
 describe('LedgerService 流水视图', () => {
   function createService() {
@@ -501,6 +511,269 @@ describe('LedgerService 分类设置', () => {
       expect.objectContaining({ id: '7', groupKey: 'food' }),
     ])
   })
+})
+
+describe('LedgerService 账户分类', () => {
+  function setupAccounts() {
+    const accounts = {
+      create: jest.fn((value: Record<string, unknown>) => ({
+        ...value,
+        id: '1',
+        createdAt: new Date('2026-09-20T00:00:00.000Z'),
+        updatedAt: new Date('2026-09-20T00:00:00.000Z'),
+      })),
+      save: jest.fn((value: Record<string, unknown>) => Promise.resolve(value)),
+    }
+    const service = new LedgerService(
+      {} as never,
+      {} as never,
+      accounts as never,
+      {} as never,
+      {} as never,
+    )
+    return { service, accounts }
+  }
+
+  it.each([
+    [AccountType.CASH, undefined, undefined, '100'],
+    [AccountType.CREDIT, AccountSubType.CREDIT_CARD, undefined, '-100'],
+    [AccountType.DEBIT, AccountSubType.PASSBOOK, undefined, '100'],
+    [AccountType.VIRTUAL, AccountSubType.ONLINE_PAYMENT, undefined, '100'],
+    [AccountType.OTHER, undefined, AccountNature.LIABILITY, '-100'],
+  ])(
+    '创建合法账户类型 %s',
+    async (accountType, accountSubType, accountNature, initialBalance) => {
+      const { service, accounts } = setupAccounts()
+      await service.createAccount(14, {
+        name: '测试账户',
+        accountType,
+        accountSubType,
+        accountNature,
+        currency: 'CNY',
+        initialBalance,
+      })
+
+      expect(accounts.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountType,
+          accountSubType: accountSubType ?? null,
+          initialBalance,
+          currentBalance: initialBalance,
+        }),
+      )
+    },
+  )
+
+  it('返回账户类型和图标选项', () => {
+    const { service } = setupAccounts()
+    const options = service.accountOptions()
+
+    expect(options.accountTypes.length).toBeGreaterThan(0)
+    expect(options.accountIcons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'cash', label: '现金' }),
+        expect.objectContaining({ key: 'bank-card', label: '银行卡' }),
+      ]),
+    )
+  })
+
+  it('创建账户时保存已选图标', async () => {
+    const { service, accounts } = setupAccounts()
+    await service.createAccount(14, {
+      name: '工资卡',
+      accountType: AccountType.DEBIT,
+      accountSubType: AccountSubType.DEBIT_CARD,
+      iconKey: 'bank-card',
+      currency: 'CNY',
+      initialBalance: '0',
+    })
+
+    expect(accounts.create).toHaveBeenCalledWith(
+      expect.objectContaining({ iconKey: 'bank-card' }),
+    )
+  })
+
+  it('未选择图标时使用账户类型默认图标', async () => {
+    const { service, accounts } = setupAccounts()
+    await service.createAccount(14, {
+      name: '现金',
+      accountType: AccountType.CASH,
+      currency: 'CNY',
+      initialBalance: '0',
+    })
+
+    expect(accounts.create).toHaveBeenCalledWith(
+      expect.objectContaining({ iconKey: 'cash' }),
+    )
+  })
+
+  function setupAccountUpdate(entityOverrides: Record<string, unknown> = {}) {
+    const entity = {
+      id: '1',
+      userId: 14,
+      name: '储蓄卡',
+      accountType: AccountType.DEBIT,
+      accountSubType: AccountSubType.DEBIT_CARD,
+      accountNature: AccountNature.ASSET,
+      institutionName: null,
+      accountNumberLast4: '1234',
+      creditLimit: null,
+      initialBalance: '0',
+      currentBalance: '0',
+      includeInNetWorth: true,
+      createdAt: new Date('2026-09-20T00:00:00.000Z'),
+      updatedAt: new Date('2026-09-20T00:00:00.000Z'),
+      ...entityOverrides,
+    }
+    const accountRepository = {
+      findOne: jest.fn().mockResolvedValue(entity),
+      save: jest.fn((value) => Promise.resolve(value)),
+    }
+    const transactionRepository = { exists: jest.fn().mockResolvedValue(true) }
+    const manager = {
+      getRepository: jest.fn((target: unknown) =>
+        target === Account ? accountRepository : transactionRepository,
+      ),
+    }
+    const dataSource = {
+      transaction: jest.fn((work: (value: typeof manager) => unknown) =>
+        work(manager),
+      ),
+    }
+    const service = new LedgerService(
+      dataSource as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    )
+    return { service, entity, accountRepository, transactionRepository }
+  }
+
+  it.each([
+    {
+      label: '一级类型',
+      dto: {
+        accountType: AccountType.CREDIT,
+        accountSubType: AccountSubType.CREDIT_CARD,
+      },
+    },
+    { label: '初始余额', dto: { initialBalance: '100' } },
+  ])('已有流水时禁止修改$label', async ({ dto }) => {
+    const { service } = setupAccountUpdate()
+    await expect(service.updateAccount(14, '1', dto)).rejects.toBeInstanceOf(
+      ConflictException,
+    )
+  })
+
+  it('已有流水时允许修改同一一级类型下的子类型并清理后四位', async () => {
+    const { service, entity, accountRepository, transactionRepository } =
+      setupAccountUpdate({
+        accountType: AccountType.CREDIT,
+        accountSubType: AccountSubType.CREDIT_CARD,
+        accountNature: AccountNature.LIABILITY,
+        currentBalance: '-100',
+      })
+    await service.updateAccount(14, '1', {
+      accountSubType: AccountSubType.CONSUMER_CREDIT,
+    })
+
+    expect(transactionRepository.exists).not.toHaveBeenCalled()
+    expect(entity.accountSubType).toBe(AccountSubType.CONSUMER_CREDIT)
+    expect(entity.accountNumberLast4).toBeNull()
+    expect(accountRepository.save).toHaveBeenCalledWith(entity)
+  })
+
+  it.each([
+    {
+      label: '子类型不匹配',
+      accountType: AccountType.CASH,
+      accountSubType: AccountSubType.CREDIT_CARD,
+      initialBalance: '0',
+    },
+    {
+      label: '资产使用负余额',
+      accountType: AccountType.DEBIT,
+      accountSubType: AccountSubType.DEBIT_CARD,
+      initialBalance: '-1',
+    },
+    {
+      label: '负债使用正余额',
+      accountType: AccountType.CREDIT,
+      accountSubType: AccountSubType.CREDIT_CARD,
+      initialBalance: '1',
+    },
+    {
+      label: '非信用账户填写额度',
+      accountType: AccountType.DEBIT,
+      accountSubType: AccountSubType.DEBIT_CARD,
+      creditLimit: '10000',
+      initialBalance: '0',
+    },
+    {
+      label: '消费信贷填写后四位',
+      accountType: AccountType.CREDIT,
+      accountSubType: AccountSubType.CONSUMER_CREDIT,
+      accountNumberLast4: '1234',
+      initialBalance: '0',
+    },
+    {
+      label: '图标与账户类型不匹配',
+      accountType: AccountType.CASH,
+      iconKey: 'credit-card',
+      initialBalance: '0',
+    },
+  ])('拒绝$label', async (input) => {
+    const { service } = setupAccounts()
+    await expect(
+      service.createAccount(14, {
+        name: '测试账户',
+        currency: 'CNY',
+        ...input,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException)
+  })
+
+  it('现金券默认不计入净资产', async () => {
+    const { service, accounts } = setupAccounts()
+    await service.createAccount(14, {
+      name: '现金券',
+      accountType: AccountType.VIRTUAL,
+      accountSubType: AccountSubType.CASH_VOUCHER,
+      currency: 'CNY',
+      initialBalance: '100',
+    })
+    expect(accounts.create).toHaveBeenCalledWith(
+      expect.objectContaining({ includeInNetWorth: false }),
+    )
+  })
+
+  it.each([
+    [AccountNature.LIABILITY, '-2300', '2300'],
+    [AccountNature.LIABILITY, '100', '0'],
+    [AccountNature.ASSET, '-2300', '0'],
+  ])(
+    '按账户性质和余额计算欠款',
+    (accountNature, currentBalance, outstandingDebt) => {
+      const { service } = setupAccounts()
+      const view = (
+        service as unknown as {
+          accountView: (
+            account: Record<string, unknown>,
+          ) => Record<string, unknown>
+        }
+      ).accountView({
+        id: '1',
+        accountNature,
+        initialBalance: '0',
+        currentBalance,
+        creditLimit: null,
+        createdAt: new Date('2026-09-20T00:00:00.000Z'),
+        updatedAt: new Date('2026-09-20T00:00:00.000Z'),
+      })
+      expect(view.outstandingDebt).toBe(outstandingDebt)
+    },
+  )
 })
 
 describe('LedgerService 删除流水', () => {

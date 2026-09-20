@@ -6,7 +6,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
-import { AccountType } from '../enums/account-type.enum'
+import {
+  AccountNature,
+  AccountSubType,
+  AccountType,
+} from '../enums/account-type.enum'
 
 @Entity({ name: 'accounts', synchronize: false })
 export class Account {
@@ -22,8 +26,23 @@ export class Account {
   @Column({ type: 'tinyint', unsigned: true })
   accountType!: AccountType
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  icon!: string | null
+  @Column({ type: 'smallint', unsigned: true, nullable: true })
+  accountSubType!: AccountSubType | null
+
+  @Column({ type: 'tinyint', unsigned: true })
+  accountNature!: AccountNature
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  institutionName!: string | null
+
+  @Column({ type: 'char', length: 4, nullable: true })
+  accountNumberLast4!: string | null
+
+  @Column({ type: 'bigint', unsigned: true, nullable: true })
+  creditLimit!: string | null
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  iconKey!: string | null
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   systemKey!: string | null
@@ -41,7 +60,7 @@ export class Account {
   currentBalance!: string
 
   @Column({ type: 'boolean', default: true })
-  includeInAssets!: boolean
+  includeInNetWorth!: boolean
 
   @Column({ type: 'int', unsigned: true, default: 0 })
   sortOrder!: number

@@ -211,9 +211,16 @@ CREATE TABLE accounts (
     userId             INT NOT NULL COMMENT '所属用户ID',
     name                VARCHAR(50) NOT NULL COMMENT '账户名称，例如现金、微信、支付宝',
     accountType        TINYINT UNSIGNED NOT NULL COMMENT
-                        '账户类型：1现金，2银行卡，3支付宝，4微信，5PayPal，99其他',
-    icon                VARCHAR(255) DEFAULT NULL COMMENT
-                        '账户图标标识或图标资源地址；账户图标暂不与分类图标耦合',
+                        '一级类型：1现金，10信用账户，20储蓄账户，30虚拟账户，99其他',
+    accountSubType     SMALLINT UNSIGNED DEFAULT NULL COMMENT
+                        '二级类型：201信用卡，202消费信贷，301借记卡，302存折，401在线支付，402现金券，403储值卡',
+    accountNature      TINYINT UNSIGNED NOT NULL COMMENT
+                        '账户性质：1资产，2负债',
+    institutionName    VARCHAR(100) DEFAULT NULL COMMENT '银行或服务商名称',
+    accountNumberLast4 CHAR(4) DEFAULT NULL COMMENT '账号后四位；不保存完整卡号',
+    creditLimit        BIGINT UNSIGNED DEFAULT NULL COMMENT '信用额度，最小货币单位',
+    iconKey             VARCHAR(64) DEFAULT NULL COMMENT
+                        '账户图标标识，例如cash、bank-card、wechat',
     systemKey          VARCHAR(64) DEFAULT NULL COMMENT
                         '系统默认账户标识，例如 cash、wechat、alipay；自定义账户为空',
     isSystemDefault   TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT
@@ -224,8 +231,8 @@ CREATE TABLE accounts (
                         '初始余额，最小货币单位，例如人民币分',
     currentBalance     BIGINT NOT NULL DEFAULT 0 COMMENT
                         '当前余额，最小货币单位，例如人民币分',
-    includeInAssets   TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT
-                        '是否计入总资产：0否，1是',
+    includeInNetWorth  TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT
+                        '是否计入净资产：0否，1是',
     sortOrder          INT UNSIGNED NOT NULL DEFAULT 0 COMMENT
                         '排序值，越小越靠前',
     isEnabled           TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT
@@ -244,15 +251,21 @@ CREATE TABLE accounts (
         (userId, isEnabled, deletedAt),
     KEY idx_accounts_user_sort
         (userId, sortOrder),
+    KEY idx_accounts_user_type
+        (userId, accountType, accountSubType),
     CONSTRAINT chk_accounts_type
-        CHECK (accountType IN (1, 2, 3, 4, 5, 99)),
+        CHECK (accountType IN (1, 10, 20, 30, 99)),
+    CONSTRAINT chk_accounts_nature
+        CHECK (accountNature IN (1, 2)),
+    CONSTRAINT chk_accounts_credit_limit
+        CHECK (creditLimit IS NULL OR creditLimit >= 0),
     CONSTRAINT fk_accounts_user
         FOREIGN KEY (userId)
         REFERENCES users(id),
     CONSTRAINT chk_accounts_is_enabled
         CHECK (isEnabled IN (0, 1)),
-    CONSTRAINT chk_accounts_include_assets
-        CHECK (includeInAssets IN (0, 1)),
+    CONSTRAINT chk_accounts_include_net_worth
+        CHECK (includeInNetWorth IN (0, 1)),
     CONSTRAINT chk_accounts_system_default
         CHECK (isSystemDefault IN (0, 1))
 ) ENGINE=InnoDB

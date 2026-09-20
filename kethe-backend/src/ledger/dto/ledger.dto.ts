@@ -16,11 +16,16 @@ import {
   ValidateNested,
   ValidateBy,
 } from 'class-validator'
-import { AccountType } from '../../user/enums/account-type.enum'
+import {
+  AccountNature,
+  AccountSubType,
+  AccountType,
+} from '../../user/enums/account-type.enum'
 import { TransactionType } from '../entities/transaction.entity'
 
 const ID_PATTERN = /^[1-9]\d*$/
 const AMOUNT_PATTERN = /^(0|[1-9]\d*)$/
+const SIGNED_AMOUNT_PATTERN = /^(0|-?[1-9]\d*)$/
 const POSITIVE_AMOUNT_PATTERN = /^[1-9]\d*$/
 const ISO_WEEK_PATTERN = /^(\d{4})-W(0[1-9]|[1-4]\d|5[0-3])$/
 
@@ -160,20 +165,44 @@ export class CreateAccountDto {
   accountType!: AccountType
 
   @IsOptional()
+  @Type(() => Number)
+  @IsEnum(AccountSubType)
+  accountSubType?: AccountSubType
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsEnum(AccountNature)
+  accountNature?: AccountNature
+
+  @IsOptional()
   @IsString()
-  @MaxLength(255)
-  icon?: string
+  @MaxLength(100)
+  institutionName?: string
+
+  @IsOptional()
+  @Matches(/^\d{4}$/)
+  accountNumberLast4?: string
+
+  @IsOptional()
+  @Matches(AMOUNT_PATTERN)
+  creditLimit?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+  iconKey?: string
 
   @IsIn(['CNY'])
   currency!: 'CNY'
 
-  @Matches(AMOUNT_PATTERN)
+  @Matches(SIGNED_AMOUNT_PATTERN)
   initialBalance!: string
 
   @IsOptional()
   @Transform(toBoolean)
   @IsBoolean()
-  includeInAssets?: boolean
+  includeInNetWorth?: boolean
 
   @IsOptional()
   @Type(() => Number)
@@ -199,18 +228,42 @@ export class UpdateAccountDto {
   accountType?: AccountType
 
   @IsOptional()
+  @Type(() => Number)
+  @IsEnum(AccountSubType)
+  accountSubType?: AccountSubType | null
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsEnum(AccountNature)
+  accountNature?: AccountNature
+
+  @IsOptional()
   @IsString()
-  @MaxLength(255)
-  icon?: string
+  @MaxLength(100)
+  institutionName?: string | null
+
+  @IsOptional()
+  @Matches(/^\d{4}$/)
+  accountNumberLast4?: string | null
 
   @IsOptional()
   @Matches(AMOUNT_PATTERN)
+  creditLimit?: string | null
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+  iconKey?: string
+
+  @IsOptional()
+  @Matches(SIGNED_AMOUNT_PATTERN)
   initialBalance?: string
 
   @IsOptional()
   @Transform(toBoolean)
   @IsBoolean()
-  includeInAssets?: boolean
+  includeInNetWorth?: boolean
 
   @IsOptional()
   @Type(() => Number)

@@ -34,6 +34,11 @@ export class AccountController {
     return this.service.listAccounts(userId(request))
   }
 
+  @Get('options')
+  options() {
+    return this.service.accountOptions()
+  }
+
   @Get(':id/transactions')
   transactions(
     @Req() request: RequestWithContext,

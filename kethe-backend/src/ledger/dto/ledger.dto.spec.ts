@@ -2,11 +2,17 @@ import { plainToInstance } from 'class-transformer'
 import { validate } from 'class-validator'
 import {
   CreateCategoryDto,
+  CreateAccountDto,
   CreateTransactionDto,
   UpdateCategoryDto,
   TransactionQueryDto,
   TrendQueryDto,
 } from './ledger.dto'
+import {
+  AccountNature,
+  AccountSubType,
+  AccountType,
+} from '../../user/enums/account-type.enum'
 
 describe('记账 DTO', () => {
   const validExpense = {
@@ -163,4 +169,65 @@ describe('记账 DTO', () => {
     const dto = plainToInstance(TrendQueryDto, { view: 'week', week })
     expect(await validate(dto)).not.toHaveLength(0)
   })
+})
+
+describe('账户 DTO', () => {
+  it.each(['cash', 'bank-card', 'stored-value-card'])(
+    '接受合法账户图标 key %s',
+    async (iconKey) => {
+      const dto = plainToInstance(CreateAccountDto, {
+        name: '测试账户',
+        accountType: AccountType.CASH,
+        accountNature: AccountNature.ASSET,
+        iconKey,
+        currency: 'CNY',
+        initialBalance: '0',
+      })
+      expect(await validate(dto)).toHaveLength(0)
+    },
+  )
+
+  it.each(['Bank Card', '../cash', 'cash_icon'])(
+    '拒绝非法账户图标 key %s',
+    async (iconKey) => {
+      const dto = plainToInstance(CreateAccountDto, {
+        name: '测试账户',
+        accountType: AccountType.CASH,
+        accountNature: AccountNature.ASSET,
+        iconKey,
+        currency: 'CNY',
+        initialBalance: '0',
+      })
+      expect(await validate(dto)).not.toHaveLength(0)
+    },
+  )
+
+  it.each(['0', '100', '-100'])(
+    '接受有符号整数初始余额 %s',
+    async (initialBalance) => {
+      const dto = plainToInstance(CreateAccountDto, {
+        name: '测试账户',
+        accountType: AccountType.OTHER,
+        accountNature: AccountNature.ASSET,
+        currency: 'CNY',
+        initialBalance,
+      })
+      expect(await validate(dto)).toHaveLength(0)
+    },
+  )
+
+  it.each(['123', '12345', '12a4'])(
+    '拒绝非法账号后四位 %s',
+    async (accountNumberLast4) => {
+      const dto = plainToInstance(CreateAccountDto, {
+        name: '信用卡',
+        accountType: AccountType.CREDIT,
+        accountSubType: AccountSubType.CREDIT_CARD,
+        currency: 'CNY',
+        initialBalance: '0',
+        accountNumberLast4,
+      })
+      expect(await validate(dto)).not.toHaveLength(0)
+    },
+  )
 })

@@ -89,19 +89,70 @@ export interface LedgerAccount {
   userId: number
   name: string
   accountType: number
-  icon: string | null
+  accountSubType: number | null
+  accountNature: 1 | 2
+  institutionName: string | null
+  accountNumberLast4: string | null
+  creditLimit: string | null
+  iconKey: string | null
   systemKey: string | null
   isSystemDefault: boolean
   currency: string
   initialBalance: string
   currentBalance: string
-  includeInAssets: boolean
+  includeInNetWorth: boolean
+  outstandingDebt: string
   sortOrder: number
   isEnabled: boolean
   remark: string | null
   createdAt: string
   updatedAt: string
   deletedAt: string | null
+}
+
+export interface AccountSubTypeOption {
+  value: number
+  code: string
+  label: string
+  supportsLast4: boolean
+}
+
+export interface AccountTypeOption {
+  value: number
+  code: string
+  label: string
+  defaultNature: 1 | 2 | null
+  requiresNature: boolean
+  supportsInstitution: boolean
+  supportsLast4: boolean
+  supportsCreditLimit: boolean
+  subTypes: AccountSubTypeOption[]
+}
+
+export interface AccountOptions {
+  accountTypes: AccountTypeOption[]
+  accountIcons: AccountIconOption[]
+}
+
+export interface AccountIconOption {
+  key: string
+  label: string
+  supportedTypes: number[]
+}
+
+export interface AccountPayload {
+  name: string
+  accountType: number
+  accountSubType?: number
+  accountNature?: 1 | 2
+  institutionName?: string | null
+  accountNumberLast4?: string | null
+  creditLimit?: string | null
+  iconKey?: string
+  currency?: 'CNY'
+  initialBalance?: string
+  includeInNetWorth?: boolean
+  remark?: string
 }
 
 export interface LedgerCategory {

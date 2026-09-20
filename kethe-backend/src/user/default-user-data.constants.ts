@@ -1,4 +1,8 @@
-import { AccountType } from './enums/account-type.enum'
+import {
+  AccountNature,
+  AccountSubType,
+  AccountType,
+} from './enums/account-type.enum'
 
 export const EXPENSE_CATEGORY_TYPE = 1
 export const INCOME_CATEGORY_TYPE = 2
@@ -153,13 +157,44 @@ export const DEFAULT_INCOME_CATEGORIES = [
 ] as const
 
 export const DEFAULT_ACCOUNTS = [
-  { name: '现金', systemKey: 'cash', accountType: AccountType.CASH },
   {
-    name: '银行卡',
-    systemKey: 'bank_card',
-    accountType: AccountType.BANK_CARD,
+    name: '现金',
+    systemKey: 'cash',
+    accountType: AccountType.CASH,
+    accountSubType: null,
+    accountNature: AccountNature.ASSET,
+    iconKey: 'cash',
   },
-  { name: 'PayPal', systemKey: 'paypal', accountType: AccountType.PAYPAL },
-  { name: '微信', systemKey: 'wechat', accountType: AccountType.WECHAT },
-  { name: '支付宝', systemKey: 'alipay', accountType: AccountType.ALIPAY },
+  {
+    name: '储蓄卡',
+    systemKey: 'bank_card',
+    accountType: AccountType.DEBIT,
+    accountSubType: AccountSubType.DEBIT_CARD,
+    accountNature: AccountNature.ASSET,
+    iconKey: 'bank-card',
+  },
+  {
+    name: 'PayPal',
+    systemKey: 'paypal',
+    accountType: AccountType.VIRTUAL,
+    accountSubType: AccountSubType.ONLINE_PAYMENT,
+    accountNature: AccountNature.ASSET,
+    iconKey: 'paypal',
+  },
+  {
+    name: '微信',
+    systemKey: 'wechat',
+    accountType: AccountType.VIRTUAL,
+    accountSubType: AccountSubType.ONLINE_PAYMENT,
+    accountNature: AccountNature.ASSET,
+    iconKey: 'wechat',
+  },
+  {
+    name: '支付宝',
+    systemKey: 'alipay',
+    accountType: AccountType.VIRTUAL,
+    accountSubType: AccountSubType.ONLINE_PAYMENT,
+    accountNature: AccountNature.ASSET,
+    iconKey: 'alipay',
+  },
 ] as const

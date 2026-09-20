@@ -16,10 +16,28 @@ import type {
   CategoryPayload,
   UpdateCategoryPayload,
   CategoryRemovalResult,
+  AccountOptions,
+  AccountPayload,
 } from './types'
 
 export function fetchAccounts() {
   return get<LedgerAccount[]>('/accounts')
+}
+
+export function fetchAccountOptions() {
+  return get<AccountOptions>('/accounts/options')
+}
+
+export function createAccount(payload: AccountPayload) {
+  return post<LedgerAccount>('/accounts', {
+    currency: 'CNY',
+    initialBalance: '0',
+    ...payload,
+  })
+}
+
+export function updateAccount(id: string, payload: AccountPayload) {
+  return patch<LedgerAccount>(`/accounts/${id}`, payload)
 }
 
 export function fetchCategories(categoryType: 1 | 2) {

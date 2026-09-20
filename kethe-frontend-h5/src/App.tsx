@@ -15,6 +15,7 @@ import { BillPage } from './pages/BillPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ProfilePlaceholderPage } from './pages/ProfilePlaceholderPage'
 import { CategorySettingsPage } from './pages/CategorySettingsPage'
+import { AccountSettingsPage } from './pages/AccountSettingsPage'
 import { RequireAnonymous, RequireAuth } from './components/Auth/RouteGuards'
 import { useAuthStore } from './stores/auth'
 
@@ -64,7 +65,7 @@ function App() {
           <Route path="/profile/user" element={<ProfilePlaceholderPage title="个人资料" />} />
           <Route path="/profile/settings" element={<ProfilePlaceholderPage title="设置" />} />
           <Route path="/profile/categories" element={<CategorySettingsPage />} />
-          <Route path="/profile/accounts" element={<ProfilePlaceholderPage title="账户设置" />} />
+          <Route path="/profile/accounts" element={<AccountSettingsPage />} />
           <Route path="/profile/export" element={<ProfilePlaceholderPage title="数据导出" />} />
           <Route path="/profile/theme" element={<ProfilePlaceholderPage title="主题设置" />} />
           <Route path="/profile/currency" element={<ProfilePlaceholderPage title="货币设置" />} />

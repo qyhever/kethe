@@ -12,6 +12,20 @@ import { DataSource, In, IsNull, Repository } from 'typeorm'
 import { Account } from '../user/entities/account.entity'
 import { Category } from '../user/entities/category.entity'
 import {
+  ACCOUNT_ICON_OPTIONS,
+  ACCOUNT_OPTIONS,
+  accountTypeOption,
+  defaultAccountIconKey,
+  defaultAccountNature,
+  isValidAccountIcon,
+  isValidAccountSubType,
+} from '../user/account-options'
+import {
+  AccountNature,
+  AccountSubType,
+  AccountType,
+} from '../user/enums/account-type.enum'
+import {
   CreateAccountDto,
   CreateCategoryDto,
   CreateTransactionDto,
@@ -275,6 +289,13 @@ export class LedgerService {
     return items.map((item) => this.accountView(item))
   }
 
+  accountOptions() {
+    return {
+      accountTypes: ACCOUNT_OPTIONS,
+      accountIcons: ACCOUNT_ICON_OPTIONS,
+    }
+  }
+
   async getAccount(userId: number, id: string) {
     const item = await this.accounts.findOneBy({ id, userId })
     if (!item) throw new NotFoundException('账户不存在')
@@ -282,17 +303,23 @@ export class LedgerService {
   }
 
   async createAccount(userId: number, dto: CreateAccountDto) {
+    const attributes = this.validateAccountAttributes(dto)
     const entity = this.accounts.create({
       userId,
       name: dto.name.trim(),
       accountType: dto.accountType,
-      icon: dto.icon ?? null,
+      ...attributes,
+      iconKey:
+        dto.iconKey ??
+        defaultAccountIconKey(dto.accountType, attributes.accountSubType),
       systemKey: null,
       isSystemDefault: false,
       currency: dto.currency,
       initialBalance: dto.initialBalance,
       currentBalance: dto.initialBalance,
-      includeInAssets: dto.includeInAssets ?? true,
+      includeInNetWorth:
+        dto.includeInNetWorth ??
+        dto.accountSubType !== AccountSubType.CASH_VOUCHER,
       sortOrder: dto.sortOrder ?? 0,
       isEnabled: true,
       remark: dto.remark ?? null,
@@ -308,10 +335,56 @@ export class LedgerService {
         lock: { mode: 'pessimistic_write' },
       })
       if (!entity) throw new NotFoundException('账户不存在')
-      if (
-        dto.initialBalance !== undefined &&
-        dto.initialBalance !== entity.initialBalance
-      ) {
+      const accountType = dto.accountType ?? entity.accountType
+      const typeChanged = accountType !== entity.accountType
+      const targetTypeOption = accountTypeOption(accountType)
+      const accountSubType =
+        dto.accountSubType === undefined
+          ? typeChanged && targetTypeOption?.subTypes.length === 0
+            ? null
+            : entity.accountSubType
+          : dto.accountSubType
+      const accountNatureInput =
+        dto.accountNature ??
+        (typeChanged
+          ? (defaultAccountNature(accountType) ?? entity.accountNature)
+          : entity.accountNature)
+      const targetSupportsLast4 = [
+        AccountSubType.CREDIT_CARD,
+        AccountSubType.DEBIT_CARD,
+        AccountSubType.PASSBOOK,
+      ].includes(accountSubType as AccountSubType)
+      const attributes = this.validateAccountAttributes({
+        accountType,
+        accountSubType: accountSubType ?? undefined,
+        accountNature: accountNatureInput,
+        institutionName:
+          dto.institutionName === undefined
+            ? accountTypeOption(accountType)?.supportsInstitution
+              ? (entity.institutionName ?? undefined)
+              : undefined
+            : (dto.institutionName ?? undefined),
+        accountNumberLast4:
+          dto.accountNumberLast4 === undefined
+            ? targetSupportsLast4
+              ? (entity.accountNumberLast4 ?? undefined)
+              : undefined
+            : (dto.accountNumberLast4 ?? undefined),
+        creditLimit:
+          dto.creditLimit === undefined
+            ? accountType === AccountType.CREDIT
+              ? (entity.creditLimit ?? undefined)
+              : undefined
+            : (dto.creditLimit ?? undefined),
+        initialBalance: dto.initialBalance ?? entity.initialBalance,
+        iconKey: dto.iconKey,
+      })
+      const protectedChanged =
+        accountType !== entity.accountType ||
+        attributes.accountNature !== entity.accountNature ||
+        (dto.initialBalance !== undefined &&
+          dto.initialBalance !== entity.initialBalance)
+      if (protectedChanged) {
         const used = await manager.getRepository(Transaction).exists({
           where: [
             { accountId: id, deletedAt: IsNull() },
@@ -319,7 +392,15 @@ export class LedgerService {
           ],
           withDeleted: true,
         })
-        if (used) throw new ConflictException('账户已有流水，不能修改初始余额')
+        if (used)
+          throw new ConflictException(
+            '账户已有流水，不能修改账户类型、账户性质或初始余额',
+          )
+      }
+      if (
+        dto.initialBalance !== undefined &&
+        dto.initialBalance !== entity.initialBalance
+      ) {
         entity.currentBalance = (
           BigInt(entity.currentBalance) +
           BigInt(dto.initialBalance) -
@@ -328,10 +409,23 @@ export class LedgerService {
         entity.initialBalance = dto.initialBalance
       }
       if (dto.name !== undefined) entity.name = dto.name.trim()
-      if (dto.accountType !== undefined) entity.accountType = dto.accountType
-      if (dto.icon !== undefined) entity.icon = dto.icon
-      if (dto.includeInAssets !== undefined)
-        entity.includeInAssets = dto.includeInAssets
+      entity.accountType = accountType
+      entity.accountSubType = attributes.accountSubType
+      entity.accountNature = attributes.accountNature
+      entity.institutionName = attributes.institutionName
+      entity.accountNumberLast4 = attributes.accountNumberLast4
+      entity.creditLimit = attributes.creditLimit
+      if (dto.iconKey !== undefined) entity.iconKey = dto.iconKey
+      else if (
+        !entity.iconKey ||
+        !isValidAccountIcon(entity.iconKey, accountType)
+      )
+        entity.iconKey = defaultAccountIconKey(
+          accountType,
+          attributes.accountSubType,
+        )
+      if (dto.includeInNetWorth !== undefined)
+        entity.includeInNetWorth = dto.includeInNetWorth
       if (dto.sortOrder !== undefined) entity.sortOrder = dto.sortOrder
       if (dto.isEnabled !== undefined) entity.isEnabled = dto.isEnabled
       if (dto.remark !== undefined) entity.remark = dto.remark
@@ -790,8 +884,84 @@ export class LedgerService {
       id: String(account.id),
       initialBalance: String(account.initialBalance),
       currentBalance: String(account.currentBalance),
+      creditLimit:
+        account.creditLimit === null ? null : String(account.creditLimit),
+      outstandingDebt:
+        account.accountNature === AccountNature.LIABILITY &&
+        BigInt(account.currentBalance) < 0n
+          ? (-BigInt(account.currentBalance)).toString()
+          : '0',
       createdAt: account.createdAt.toISOString(),
       updatedAt: account.updatedAt.toISOString(),
+    }
+  }
+
+  private validateAccountAttributes(input: {
+    accountType: AccountType
+    accountSubType?: AccountSubType
+    accountNature?: AccountNature
+    institutionName?: string
+    accountNumberLast4?: string
+    creditLimit?: string
+    initialBalance: string
+    iconKey?: string
+  }) {
+    const accountSubType = input.accountSubType ?? null
+    if (!isValidAccountSubType(input.accountType, accountSubType)) {
+      throw new BadRequestException('账户子类型与一级类型不匹配')
+    }
+    if (
+      input.iconKey !== undefined &&
+      !isValidAccountIcon(input.iconKey, input.accountType)
+    ) {
+      throw new BadRequestException('账户图标不存在或不适用于当前账户类型')
+    }
+    const fixedNature = defaultAccountNature(input.accountType)
+    if (
+      fixedNature !== null &&
+      input.accountNature !== undefined &&
+      input.accountNature !== fixedNature
+    ) {
+      throw new BadRequestException('该账户类型不允许自定义账户性质')
+    }
+    if (input.accountType === AccountType.OTHER && !input.accountNature) {
+      throw new BadRequestException('其他账户必须选择账户性质')
+    }
+    const accountNature = fixedNature ?? input.accountNature!
+    const initialBalance = BigInt(input.initialBalance)
+    if (accountNature === AccountNature.ASSET && initialBalance < 0n) {
+      throw new BadRequestException('资产账户的初始余额不能为负数')
+    }
+    if (accountNature === AccountNature.LIABILITY && initialBalance > 0n) {
+      throw new BadRequestException('负债账户的初始余额不能为正数')
+    }
+    if (
+      input.creditLimit !== undefined &&
+      input.accountType !== AccountType.CREDIT
+    ) {
+      throw new BadRequestException('只有信用账户可以填写信用额度')
+    }
+    const supportsLast4 = [
+      AccountSubType.CREDIT_CARD,
+      AccountSubType.DEBIT_CARD,
+      AccountSubType.PASSBOOK,
+    ].includes(accountSubType as AccountSubType)
+    if (input.accountNumberLast4 !== undefined && !supportsLast4) {
+      throw new BadRequestException('该账户子类型不能填写账号后四位')
+    }
+    return {
+      accountSubType,
+      accountNature,
+      institutionName: accountTypeOption(input.accountType)?.supportsInstitution
+        ? input.institutionName?.trim() || null
+        : null,
+      accountNumberLast4: supportsLast4
+        ? (input.accountNumberLast4 ?? null)
+        : null,
+      creditLimit:
+        input.accountType === AccountType.CREDIT
+          ? (input.creditLimit ?? null)
+          : null,
     }
   }
 }

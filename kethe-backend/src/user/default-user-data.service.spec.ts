@@ -7,7 +7,11 @@ import {
 import { DefaultUserDataService } from './default-user-data.service'
 import { Account } from './entities/account.entity'
 import { Category } from './entities/category.entity'
-import { AccountType } from './enums/account-type.enum'
+import {
+  AccountNature,
+  AccountSubType,
+  AccountType,
+} from './enums/account-type.enum'
 
 describe('DefaultUserDataService', () => {
   let service: DefaultUserDataService
@@ -139,17 +143,17 @@ describe('DefaultUserDataService', () => {
     expect(accountRecords).toHaveLength(5)
     expect(accountRecords.map(({ name }) => name)).toEqual([
       '现金',
-      '银行卡',
+      '储蓄卡',
       'PayPal',
       '微信',
       '支付宝',
     ])
     expect(accountRecords.map(({ accountType }) => accountType)).toEqual([
       AccountType.CASH,
-      AccountType.BANK_CARD,
-      AccountType.PAYPAL,
-      AccountType.WECHAT,
-      AccountType.ALIPAY,
+      AccountType.DEBIT,
+      AccountType.VIRTUAL,
+      AccountType.VIRTUAL,
+      AccountType.VIRTUAL,
     ])
     expect(accountRecords.map(({ systemKey }) => systemKey)).toEqual(
       DEFAULT_ACCOUNTS.map(({ systemKey }) => systemKey),
@@ -161,15 +165,32 @@ describe('DefaultUserDataService', () => {
       accountRecords.every(
         (account) =>
           account.userId === 42 &&
-          account.icon === null &&
+          typeof account.iconKey === 'string' &&
           account.currency === 'CNY' &&
           account.initialBalance === '0' &&
           account.currentBalance === '0' &&
-          account.includeInAssets &&
+          account.includeInNetWorth &&
           account.isSystemDefault &&
           account.isEnabled &&
           account.remark === null,
       ),
     ).toBe(true)
+    expect(accountRecords.map(({ accountNature }) => accountNature)).toEqual(
+      Array(5).fill(AccountNature.ASSET),
+    )
+    expect(accountRecords.map(({ accountSubType }) => accountSubType)).toEqual([
+      null,
+      AccountSubType.DEBIT_CARD,
+      AccountSubType.ONLINE_PAYMENT,
+      AccountSubType.ONLINE_PAYMENT,
+      AccountSubType.ONLINE_PAYMENT,
+    ])
+    expect(accountRecords.map(({ iconKey }) => iconKey)).toEqual([
+      'cash',
+      'bank-card',
+      'paypal',
+      'wechat',
+      'alipay',
+    ])
   })
 })
