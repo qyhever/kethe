@@ -660,10 +660,14 @@ describe('LedgerService 账户分类', () => {
     },
     { label: '初始余额', dto: { initialBalance: '100' } },
   ])('已有流水时禁止修改$label', async ({ dto }) => {
-    const { service } = setupAccountUpdate()
+    const { service, transactionRepository } = setupAccountUpdate()
     await expect(service.updateAccount(14, '1', dto)).rejects.toBeInstanceOf(
       ConflictException,
     )
+    expect(transactionRepository.exists).toHaveBeenCalledWith({
+      where: [{ accountId: '1' }, { targetAccountId: '1' }],
+      withDeleted: true,
+    })
   })
 
   it('已有流水时允许修改同一一级类型下的子类型并清理后四位', async () => {
@@ -678,7 +682,10 @@ describe('LedgerService 账户分类', () => {
       accountSubType: AccountSubType.CONSUMER_CREDIT,
     })
 
-    expect(transactionRepository.exists).not.toHaveBeenCalled()
+    expect(transactionRepository.exists).toHaveBeenCalledWith({
+      where: [{ accountId: '1' }, { targetAccountId: '1' }],
+      withDeleted: true,
+    })
     expect(entity.accountSubType).toBe(AccountSubType.CONSUMER_CREDIT)
     expect(entity.accountNumberLast4).toBeNull()
     expect(accountRepository.save).toHaveBeenCalledWith(entity)
@@ -774,6 +781,112 @@ describe('LedgerService 账户分类', () => {
       expect(view.outstandingDebt).toBe(outstandingDebt)
     },
   )
+
+  it('列表批量返回账户流水引用标记并包含软删除流水', async () => {
+    const account = {
+      id: '1',
+      userId: 14,
+      accountNature: AccountNature.ASSET,
+      initialBalance: '0',
+      currentBalance: '100',
+      creditLimit: null,
+      createdAt: new Date('2026-09-20T00:00:00.000Z'),
+      updatedAt: new Date('2026-09-20T00:00:00.000Z'),
+    }
+    const accounts = { find: jest.fn().mockResolvedValue([account]) }
+    const transactions = {
+      find: jest
+        .fn()
+        .mockResolvedValue([{ accountId: '1', targetAccountId: null }]),
+    }
+    const service = new LedgerService(
+      {} as never,
+      {} as never,
+      accounts as never,
+      {} as never,
+      transactions as never,
+    )
+
+    await expect(service.listAccounts(14)).resolves.toEqual([
+      expect.objectContaining({ id: '1', hasTransactions: true }),
+    ])
+    expect(transactions.find).toHaveBeenCalledWith(
+      expect.objectContaining({ withDeleted: true }),
+    )
+  })
+
+  it('详情为无流水账户返回 false', async () => {
+    const account = {
+      id: '1',
+      userId: 14,
+      accountNature: AccountNature.ASSET,
+      initialBalance: '0',
+      currentBalance: '0',
+      creditLimit: null,
+      createdAt: new Date('2026-09-20T00:00:00.000Z'),
+      updatedAt: new Date('2026-09-20T00:00:00.000Z'),
+    }
+    const accounts = { findOneBy: jest.fn().mockResolvedValue(account) }
+    const transactions = { exists: jest.fn().mockResolvedValue(false) }
+    const service = new LedgerService(
+      {} as never,
+      {} as never,
+      accounts as never,
+      {} as never,
+      transactions as never,
+    )
+
+    await expect(service.getAccount(14, '1')).resolves.toEqual(
+      expect.objectContaining({ hasTransactions: false }),
+    )
+    expect(transactions.exists).toHaveBeenCalledWith(
+      expect.objectContaining({ withDeleted: true }),
+    )
+  })
+
+  it('普通无流水账户可软删除', async () => {
+    const account = { id: '1', userId: 14, isSystemDefault: false }
+    const accounts = {
+      findOneBy: jest.fn().mockResolvedValue(account),
+      softRemove: jest.fn().mockResolvedValue(account),
+    }
+    const transactions = { exists: jest.fn().mockResolvedValue(false) }
+    const service = new LedgerService(
+      {} as never,
+      {} as never,
+      accounts as never,
+      {} as never,
+      transactions as never,
+    )
+
+    await expect(service.deleteAccount(14, '1')).resolves.toBeNull()
+    expect(accounts.softRemove).toHaveBeenCalledWith(account)
+  })
+
+  it.each([
+    ['系统账户', true, false],
+    ['已有流水账户', false, true],
+  ])('%s只能停用', async (_label, isSystemDefault, referenced) => {
+    const accounts = {
+      findOneBy: jest
+        .fn()
+        .mockResolvedValue({ id: '1', userId: 14, isSystemDefault }),
+      softRemove: jest.fn(),
+    }
+    const transactions = { exists: jest.fn().mockResolvedValue(referenced) }
+    const service = new LedgerService(
+      {} as never,
+      {} as never,
+      accounts as never,
+      {} as never,
+      transactions as never,
+    )
+
+    await expect(service.deleteAccount(14, '1')).rejects.toBeInstanceOf(
+      ConflictException,
+    )
+    expect(accounts.softRemove).not.toHaveBeenCalled()
+  })
 })
 
 describe('LedgerService 删除流水', () => {

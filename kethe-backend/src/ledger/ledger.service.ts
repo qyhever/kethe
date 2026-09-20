@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
-import { DataSource, In, IsNull, Repository } from 'typeorm'
+import { DataSource, In, Repository } from 'typeorm'
 import { Account } from '../user/entities/account.entity'
 import { Category } from '../user/entities/category.entity'
 import {
@@ -286,7 +286,22 @@ export class LedgerService {
       where: { userId },
       order: { sortOrder: 'ASC', id: 'ASC' },
     })
-    return items.map((item) => this.accountView(item))
+    if (!items.length) return []
+    const references = await this.transactions.find({
+      where: { userId },
+      select: { accountId: true, targetAccountId: true },
+      withDeleted: true,
+    })
+    const usedIds = new Set(
+      references.flatMap((item) =>
+        [item.accountId, item.targetAccountId].filter(
+          (id): id is string => id !== null,
+        ),
+      ),
+    )
+    return items.map((item) =>
+      this.accountView(item, usedIds.has(String(item.id))),
+    )
   }
 
   accountOptions() {
@@ -299,7 +314,11 @@ export class LedgerService {
   async getAccount(userId: number, id: string) {
     const item = await this.accounts.findOneBy({ id, userId })
     if (!item) throw new NotFoundException('账户不存在')
-    return this.accountView(item)
+    const hasTransactions = await this.transactions.exists({
+      where: [{ accountId: id }, { targetAccountId: id }],
+      withDeleted: true,
+    })
+    return this.accountView(item, hasTransactions)
   }
 
   async createAccount(userId: number, dto: CreateAccountDto) {
@@ -324,7 +343,7 @@ export class LedgerService {
       isEnabled: true,
       remark: dto.remark ?? null,
     })
-    return this.accountView(await this.accounts.save(entity))
+    return this.accountView(await this.accounts.save(entity), false)
   }
 
   async updateAccount(userId: number, id: string, dto: UpdateAccountDto) {
@@ -386,10 +405,7 @@ export class LedgerService {
           dto.initialBalance !== entity.initialBalance)
       if (protectedChanged) {
         const used = await manager.getRepository(Transaction).exists({
-          where: [
-            { accountId: id, deletedAt: IsNull() },
-            { targetAccountId: id, deletedAt: IsNull() },
-          ],
+          where: [{ accountId: id }, { targetAccountId: id }],
           withDeleted: true,
         })
         if (used)
@@ -429,7 +445,12 @@ export class LedgerService {
       if (dto.sortOrder !== undefined) entity.sortOrder = dto.sortOrder
       if (dto.isEnabled !== undefined) entity.isEnabled = dto.isEnabled
       if (dto.remark !== undefined) entity.remark = dto.remark
-      return this.accountView(await repository.save(entity))
+      const saved = await repository.save(entity)
+      const hasTransactions = await manager.getRepository(Transaction).exists({
+        where: [{ accountId: id }, { targetAccountId: id }],
+        withDeleted: true,
+      })
+      return this.accountView(saved, hasTransactions)
     })
   }
 
@@ -878,7 +899,7 @@ export class LedgerService {
     }
   }
 
-  private accountView(account: Account) {
+  private accountView(account: Account, hasTransactions = false) {
     return {
       ...account,
       id: String(account.id),
@@ -891,6 +912,7 @@ export class LedgerService {
         BigInt(account.currentBalance) < 0n
           ? (-BigInt(account.currentBalance)).toString()
           : '0',
+      hasTransactions,
       createdAt: account.createdAt.toISOString(),
       updatedAt: account.updatedAt.toISOString(),
     }

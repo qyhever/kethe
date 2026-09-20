@@ -102,6 +102,7 @@ export interface LedgerAccount {
   currentBalance: string
   includeInNetWorth: boolean
   outstandingDebt: string
+  hasTransactions: boolean
   sortOrder: number
   isEnabled: boolean
   remark: string | null
@@ -121,6 +122,7 @@ export interface AccountTypeOption {
   value: number
   code: string
   label: string
+  remark?: string
   defaultNature: 1 | 2 | null
   requiresNature: boolean
   supportsInstitution: boolean
@@ -140,7 +142,7 @@ export interface AccountIconOption {
   supportedTypes: number[]
 }
 
-export interface AccountPayload {
+export interface CreateAccountPayload {
   name: string
   accountType: number
   accountSubType?: number
@@ -153,6 +155,12 @@ export interface AccountPayload {
   initialBalance?: string
   includeInNetWorth?: boolean
   remark?: string
+}
+
+export type UpdateAccountPayload = Partial<
+  Omit<CreateAccountPayload, 'currency'>
+> & {
+  isEnabled?: boolean
 }
 
 export interface LedgerCategory {

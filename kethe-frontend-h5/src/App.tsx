@@ -15,7 +15,12 @@ import { BillPage } from './pages/BillPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ProfilePlaceholderPage } from './pages/ProfilePlaceholderPage'
 import { CategorySettingsPage } from './pages/CategorySettingsPage'
-import { AccountSettingsPage } from './pages/AccountSettingsPage'
+import {
+  AccountCreatePage,
+  AccountDetailPage,
+  AccountEditPage,
+  AccountSettingsPage,
+} from './pages/AccountSettingsPage'
 import { RequireAnonymous, RequireAuth } from './components/Auth/RouteGuards'
 import { useAuthStore } from './stores/auth'
 
@@ -66,6 +71,10 @@ function App() {
           <Route path="/profile/settings" element={<ProfilePlaceholderPage title="设置" />} />
           <Route path="/profile/categories" element={<CategorySettingsPage />} />
           <Route path="/profile/accounts" element={<AccountSettingsPage />} />
+          <Route path="/profile/accounts/new" element={<AccountCreatePage />} />
+          <Route path="/profile/accounts/new/details" element={<AccountCreatePage details />} />
+          <Route path="/profile/accounts/:id" element={<AccountDetailPage />} />
+          <Route path="/profile/accounts/:id/edit" element={<AccountEditPage />} />
           <Route path="/profile/export" element={<ProfilePlaceholderPage title="数据导出" />} />
           <Route path="/profile/theme" element={<ProfilePlaceholderPage title="主题设置" />} />
           <Route path="/profile/currency" element={<ProfilePlaceholderPage title="货币设置" />} />
