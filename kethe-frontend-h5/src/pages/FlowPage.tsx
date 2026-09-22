@@ -489,8 +489,10 @@ function FilterSheet({
   accounts,
   optionsLoading,
   optionsError,
+  isClosing,
   onChange,
   onClose,
+  onClosed,
   onReset,
   onApply,
   onRetryOptions,
@@ -500,8 +502,10 @@ function FilterSheet({
   accounts: LedgerAccount[]
   optionsLoading: boolean
   optionsError: string | null
+  isClosing: boolean
   onChange: (next: Filters) => void
   onClose: () => void
+  onClosed: () => void
   onReset: () => void
   onApply: () => void
   onRetryOptions: () => void
@@ -610,7 +614,7 @@ function FilterSheet({
     accounts.every((account) => draft.accountIds.includes(account.id))
   return (
     <div
-      className="flow-filter"
+      className={`flow-filter${isClosing ? ' is-closing' : ''}`}
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose()
@@ -623,6 +627,13 @@ function FilterSheet({
         aria-modal="true"
         aria-labelledby="filter-title"
         tabIndex={-1}
+        onAnimationEnd={(event) => {
+          if (
+            event.target === event.currentTarget &&
+            event.animationName === 'flow-sheet-out'
+          )
+            onClosed()
+        }}
       >
         <header className="flow-filter__header">
           <h2 id="filter-title">筛选</h2>
@@ -1078,6 +1089,7 @@ export function FlowPage() {
         : restoredCache?.draft ?? currentYearFilters(),
   )
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [isFilterClosing, setIsFilterClosing] = useState(false)
   const [isSearching, setIsSearching] = useState(
     restoredCache?.isSearching ?? false,
   )
@@ -1310,6 +1322,15 @@ export function FlowPage() {
     }
   }
 
+  const closeFilter = () => {
+    if (!isFilterOpen || isFilterClosing) return
+    setIsFilterClosing(true)
+  }
+  const finishClosingFilter = () => {
+    setIsFilterOpen(false)
+    setIsFilterClosing(false)
+  }
+
   const years = useMemo(() => groupTransactions(items), [items])
   const summaryByYear = useMemo(
     () => new Map(summaries.map((summary) => [summary.year, summary])),
@@ -1362,7 +1383,7 @@ export function FlowPage() {
     )
       return toast.error('最低金额不能大于最高金额')
     setFilters({ ...draft })
-    setIsFilterOpen(false)
+    closeFilter()
   }
   const resetAll = () => {
     setFilters(currentYearFilters())
@@ -1428,6 +1449,7 @@ export function FlowPage() {
               aria-expanded={isFilterOpen}
               onClick={() => {
                 setDraft({ ...filters })
+                setIsFilterClosing(false)
                 setIsFilterOpen(true)
               }}
             >
@@ -1628,8 +1650,10 @@ export function FlowPage() {
           accounts={accounts}
           optionsLoading={optionsLoading}
           optionsError={optionsError}
+          isClosing={isFilterClosing}
           onChange={setDraft}
-          onClose={() => setIsFilterOpen(false)}
+          onClose={closeFilter}
+          onClosed={finishClosingFilter}
           onReset={() => setDraft(currentYearFilters())}
           onApply={applyFilters}
           onRetryOptions={() => setOptionsRetryKey((key) => key + 1)}

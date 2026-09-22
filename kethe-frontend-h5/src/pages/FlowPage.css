@@ -310,6 +310,9 @@
   animation: flow-sheet-in 360ms var(--ease-emphasized) both;
 }
 
+.flow-filter.is-closing { animation: flow-scrim-out var(--duration-normal) var(--ease-standard) both; }
+.flow-filter.is-closing .flow-filter__sheet { animation: flow-sheet-out 360ms var(--ease-emphasized) both; }
+
 .flow-filter__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 23px; }
 .flow-filter__header h2 { margin: 0; font-family: var(--font-family-display); font-size: var(--font-size-title-1); letter-spacing: var(--letter-spacing-tight); }
 .flow-filter__header button { padding: 9px 0 9px 15px; color: var(--flow-blue); background: transparent; font-size: var(--font-size-subheadline); }
@@ -456,7 +459,9 @@
 @keyframes flow-month-open { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes flow-search-in { from { opacity: 0; transform: scaleX(.9); transform-origin: right; } to { opacity: 1; transform: scaleX(1); } }
 @keyframes flow-scrim-in { from { background: transparent; } }
+@keyframes flow-scrim-out { from { background: var(--color-overlay); } to { background: transparent; } }
 @keyframes flow-sheet-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes flow-sheet-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
 @keyframes flow-picker-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
 @media (max-width: 560px) {
