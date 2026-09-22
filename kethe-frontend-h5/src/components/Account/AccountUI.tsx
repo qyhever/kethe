@@ -91,14 +91,20 @@ const ICONS: Record<string, AccountIconComponent> = {
 }
 
 const ICON_COLORS: Partial<Record<string, string>> = {
-  cash: '#168560',
+  cash: '#5BC982',
+  'bank-card': '#E63343',
+  savings: '#F39A5A',
+  wallet: '#3B82F6',
   paypal: '#0070E0',
   wechat: '#07C160',
-  alipay: '#1677FF',
+  alipay: '#1484E6',
+  'stored-value-card': '#F39A5A',
+  voucher: '#F97316',
+  coins: '#F39A5A',
 }
 
-function iconColorStyle(iconKey: string | null): CSSProperties | undefined {
-  const color = iconKey ? ICON_COLORS[iconKey] : undefined
+function iconColorStyle(iconKey: string | null, colorOverride?: string): CSSProperties | undefined {
+  const color = colorOverride ?? (iconKey ? ICON_COLORS[iconKey] : undefined)
   return color ? ({ '--account-icon-color': color } as CSSProperties) : undefined
 }
 
@@ -106,15 +112,18 @@ export function AccountIcon({
   iconKey,
   nature,
   size = 24,
+  color,
 }: {
   iconKey: string | null
   nature: 1 | 2
   size?: number
+  color?: string
 }) {
   const Icon = (iconKey && ICONS[iconKey]) || WalletCards
-  const branded = Boolean(iconKey && ICON_COLORS[iconKey])
+  const iconColor = color ?? (iconKey ? ICON_COLORS[iconKey] : undefined)
+  const branded = Boolean(iconColor)
   return (
-    <span className={`account-icon account-icon--${nature === 2 ? 'liability' : 'asset'}${branded ? ' account-icon--branded' : ''}`} style={iconColorStyle(iconKey)}>
+    <span className={`account-icon account-icon--${nature === 2 ? 'liability' : 'asset'}${branded ? ' account-icon--branded' : ''}`} style={iconColorStyle(iconKey, iconColor)}>
       <Icon size={size} />
     </span>
   )

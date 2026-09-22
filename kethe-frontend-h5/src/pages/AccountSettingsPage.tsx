@@ -1,4 +1,4 @@
-import { AlertCircle, Check, ChevronDown, ChevronRight, Circle, Edit3, Ellipsis, LoaderCircle, Plus, Power, RotateCcw, Trash2 } from 'lucide-react'
+import { AlertCircle, Check, ChevronDown, Circle, Edit3, Ellipsis, LoaderCircle, Plus, Power, RotateCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { createAccount, fetchAccount, fetchAccountOptions, fetchAccounts, removeAccount, updateAccount } from '../api/ledger'
@@ -9,6 +9,13 @@ import { useToast } from '../components/Toast'
 import './AccountSettingsPage.css'
 
 const CASH_VOUCHER = 402
+const ACCOUNT_TYPE_COLORS: Record<string, string> = {
+  cash: '#5BC982',
+  credit: '#EB3F46',
+  debit: '#F39A5A',
+  virtual: '#3B82F6',
+  other: '#F39A5A',
+}
 const errorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
 const optionFor = (options: AccountOptions | null, type: number) => options?.accountTypes.find((item) => item.value === type)
 const addMoney = (items: LedgerAccount[], selector: (item: LedgerAccount) => string) => items.reduce((total, item) => total + BigInt(selector(item)), 0n).toString()
@@ -66,20 +73,25 @@ export function AccountCreatePage({ details = false }: { details?: boolean }) {
   const navigate = useNavigate()
   const [search] = useSearchParams()
   const { options, error, reload } = useAccountOptions()
-  const selectedType = optionFor(options, Number(search.get('type')))
+  const selectedTypeFromSearch = optionFor(options, Number(search.get('type')))
   const [expanded, setExpanded] = useState<number | null>(null)
+  const [selectedType, setSelectedType] = useState<number | null>(null)
   const [selectedSubType, setSelectedSubType] = useState<number | ''>('')
+  const initialized = useRef(false)
   useEffect(() => {
-    if (!options || expanded !== null) return
+    if (!options || initialized.current || options.accountTypes.length === 0) return
     const first = options.accountTypes[0]
-    setExpanded(first?.value ?? null); setSelectedSubType(first?.subTypes[0]?.value ?? '')
-  }, [expanded, options])
+    initialized.current = true
+    setSelectedType(first.value)
+    setExpanded(first.subTypes.length > 0 ? first.value : null)
+    setSelectedSubType(first.subTypes[0]?.value ?? '')
+  }, [options])
   if (error) return <main className="account-page"><AccountHeader title="新增账户" onBack={() => navigate(-1)} /><PageStatus text={error} retry={reload} /></main>
   if (!options) return <main className="account-page"><AccountHeader title="新增账户" onBack={() => navigate(-1)} /><PageStatus loading text="正在加载…" /></main>
-  if (details && selectedType) return <AccountFormPage options={options} selectedType={selectedType} initialSubType={selectedType.subTypes.some((item) => item.value === Number(search.get('subType'))) ? Number(search.get('subType')) : selectedType.subTypes[0]?.value ?? ''} onBack={() => navigate(-1)} />
+  if (details && selectedTypeFromSearch) return <AccountFormPage options={options} selectedType={selectedTypeFromSearch} initialSubType={selectedTypeFromSearch.subTypes.some((item) => item.value === Number(search.get('subType'))) ? Number(search.get('subType')) : selectedTypeFromSearch.subTypes[0]?.value ?? ''} onBack={() => navigate(-1)} />
   const next = () => {
-    if (expanded === null) return
-    const type = optionFor(options, expanded)
+    if (selectedType === null) return
+    const type = optionFor(options, selectedType)
     if (!type) return
     const subType = type.subTypes.length ? selectedSubType : ''
     navigate(`/profile/accounts/new/details?type=${type.value}${subType !== '' ? `&subType=${subType}` : ''}`)
@@ -89,9 +101,18 @@ export function AccountCreatePage({ details = false }: { details?: boolean }) {
       <AccountHeader title="新增账户" onBack={() => navigate(-1)} /><Steps current={1} />
       <section className="account-type-list">{options.accountTypes.map((type) => {
         const open = expanded === type.value
-        return <article key={type.value} className={open ? 'is-open' : ''}>
-          <button type="button" className="account-type-list__heading" onClick={() => { setExpanded(type.value); setSelectedSubType(type.subTypes[0]?.value ?? '') }}>
-            <AccountIcon iconKey={options.accountIcons.find((icon) => icon.supportedTypes.includes(type.value))?.key ?? null} nature={type.defaultNature ?? 1} /><span><strong>{type.label}</strong><small>{type.remark ?? (type.value === 1 ? '用于记录纸币、硬币等现金资产' : '根据实际情况选择资产或负债')}</small></span>{type.subTypes.length ? <ChevronDown /> : open ? <Check /> : <ChevronRight />}
+        const selected = selectedType === type.value
+        return <article key={type.value} className={[open && 'is-open', selected && 'is-selected'].filter(Boolean).join(' ')}>
+          <button type="button" className="account-type-list__heading" aria-expanded={type.subTypes.length > 0 ? open : undefined} onClick={() => {
+            if (selected) {
+              if (type.subTypes.length > 0) setExpanded((current) => current === type.value ? null : type.value)
+              return
+            }
+            setSelectedType(type.value)
+            setSelectedSubType(type.subTypes[0]?.value ?? '')
+            setExpanded(type.subTypes.length > 0 ? type.value : null)
+          }}>
+            <AccountIcon iconKey={options.accountIcons.find((icon) => icon.supportedTypes.includes(type.value))?.key ?? null} nature={type.defaultNature ?? 1} color={ACCOUNT_TYPE_COLORS[type.code]} /><span><strong>{type.label}</strong><small>{type.remark ?? (type.value === 1 ? '用于记录纸币、硬币等现金资产' : '')}</small></span>{type.subTypes.length > 0 ? <ChevronDown className="account-type-list__chevron" /> : selected ? <Check className="account-type-list__check" /> : null}
           </button>
           {open && type.subTypes.length > 0 && <div className="account-type-list__subs">{type.subTypes.map((subType) => <button type="button" key={subType.value} onClick={() => setSelectedSubType(subType.value)}><span className={selectedSubType === subType.value ? 'is-selected' : ''}>{selectedSubType === subType.value ? <Check size={13} /> : <Circle size={13} />}</span><span><strong>{subType.label}</strong><small>{subType.supportsLast4 ? '支持设置账号后四位' : '适合无实体卡号的账户'}</small></span></button>)}</div>}
         </article>
