@@ -26,11 +26,12 @@ export default defineConfig(({ mode, command }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
+        manifestFilename: 'manifest-v2.webmanifest',
         includeAssets: [
           'logo.svg',
           'favicon-16x16.png',
           'favicon-32x32.png',
-          'apple-touch-icon.png',
+          'apple-touch-icon-v2.png',
         ],
         manifest: {
           name: 'Kethe',
@@ -43,7 +44,7 @@ export default defineConfig(({ mode, command }) => {
           scope: '/',
           icons: [
             {
-              src: '/pwa-192x192.png',
+              src: '/pwa-192x192-v2.png',
               sizes: '192x192',
               type: 'image/png',
             },
@@ -53,7 +54,7 @@ export default defineConfig(({ mode, command }) => {
               type: 'image/png',
             },
             {
-              src: '/maskable-192x192.png',
+              src: '/maskable-192x192-v2.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'maskable',
