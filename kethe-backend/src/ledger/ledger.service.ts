@@ -35,7 +35,11 @@ import {
   UpdateOrderDto,
 } from './dto/ledger.dto'
 import { CategoryIcon } from './entities/category-icon.entity'
-import { Transaction, TransactionType } from './entities/transaction.entity'
+import {
+  TimePrecision,
+  Transaction,
+  TransactionType,
+} from './entities/transaction.entity'
 import { calculateBalanceChanges } from './balance'
 
 dayjs.extend(utc)
@@ -65,6 +69,7 @@ interface TransactionRow {
   currency: string
   remark: string | null
   transactionTime: Date | string
+  timePrecision: number
   createdAt: Date | string
   categoryId: string | null
   categoryName: string | null
@@ -502,7 +507,8 @@ export class LedgerService {
         accountId: dto.accountId,
         targetAccountId: dto.targetAccountId ?? null,
         currency: dto.currency,
-        transactionTime: new Date(dto.transactionTime),
+        transactionTime: this.resolveTransactionTime(dto),
+        timePrecision: dto.timePrecision ?? TimePrecision.MOMENT,
         remark: dto.remark ?? null,
       })
       this.applyBalance(accounts, entity, 1)
@@ -545,7 +551,8 @@ export class LedgerService {
         accountId: dto.accountId,
         targetAccountId: dto.targetAccountId ?? null,
         currency: dto.currency,
-        transactionTime: new Date(dto.transactionTime),
+        transactionTime: this.resolveTransactionTime(dto),
+        timePrecision: dto.timePrecision ?? TimePrecision.MOMENT,
         remark: dto.remark ?? null,
       })
       this.applyBalance(accounts, old, 1)
@@ -743,6 +750,7 @@ export class LedgerService {
         't.currency currency',
         't.remark remark',
         't.transactionTime transactionTime',
+        't.timePrecision timePrecision',
         't.createdAt createdAt',
         'c.id categoryId',
         'c.name categoryName',
@@ -887,6 +895,7 @@ export class LedgerService {
       ...row,
       id: String(row.id),
       transactionType: Number(row.transactionType),
+      timePrecision: Number(row.timePrecision),
       amount: String(row.amount),
       categoryId: row.categoryId === null ? null : String(row.categoryId),
       parentCategoryId:
@@ -897,6 +906,14 @@ export class LedgerService {
       transactionTime: new Date(String(row.transactionTime)).toISOString(),
       createdAt: new Date(String(row.createdAt)).toISOString(),
     }
+  }
+
+  private resolveTransactionTime(dto: CreateTransactionDto) {
+    if (dto.timePrecision !== TimePrecision.DATE)
+      return new Date(dto.transactionTime)
+
+    const date = dayjs(dto.transactionTime).tz(ZONE).format('YYYY-MM-DD')
+    return dayjs.tz(`${date} 12:00:00`, ZONE).toDate()
   }
 
   private accountView(account: Account, hasTransactions = false) {

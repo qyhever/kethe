@@ -464,7 +464,7 @@ function TransactionRow({
         <small className="flow-row__subject">
           {transaction.remark?.trim() || '无备注'}
         </small>
-        <small>{transactionTime(transaction.transactionTime)} · {account}</small>
+        <small>{transaction.timePrecision === 1 ? account : `${transactionTime(transaction.transactionTime)} · ${account}`}</small>
       </span>
       <span className="flow-row__value">
         <strong

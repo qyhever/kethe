@@ -13,6 +13,11 @@ export enum TransactionType {
   TRANSFER = 3,
 }
 
+export enum TimePrecision {
+  DATE = 1,
+  MOMENT = 2,
+}
+
 @Entity({ name: 'transactions', synchronize: false })
 export class Transaction {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
@@ -44,6 +49,9 @@ export class Transaction {
 
   @Column({ type: 'datetime', precision: 3 })
   transactionTime!: Date
+
+  @Column({ type: 'tinyint', unsigned: true, default: TimePrecision.MOMENT })
+  timePrecision!: TimePrecision
 
   @DeleteDateColumn({ type: 'datetime', precision: 3, nullable: true })
   deletedAt!: Date | null

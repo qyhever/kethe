@@ -27,6 +27,7 @@ import type {
 import { AccountSheet } from '../components/AccountSheet'
 import { CategoryIcon } from '../components/CategoryIcon/CategoryIcon'
 import { useToast } from '../components/Toast'
+import { TransactionTimePicker } from '../components/TransactionTimePicker/TransactionTimePicker'
 import './TallyPage.css'
 
 type TallyType = 'expense' | 'income' | 'transfer'
@@ -54,19 +55,16 @@ function padTimePart(value: number) {
 }
 
 function getCurrentDateTime() {
-  const now = new Date()
-  return [
-    `${now.getFullYear()}-${padTimePart(now.getMonth() + 1)}-${padTimePart(now.getDate())}`,
-    `${padTimePart(now.getHours())}:${padTimePart(now.getMinutes())}`,
-  ].join('T')
+  return toLocalDateTime(new Date().toISOString())
 }
 
 function toLocalDateTime(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
+  const now = new Date(date.getTime() + 8 * 60 * 60 * 1000)
   return [
-    `${date.getFullYear()}-${padTimePart(date.getMonth() + 1)}-${padTimePart(date.getDate())}`,
-    `${padTimePart(date.getHours())}:${padTimePart(date.getMinutes())}`,
+    `${now.getUTCFullYear()}-${padTimePart(now.getUTCMonth() + 1)}-${padTimePart(now.getUTCDate())}`,
+    `${padTimePart(now.getUTCHours())}:${padTimePart(now.getUTCMinutes())}`,
   ].join('T')
 }
 
@@ -365,7 +363,6 @@ export function TallyPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const toast = useToast()
-  const dateInputRef = useRef<HTMLInputElement>(null)
   const savingRef = useRef(false)
   const normalizedPath = location.pathname.replace(/\/$/, '')
   const isCategoryPage =
@@ -394,6 +391,8 @@ export function TallyPage() {
   const [account, setAccount] = useState<AccountOption>()
   const [targetAccount, setTargetAccount] = useState<AccountOption>()
   const [dateTime, setDateTime] = useState(getCurrentDateTime)
+  const [timePrecision, setTimePrecision] = useState<1 | 2>(2)
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false)
   const [note, setNote] = useState('')
   const [accounts, setAccounts] = useState<LedgerAccount[]>([])
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([])
@@ -530,6 +529,7 @@ export function TallyPage() {
         : undefined,
     )
     setDateTime(toLocalDateTime(transaction.transactionTime))
+    setTimePrecision(transaction.timePrecision)
     setNote(transaction.remark ?? '')
     setIsDetailHydrated(true)
   }, [
@@ -585,7 +585,11 @@ export function TallyPage() {
       return
     }
 
-    const transactionDate = new Date(dateTime)
+    const transactionDate = new Date(
+      timePrecision === 1
+        ? `${dateTime.slice(0, 10)}T12:00:00+08:00`
+        : `${dateTime}:00+08:00`,
+    )
     if (Number.isNaN(transactionDate.getTime())) {
       toast.info('请选择有效的交易时间')
       return
@@ -604,6 +608,7 @@ export function TallyPage() {
         accountId: account.id,
         currency: 'CNY',
         transactionTime: transactionDate.toISOString(),
+        timePrecision,
         remark: note.trim() || undefined,
       }
       if (isEditing) await updateTransaction(transactionId!, payload)
@@ -650,9 +655,11 @@ export function TallyPage() {
   }
 
   const formattedDate = dateTime
-    ? dateTime.replace(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/, '$1年$2月$3日  $4:$5')
+    ? timePrecision === 1
+      ? dateTime.slice(0, 10).replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1年$2月$3日')
+      : dateTime.replace(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/, '$1年$2月$3日  $4:$5')
     : '请选择'
-  const accountValue = account?.name ?? (isLoadingResources ? '加载中…' : accountError ? '加载失败' : '暂无可用账户')
+  const accountValue = account?.name ?? (isLoadingResources ? '加载中…' : accountError ? '加载失败' : '请选择')
   const isInteractionDisabled =
     isSaving || (isEditing && !isDetailHydrated)
 
@@ -711,23 +718,13 @@ export function TallyPage() {
             label="时间"
             value={formattedDate}
             disabled={isInteractionDisabled}
-            onClick={() => dateInputRef.current?.showPicker()}
+            onClick={() => setIsTimePickerOpen(true)}
           />
           <label className="tally-form-row tally-note-row">
             <span className="tally-form-row__icon"><NotebookPen size={23} strokeWidth={1.8} /></span>
             <span className="tally-form-row__label">备注</span>
             <input aria-label="备注" disabled={isInteractionDisabled} placeholder="添加备注（选填）" value={note} onChange={(event) => setNote(event.target.value)} />
           </label>
-          <input
-            className="tally-date-input"
-            ref={dateInputRef}
-            type="datetime-local"
-            value={dateTime}
-            disabled={isInteractionDisabled}
-            onChange={(event) => setDateTime(event.target.value)}
-            tabIndex={-1}
-            aria-hidden="true"
-          />
         </section>
       </div>
 
@@ -759,6 +756,17 @@ export function TallyPage() {
           if (accountPicker === 'target') setTargetAccount(nextAccount as AccountOption)
           else setAccount(nextAccount as AccountOption)
           setAccountPicker(undefined)
+        }}
+      />
+      <TransactionTimePicker
+        open={isTimePickerOpen}
+        value={dateTime}
+        precision={timePrecision}
+        onClose={() => setIsTimePickerOpen(false)}
+        onConfirm={(value, precision) => {
+          setDateTime(value)
+          setTimePrecision(precision)
+          setIsTimePickerOpen(false)
         }}
       />
     </main>

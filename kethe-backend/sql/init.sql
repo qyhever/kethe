@@ -294,6 +294,8 @@ CREATE TABLE transactions (
     remark              VARCHAR(500) DEFAULT NULL COMMENT '备注',
     transactionTime    DATETIME(3) NOT NULL COMMENT
                         '记账时间/业务发生时间',
+    timePrecision      TINYINT UNSIGNED NOT NULL DEFAULT 2 COMMENT
+                        '时间精度：1仅日期，2日期和时刻',
     deletedAt          DATETIME(3) DEFAULT NULL COMMENT
                         '软删除时间；NULL表示正常流水',
     createdAt          DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT
@@ -301,6 +303,8 @@ CREATE TABLE transactions (
     updatedAt          DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
                         ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     PRIMARY KEY (id),
+    CONSTRAINT chk_transactions_time_precision
+        CHECK (timePrecision IN (1, 2)),
     KEY idx_transactions_user_time
         (userId, transactionTime DESC, id DESC),
     KEY idx_transactions_user_type_time

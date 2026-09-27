@@ -220,14 +220,6 @@ button.tally-form-row:disabled {
   opacity: 1;
 }
 
-.tally-date-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .tally-entry-page {
   display: flex;
   flex-direction: column;

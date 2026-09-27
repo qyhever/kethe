@@ -30,12 +30,14 @@ function WheelColumn({
   values,
   value,
   suffix,
+  pad = false,
   onChange,
 }: {
   label: string
   values: number[]
   value: number
   suffix: string
+  pad?: boolean
   onChange: (value: number) => void
 }) {
   const listRef = useRef<HTMLDivElement>(null)
@@ -83,7 +85,7 @@ function WheelColumn({
             aria-selected={item === value}
             onClick={() => onChange(item)}
           >
-            {item}
+            {pad ? String(item).padStart(2, '0') : item}
             {suffix}
           </button>
         ))}
@@ -92,12 +94,16 @@ function WheelColumn({
   )
 }
 
-function DateWheel({
+export function DateWheel({
   label,
   value,
   onChange,
+  time,
+  onTimeChange,
 }: Pick<DatePickerProps, 'label' | 'value' | 'onChange'> & {
   label: string
+  time?: string
+  onTimeChange?: (value: string) => void
 }) {
   const selected = dateParts(value)
   const currentYear = new Date().getFullYear()
@@ -107,6 +113,9 @@ function DateWheel({
     [lastYear],
   )
   const months = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), [])
+  const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), [])
+  const minutes = useMemo(() => Array.from({ length: 60 }, (_, i) => i), [])
+  const [hour = 12, minute = 0] = (time ?? '12:00').split(':').map(Number)
   const days = useMemo(
     () =>
       Array.from(
@@ -121,7 +130,7 @@ function DateWheel({
     )
 
   return (
-    <div className="date-wheel" aria-label={label}>
+    <div className={`date-wheel${time !== undefined ? ' date-wheel--with-time' : ''}`} aria-label={label}>
       <div className="date-wheel__selection" aria-hidden="true" />
       <WheelColumn
         label={`${label}年份`}
@@ -144,6 +153,26 @@ function DateWheel({
         suffix="日"
         onChange={(day) => update(selected.year, selected.month, day)}
       />
+      {time !== undefined && onTimeChange && (
+        <>
+          <WheelColumn
+            label={`${label}小时`}
+            values={hours}
+            value={hour}
+            suffix="时"
+            pad
+            onChange={(nextHour) => onTimeChange(`${String(nextHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`)}
+          />
+          <WheelColumn
+            label={`${label}分钟`}
+            values={minutes}
+            value={minute}
+            suffix="分"
+            pad
+            onChange={(nextMinute) => onTimeChange(`${String(hour).padStart(2, '0')}:${String(nextMinute).padStart(2, '0')}`)}
+          />
+        </>
+      )}
     </div>
   )
 }

@@ -1,0 +1,86 @@
+.transaction-time-picker {
+  position: fixed;
+  z-index: calc(var(--z-modal) + 1);
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: transparent;
+  pointer-events: none;
+  transition: background-color 320ms var(--ease-standard);
+}
+
+.transaction-time-picker.is-visible {
+  background: var(--color-overlay);
+  pointer-events: auto;
+}
+
+.transaction-time-picker > section {
+  width: min(100%, 750px);
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding: 0 max(18px, var(--safe-right)) calc(20px + var(--safe-bottom)) max(18px, var(--safe-left));
+  border-radius: 24px 24px 0 0;
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-popover);
+  transform: translateY(100%);
+  transition: transform 320ms var(--ease-emphasized);
+}
+
+.transaction-time-picker.is-visible > section {
+  transform: translateY(0);
+}
+
+.transaction-time-picker__header {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  min-height: 72px;
+}
+
+.transaction-time-picker__tabs {
+  display: flex;
+  justify-self: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 15px;
+  background: var(--color-fill-tertiary);
+}
+
+.transaction-time-picker__tabs button {
+  min-width: 64px;
+  min-height: 34px;
+  border-radius: 11px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  font-size: 15px;
+}
+
+.transaction-time-picker__tabs button.is-active {
+  color: var(--color-brand);
+  background: var(--color-surface-raised);
+  box-shadow: 0 2px 7px rgba(24, 40, 65, .1);
+  font-weight: 650;
+}
+
+.transaction-time-picker__confirm {
+  min-height: 44px;
+  padding: 0;
+  color: var(--color-brand);
+  background: transparent;
+  font-size: 15px;
+  font-weight: 650;
+}
+.transaction-time-picker__confirm:disabled { opacity: .45; }
+
+.transaction-time-picker__body { padding: 3px 0 0; }
+.transaction-time-picker__hint {
+  margin: 18px 0 0;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transaction-time-picker, .transaction-time-picker > section { transition-duration: .01ms; }
+}

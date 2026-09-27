@@ -284,7 +284,7 @@ function TransactionRow({
           </span>
           <span className="transaction-row__account">{account}</span>
         </span>
-        <span className="transaction-row__time">{transactionTime(transaction.transactionTime)}</span>
+        <span className="transaction-row__time">{transaction.timePrecision === 1 ? '仅日期' : transactionTime(transaction.transactionTime)}</span>
         <span className={`transaction-row__amount transaction-row__amount--${isTransfer ? 'transfer' : transaction.transactionType === 2 ? 'income' : 'expense'}`}>
           {formatTransactionAmount(transaction)}
         </span>

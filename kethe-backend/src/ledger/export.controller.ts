@@ -60,7 +60,7 @@ export class ExportController {
     )
     response.write('\ufeff')
     response.write(
-      '流水ID,类型,金额最小单位,币种,一级分类,二级分类,账户,目标账户,备注,记账时间,创建时间\r\n',
+      '流水ID,类型,金额最小单位,币种,一级分类,二级分类,账户,目标账户,备注,记账时间,时间精度,创建时间\r\n',
     )
     const stream = await this.ledger
       .transactionQuery(this.dataSource.manager, request.user!.id, query)
@@ -75,6 +75,8 @@ export class ExportController {
         const parent = row.parentCategoryName
         const firstCategory = parent ?? row.categoryName
         const secondCategory = parent ? row.categoryName : ''
+        const transactionTime = new Date(String(row.transactionTime))
+        const dateOnly = Number(row.timePrecision) === 1
         callback(
           null,
           [
@@ -87,7 +89,12 @@ export class ExportController {
             row.accountName,
             row.targetAccountName,
             row.remark,
-            new Date(String(row.transactionTime)).toISOString(),
+            dateOnly
+              ? new Date(transactionTime.getTime() + 8 * 60 * 60 * 1000)
+                  .toISOString()
+                  .slice(0, 10)
+              : transactionTime.toISOString(),
+            dateOnly ? '仅日期' : '日期和时刻',
             new Date(String(row.createdAt)).toISOString(),
           ]
             .map(csvCell)

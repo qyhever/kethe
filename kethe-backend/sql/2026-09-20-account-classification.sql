@@ -1,8 +1,8 @@
 -- 账户分类重构：旧类型迁移为一级类型、二级子类型和资产性质。
 -- 本脚本需与使用新枚举的后端在同一维护窗口发布。
+-- 适用于已执行 2026-09-20-account-icons.sql 的旧 accounts 表；该表没有 chk_accounts_type 约束。
 
 ALTER TABLE accounts
-  DROP CHECK chk_accounts_type,
   DROP CHECK chk_accounts_include_assets,
   ADD COLUMN accountSubType SMALLINT UNSIGNED DEFAULT NULL
     COMMENT '二级类型：201信用卡，202消费信贷，301借记卡，302存折，401在线支付，402现金券，403储值卡'

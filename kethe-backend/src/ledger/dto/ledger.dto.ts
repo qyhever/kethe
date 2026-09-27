@@ -21,7 +21,7 @@ import {
   AccountSubType,
   AccountType,
 } from '../../user/enums/account-type.enum'
-import { TransactionType } from '../entities/transaction.entity'
+import { TimePrecision, TransactionType } from '../entities/transaction.entity'
 
 const ID_PATTERN = /^[1-9]\d*$/
 const AMOUNT_PATTERN = /^(0|[1-9]\d*)$/
@@ -306,6 +306,10 @@ export class CreateTransactionDto {
 
   @IsDateString({ strict: true })
   transactionTime!: string
+
+  @IsOptional()
+  @IsEnum(TimePrecision)
+  timePrecision?: TimePrecision
 
   @IsOptional()
   @IsString()

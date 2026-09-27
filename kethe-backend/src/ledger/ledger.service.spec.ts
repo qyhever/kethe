@@ -3,7 +3,11 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common'
-import { Transaction, TransactionType } from './entities/transaction.entity'
+import {
+  TimePrecision,
+  Transaction,
+  TransactionType,
+} from './entities/transaction.entity'
 import { LedgerService } from './ledger.service'
 import { Account } from '../user/entities/account.entity'
 import {
@@ -23,6 +27,31 @@ describe('LedgerService 流水视图', () => {
     )
   }
 
+  it('仅日期流水按上海时间正午归一化，时刻流水保留原时间', () => {
+    const service = createService() as unknown as {
+      resolveTransactionTime: (dto: {
+        transactionTime: string
+        timePrecision?: TimePrecision
+      }) => Date
+    }
+    expect(
+      service
+        .resolveTransactionTime({
+          transactionTime: '2026-09-27T18:30:00.000+08:00',
+          timePrecision: TimePrecision.DATE,
+        })
+        .toISOString(),
+    ).toBe('2026-09-27T04:00:00.000Z')
+    expect(
+      service
+        .resolveTransactionTime({
+          transactionTime: '2026-09-27T18:30:00.000+08:00',
+          timePrecision: TimePrecision.MOMENT,
+        })
+        .toISOString(),
+    ).toBe('2026-09-27T10:30:00.000Z')
+  })
+
   it('查询子分类图标并以父分类图标兜底', () => {
     const queryBuilder = {
       leftJoin: jest.fn().mockReturnThis(),
@@ -39,6 +68,7 @@ describe('LedgerService 流水视图', () => {
 
     expect(queryBuilder.select).toHaveBeenCalledWith(
       expect.arrayContaining([
+        't.timePrecision timePrecision',
         'COALESCE(ci.iconKey, pi.iconKey) iconKey',
         'COALESCE(ci.svgContent, pi.svgContent) svgContent',
         'COALESCE(ci.color, pi.color) iconColor',
@@ -78,6 +108,7 @@ describe('LedgerService 流水视图', () => {
       currency: 'CNY',
       remark: null,
       transactionTime: '2026-09-07T04:00:00.000Z',
+      timePrecision: 1,
       createdAt: '2026-09-07T04:00:00.000Z',
       categoryId: null,
       categoryName: null,
@@ -94,6 +125,7 @@ describe('LedgerService 流水视图', () => {
 
     expect(result).toMatchObject({
       transactionType: 3,
+      timePrecision: 1,
       categoryId: null,
       iconKey: null,
       svgContent: null,

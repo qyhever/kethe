@@ -214,6 +214,7 @@ export interface CreateTransactionPayload {
   targetAccountId?: string
   currency: 'CNY'
   transactionTime: string
+  timePrecision: 1 | 2
   remark?: string
 }
 
@@ -245,6 +246,7 @@ export interface LedgerTransaction {
   currency: string
   remark: string | null
   transactionTime: string
+  timePrecision: 1 | 2
   createdAt: string
   categoryId: string | null
   categoryName: string | null

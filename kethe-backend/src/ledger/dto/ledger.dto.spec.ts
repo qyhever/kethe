@@ -40,6 +40,22 @@ describe('记账 DTO', () => {
     expect(await validate(dto)).toHaveLength(0)
   })
 
+  it.each([1, 2])('接受时间精度 %i', async (timePrecision) => {
+    const dto = plainToInstance(CreateTransactionDto, {
+      ...validExpense,
+      timePrecision,
+    })
+    expect(await validate(dto)).toHaveLength(0)
+  })
+
+  it.each([0, 3, '1'])('拒绝非法时间精度 %s', async (timePrecision) => {
+    const dto = plainToInstance(CreateTransactionDto, {
+      ...validExpense,
+      timePrecision,
+    })
+    expect(await validate(dto)).not.toHaveLength(0)
+  })
+
   it('拒绝非法时间和币种', async () => {
     const dto = plainToInstance(CreateTransactionDto, {
       ...validExpense,
