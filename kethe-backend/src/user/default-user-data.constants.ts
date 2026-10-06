@@ -39,6 +39,13 @@ export const DEFAULT_EXPENSE_CATEGORIES: ReadonlyArray<DefaultExpenseCategory> =
         { name: '打车', systemKey: 'expense_transport_taxi' },
         { name: '火车', systemKey: 'expense_transport_train' },
         { name: '飞机', systemKey: 'expense_transport_flight' },
+        { name: '私家车', systemKey: 'expense_transport_private_car' },
+        { name: '加油', systemKey: 'expense_transport_fuel' },
+        { name: '充电', systemKey: 'expense_transport_charging' },
+        { name: '停车', systemKey: 'expense_transport_parking' },
+        { name: '过路费', systemKey: 'expense_transport_toll' },
+        { name: '租车', systemKey: 'expense_transport_car_rental' },
+        { name: '游轮', systemKey: 'expense_transport_cruise' },
       ],
     },
     {

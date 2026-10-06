@@ -69,7 +69,7 @@ describe('DefaultUserDataService', () => {
     } as unknown as EntityManager
   })
 
-  it('应该按定义顺序创建 73 条默认分类并建立父子关系', async () => {
+  it('应该按定义顺序创建 80 条默认分类并建立父子关系', async () => {
     await service.initialize(42, manager)
 
     expect(DEFAULT_EXPENSE_CATEGORIES).toHaveLength(12)
@@ -78,9 +78,9 @@ describe('DefaultUserDataService', () => {
         (total, category) => total + category.children.length,
         0,
       ),
-    ).toBe(55)
+    ).toBe(62)
     expect(DEFAULT_INCOME_CATEGORIES).toHaveLength(6)
-    expect(categoryRecords).toHaveLength(73)
+    expect(categoryRecords).toHaveLength(80)
 
     const expenseParents = categoryRecords.filter(
       (category) => category.categoryType === 1 && category.parentId === null,
@@ -98,7 +98,28 @@ describe('DefaultUserDataService', () => {
     expect(expenseParents.map(({ sortOrder }) => sortOrder)).toEqual(
       Array.from({ length: 12 }, (_, index) => index + 1),
     )
-    expect(expenseChildren).toHaveLength(55)
+    expect(expenseChildren).toHaveLength(62)
+    const transport = expenseParents.find(
+      ({ systemKey }) => systemKey === 'expense_transport',
+    )
+    expect(
+      expenseChildren
+        .filter(({ parentId }) => parentId === transport?.id)
+        .map(({ name }) => name),
+    ).toEqual([
+      '公交',
+      '地铁',
+      '打车',
+      '火车',
+      '飞机',
+      '私家车',
+      '加油',
+      '充电',
+      '停车',
+      '过路费',
+      '租车',
+      '游轮',
+    ])
     expect(incomeCategories.map(({ name }) => name)).toEqual(
       DEFAULT_INCOME_CATEGORIES.map(({ name }) => name),
     )
@@ -134,7 +155,7 @@ describe('DefaultUserDataService', () => {
     expect(expenseChildren.every(({ iconId }) => iconId === null)).toBe(true)
     expect(
       new Set(categoryRecords.map(({ systemKey }) => systemKey)).size,
-    ).toBe(73)
+    ).toBe(80)
   })
 
   it('应该按顺序创建五个零余额人民币默认账户', async () => {
