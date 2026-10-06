@@ -82,9 +82,9 @@ function normalizeCategories(items: LedgerCategory[]): Category[] {
         id: child.id,
         label: child.name,
         parentId: child.parentId ?? parent.id,
-        iconKey: child.iconKey ?? parent.iconKey,
-        svgContent: child.svgContent ?? parent.svgContent,
-        iconColor: child.iconColor ?? parent.iconColor,
+        iconKey: child.iconKey,
+        svgContent: child.svgContent,
+        iconColor: child.iconColor,
         children: [],
       }))
 
@@ -245,17 +245,14 @@ function NumericKeyboard({
 }
 
 function CategoryVisual({ category }: { category: Category }) {
-  if (category.svgContent) {
-    return (
-      <span
-        className="tally-category-list__svg-icon"
-        aria-hidden="true"
-        dangerouslySetInnerHTML={{ __html: category.svgContent }}
-      />
-    )
-  }
-
-  return <CategoryIcon name={category.iconKey ?? 'other'} size={27} color="currentColor" />
+  return (
+    <CategoryIcon
+      name={category.iconKey ?? ''}
+      svgContent={category.svgContent}
+      size={26}
+      color="currentColor"
+    />
+  )
 }
 
 function CategoryPage({
@@ -314,7 +311,7 @@ function CategoryPage({
               const isExpanded = expandedIds.has(category.id)
               const hasChildren = category.children.length > 0
               const colorStyle = {
-                '--category-color': category.iconColor ?? '#64748B',
+                '--icon-color': category.iconColor ?? '#64748B',
               } as CSSProperties
 
               return (
@@ -326,7 +323,7 @@ function CategoryPage({
                     aria-expanded={hasChildren ? isExpanded : undefined}
                     onClick={() => handleParentClick(category)}
                   >
-                    <span className="tally-category-list__icon" style={colorStyle}>
+                    <span className="category-icon-badge" style={colorStyle}>
                       <CategoryVisual category={category} />
                     </span>
                     <span>{category.label}</span>
@@ -342,7 +339,12 @@ function CategoryPage({
                           disabled={disabled}
                           onClick={() => onSelect(child)}
                         >
-                          <span className="tally-category-list__child-mark" style={colorStyle} aria-hidden="true" />
+                          <span
+                            className="category-icon-badge category-icon-badge--child"
+                            style={{ '--icon-color': child.iconColor ?? '#64748B' } as CSSProperties}
+                          >
+                            <CategoryVisual category={child} />
+                          </span>
                           <span>{child.label}</span>
                           <ChevronRight aria-hidden="true" size={18} strokeWidth={1.8} />
                         </button>

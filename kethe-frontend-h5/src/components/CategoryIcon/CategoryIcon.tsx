@@ -1,5 +1,6 @@
 
 import type { SVGProps } from 'react'
+import './CategoryIcon.css'
 import FoodIcon from './icons/food.svg?raw'
 import TransportIcon from './icons/transport.svg?raw'
 import ShoppingIcon from './icons/shopping.svg?raw'

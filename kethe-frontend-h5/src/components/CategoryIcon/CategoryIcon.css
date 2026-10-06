@@ -1,0 +1,18 @@
+.category-icon-badge {
+  --icon-color: #64748b;
+  display: grid;
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 17px;
+  color: #fff;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--icon-color) 78%, white), var(--icon-color));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, .3), 0 5px 13px color-mix(in srgb, var(--icon-color) 18%, transparent);
+}
+
+.category-icon-badge--child {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}

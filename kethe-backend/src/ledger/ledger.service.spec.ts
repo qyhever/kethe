@@ -17,6 +17,52 @@ import {
 } from '../user/enums/account-type.enum'
 
 describe('LedgerService 流水视图', () => {
+  it('分类列表返回子分类自己的图标，缺失时不继承父图标', async () => {
+    const parent = {
+      id: '1',
+      parentId: null,
+      iconId: '10',
+      iconKey: 'food',
+      svgContent: '<svg>parent</svg>',
+      iconColor: '#FF7A1A',
+    }
+    const own = {
+      id: '2',
+      parentId: '1',
+      iconId: '11',
+      iconKey: 'breakfast',
+      svgContent: '<svg>child</svg>',
+      iconColor: '#FF6B35',
+    }
+    const missing = {
+      id: '3',
+      parentId: '1',
+      iconId: null,
+      iconKey: null,
+      svgContent: null,
+      iconColor: null,
+    }
+    const queryBuilder = {
+      leftJoin: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([parent, own, missing]),
+    }
+    const service = new LedgerService(
+      {} as never,
+      { createQueryBuilder: () => queryBuilder } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    )
+    const [result] = await service.listCategories(42, 1)
+    expect(result.children[0]).toMatchObject(own)
+    expect(result.children[1]).toMatchObject(missing)
+  })
+
   function createService() {
     return new LedgerService(
       {} as never,

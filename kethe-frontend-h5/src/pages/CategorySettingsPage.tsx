@@ -283,8 +283,8 @@ export function CategorySettingsPage() {
   }
 
   const iconFor = (item: LedgerCategory) => (
-    <span className="category-settings__icon" style={{ '--icon-color': item.iconColor ?? '#64748B' } as React.CSSProperties}>
-      <CategoryIcon name={item.iconKey ?? 'other'} svgContent={item.svgContent} color="currentColor" size={26} />
+    <span className={`category-settings__icon category-icon-badge${item.parentId ? ' category-icon-badge--child' : ''}`} style={{ '--icon-color': item.iconColor ?? '#64748B' } as React.CSSProperties}>
+      <CategoryIcon name={item.iconKey ?? ''} svgContent={item.svgContent} color="currentColor" size={26} />
     </span>
   )
 
@@ -430,7 +430,7 @@ export function CategorySettingsPage() {
           </label>
           <button className="category-settings__field category-settings__icon-field" type="button" onClick={() => setMode('icons')}>
             <span>图标</span>
-            {selectedIcon && <span className="category-settings__icon" style={{ '--icon-color': selectedIcon.color } as React.CSSProperties}><CategoryIcon name={selectedIcon.iconKey} svgContent={selectedIcon.svgContent} color="currentColor" size={28} /></span>}
+            {selectedIcon && <span className="category-settings__icon category-icon-badge" style={{ '--icon-color': selectedIcon.color } as React.CSSProperties}><CategoryIcon name={selectedIcon.iconKey} svgContent={selectedIcon.svgContent} color="currentColor" size={28} /></span>}
             <ChevronRight size={20} />
           </button>
           <label className="category-settings__field">

@@ -152,7 +152,17 @@ describe('DefaultUserDataService', () => {
       ),
     ).toBe(true)
     expect(expenseParents.every(({ iconId }) => iconId !== null)).toBe(true)
-    expect(expenseChildren.every(({ iconId }) => iconId === null)).toBe(true)
+    for (const definition of DEFAULT_EXPENSE_CATEGORIES) {
+      for (const child of definition.children) {
+        expect(
+          expenseChildren.find(({ systemKey }) => systemKey === child.systemKey)
+            ?.iconId,
+        ).toBe(iconIdByKey.get(child.iconKey))
+        expect(child.iconKey).not.toBe(
+          definition.systemKey.replace('expense_', ''),
+        )
+      }
+    }
     expect(
       new Set(categoryRecords.map(({ systemKey }) => systemKey)).size,
     ).toBe(80)

@@ -56,22 +56,24 @@ export class DefaultUserDataService {
           })
         ).map((category) => category.systemKey),
       )
-      const children = definition.children
-        .map((child, childIndex) => ({ child, childIndex }))
-        .filter(({ child }) => !existingKeys.has(child.systemKey))
-        .map(({ child, childIndex }) =>
-          repository.create({
-            userId,
-            categoryType: EXPENSE_CATEGORY_TYPE,
-            parentId: parent.id,
-            name: child.name,
-            iconId: null,
-            systemKey: child.systemKey,
-            isSystemDefault: true,
-            sortOrder: childIndex + 1,
-            isEnabled: true,
-          }),
-        )
+      const children = await Promise.all(
+        definition.children
+          .map((child, childIndex) => ({ child, childIndex }))
+          .filter(({ child }) => !existingKeys.has(child.systemKey))
+          .map(async ({ child, childIndex }) =>
+            repository.create({
+              userId,
+              categoryType: EXPENSE_CATEGORY_TYPE,
+              parentId: parent.id,
+              name: child.name,
+              iconId: await this.findIconIdByKey(repository, child.iconKey),
+              systemKey: child.systemKey,
+              isSystemDefault: true,
+              sortOrder: childIndex + 1,
+              isEnabled: true,
+            }),
+          ),
+      )
       if (children.length) await repository.save(children)
     }
 
