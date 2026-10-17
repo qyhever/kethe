@@ -5,6 +5,7 @@ import './AccountSheet.css'
 export interface AccountSheetOption {
   id?: string
   name: string
+  accountNumberLast4?: string | null
   disabled?: boolean
   hint?: string
 }
@@ -93,7 +94,7 @@ export function AccountSheet({
             onClick={() => onSelect(account)}
           >
             <WalletCards aria-hidden="true" size={22} />
-            <span>{account.name}</span>
+            <span>{account.name}{account.accountNumberLast4 && `（${account.accountNumberLast4}）`}</span>
             {account.hint
               ? <span className="account-sheet__hint">{account.hint}</span>
               : selectedId === account.id && <Check aria-hidden="true" size={19} />}
