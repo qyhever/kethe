@@ -246,7 +246,7 @@ function TransactionRow({
       : null
   const account = isTransfer
     ? `${transaction.accountName || '未知账户'} → ${transaction.targetAccountName || '未知账户'}`
-    : transaction.accountName
+    : transaction.accountName || '未知账户'
   return (
     <SwipeCell
       actionWidth={144}
@@ -273,18 +273,21 @@ function TransactionRow({
           <CategoryIcon
             name={transaction.iconKey || 'other'}
             svgContent={transaction.svgContent}
-            size={28}
+            size={26}
             color="#fff"
           />
         </span>
         <span className="transaction-row__description">
           <span className="transaction-row__name">
-            {category}
-            {detail && <><span className="transaction-row__dot">·</span>{detail}</>}
+            {category}{detail ? ` · ${detail}` : ''}
           </span>
-          <span className="transaction-row__account">{account}</span>
+          <span className="transaction-row__remark">
+            {transaction.remark?.trim() || '无备注'}
+          </span>
+          <span className="transaction-row__account">
+            {transaction.timePrecision === 1 ? account : `${transactionTime(transaction.transactionTime)} · ${account}`}
+          </span>
         </span>
-        <span className="transaction-row__time">{transaction.timePrecision === 1 ? '仅日期' : transactionTime(transaction.transactionTime)}</span>
         <span className={`transaction-row__amount transaction-row__amount--${isTransfer ? 'transfer' : transaction.transactionType === 2 ? 'income' : 'expense'}`}>
           {formatTransactionAmount(transaction)}
         </span>
