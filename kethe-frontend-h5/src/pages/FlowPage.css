@@ -189,29 +189,36 @@
   animation: flow-month-open var(--duration-normal) var(--ease-emphasized) both;
 }
 
-.flow-month__rows > .swipe-cell + .swipe-cell::before {
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  right: 18px;
-  left: 69px;
-  height: 1px;
-  background: var(--color-separator);
-  content: '';
-  pointer-events: none;
-  transform: scaleY(.5);
+.flow-day + .flow-day { border-top: 1px solid #f0f2f5; }
+
+.flow-day__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 51px;
+  padding: 0 28px;
+  background: linear-gradient(90deg, rgba(249, 250, 251, .84), rgba(252, 253, 254, .65));
 }
+
+.flow-day__header > div { display: flex; align-items: baseline; gap: 14px; }
+.flow-day__header h3 { margin: 0; font-size: 17px; font-weight: 520; }
+.flow-day__header > div > span { color: #707985; font-size: 16px; }
+.flow-day__header p { display: flex; gap: 24px; margin: 0; color: #596473; font-size: 15px; }
+.flow-day__income { color: #176bf3; }
+.flow-day__list { padding: 0 28px; }
+.flow-day__list > .swipe-cell:last-child .flow-row { border-bottom: 0; }
 
 .flow-row {
   position: relative;
   display: grid;
-  grid-template-columns: 38px 48px minmax(0, 1fr) auto;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 13px;
+  gap: 14px;
   width: 100%;
   min-height: 88px;
-  padding: 10px 18px;
+  padding: 10px 0;
   border: 0;
+  border-bottom: 1px solid #f0f2f4;
   color: inherit;
   font: inherit;
   background: transparent;
@@ -220,11 +227,9 @@
   transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
-.flow-row:hover { background: rgba(240, 246, 255, .55); }
+.flow-row:hover { background: linear-gradient(90deg, rgba(240, 246, 255, .5), transparent); }
+.flow-row:focus-visible { outline: 2px solid #7eaffb; outline-offset: -2px; }
 
-.flow-row__date { display: flex; align-items: center; flex-direction: column; color: var(--color-text-tertiary); }
-.flow-row__date strong { color: var(--color-text-secondary); font-family: var(--font-family-display); font-size: var(--font-size-title-2); line-height: 1; font-variant-numeric: tabular-nums; }
-.flow-row__date small { margin-top: 5px; font-size: var(--font-size-caption-2); }
 
 .flow-row__icon {
   display: grid;
@@ -264,7 +269,7 @@
 
 .flow-row__value strong { font-family: var(--font-family-display); font-variant-numeric: tabular-nums; }
 .flow-row__value strong.is-income { color: var(--color-success); }
-.flow-row__value strong.is-transfer { color: var(--color-text-secondary); }
+.flow-row__value strong.is-transfer { color: #596473; }
 
 .flow-state {
   display: grid;
@@ -478,11 +483,15 @@
   .flow-month__header { grid-template-columns: auto minmax(0, 1fr) 20px; gap: 11px; }
   .flow-month__summary small { gap: 5px; font-size: 12px; }
   .flow-month__rows { border-radius: 16px; }
-  .flow-row { grid-template-columns: 34px 44px minmax(0, 1fr) auto; gap: 9px; min-height: 84px; padding: 8px 11px; }
-  .flow-month__rows > .swipe-cell + .swipe-cell::before { right: 11px; left: 54px; }
+  .flow-day__header { padding: 0 18px; }
+  .flow-day__header > div { gap: 8px; }
+  .flow-day__header h3,
+  .flow-day__header > div > span { font-size: 14px; }
+  .flow-day__header p { gap: 8px; font-size: 12px; }
+  .flow-day__list { padding: 0 18px; }
+  .flow-row { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; min-height: 84px; padding: 8px 0; }
   .flow-row__icon { width: 44px; height: 44px; }
   .flow-row strong { font-size: 15px; }
-  .flow-row__date strong { font-size: 20px; }
   .flow-row small { font-size: 12px; }
   .flow-filter__sheet { width: 76%; padding-right: 19px; padding-left: 19px; border-radius: 28px 0 0 28px; }
   .filter-field { padding: 18px 0; }
@@ -504,6 +513,7 @@
   .flow-navbar h1 { font-size: 29px; }
   .flow-year__summary { font-size: 11px; }
   .flow-month__summary small { gap: 3px; font-size: 11px; }
-  .flow-row { grid-template-columns: 31px 40px minmax(0, 1fr) auto; gap: 7px; padding-right: 9px; padding-left: 9px; }
+  .flow-day__header p { flex-direction: column; align-items: flex-end; gap: 1px; line-height: 1.2; }
+  .flow-row { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 8px; }
   .flow-row__icon { width: 40px; height: 40px; }
 }

@@ -105,9 +105,15 @@ function navigationFiltersFromSearch(search: string): FlowNavigationFilters | un
     categoryId: params.get('categoryId') || undefined,
   }
 }
+interface FlowDayGroup {
+  date: string
+  list: LedgerTransaction[]
+  income: bigint
+  expense: bigint
+}
 interface FlowMonthGroup {
   month: string
-  list: LedgerTransaction[]
+  days: Map<string, FlowDayGroup>
 }
 interface FlowYearGroup {
   year: string
@@ -318,30 +324,26 @@ function shanghaiDateKey(value: string | Date) {
   }).format(new Date(value))
 }
 
-function transactionDate(value: string) {
-  const date = shanghaiDateKey(value)
+function dayHeading(date: string) {
+  const [, month, day] = date.split('-')
+  const today = shanghaiDateKey(new Date())
+  if (date === today) return { label: '今天', detail: `${month} 月 ${day} 日` }
+  if (date === shiftDate(today, -1)) {
+    return { label: '昨天', detail: `${month} 月 ${day} 日` }
+  }
   return {
-    day: date.slice(8, 10),
-    weekday: WEEKDAYS[new Date(`${date}T12:00:00+08:00`).getUTCDay()],
+    label: `${month} 月 ${day} 日`,
+    detail: WEEKDAYS[new Date(`${date}T12:00:00+08:00`).getUTCDay()],
   }
 }
 
 function transactionTime(value: string) {
-  const date = new Date(value)
-  const hour = Number(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: ZONE,
-      hour: '2-digit',
-      hourCycle: 'h23',
-    }).format(date),
-  )
-  const time = new Intl.DateTimeFormat('zh-CN', {
+  return new Intl.DateTimeFormat('zh-CN', {
     timeZone: ZONE,
     hour: '2-digit',
     minute: '2-digit',
-    hourCycle: 'h23',
-  }).format(date)
-  return `${hour < 12 ? '上午' : '下午'} ${time}`
+    hour12: false,
+  }).format(new Date(value))
 }
 
 function nextShanghaiDay(date: string) {
@@ -406,8 +408,15 @@ function groupTransactions(items: LedgerTransaction[]) {
     const yearKey = date.slice(0, 4)
     const monthKey = date.slice(0, 7)
     const months = years.get(yearKey) ?? new Map<string, FlowMonthGroup>()
-    const month = months.get(monthKey) ?? { month: monthKey, list: [] }
-    month.list.push(item)
+    const month = months.get(monthKey) ?? {
+      month: monthKey,
+      days: new Map<string, FlowDayGroup>(),
+    }
+    const day = month.days.get(date) ?? { date, list: [], income: 0n, expense: 0n }
+    day.list.push(item)
+    if (item.transactionType === 1) day.expense += BigInt(item.amount)
+    if (item.transactionType === 2) day.income += BigInt(item.amount)
+    month.days.set(date, day)
     months.set(monthKey, month)
     years.set(yearKey, months)
   }
@@ -424,7 +433,6 @@ function TransactionRow({
   transaction: LedgerTransaction
   onClick: () => void
 }) {
-  const date = transactionDate(transaction.transactionTime)
   const isTransfer = transaction.transactionType === 3
   const category = isTransfer
     ? '转账'
@@ -444,10 +452,6 @@ function TransactionRow({
         : ''
   return (
     <button className="flow-row" type="button" onClick={onClick}>
-      <span className="flow-row__date" aria-label={`${date.day}日 ${date.weekday}`}>
-        <strong>{date.day}</strong>
-        <small>{date.weekday}</small>
-      </span>
       <span
         className="flow-row__icon"
         style={{ backgroundColor: transaction.iconColor || DEFAULT_ICON_COLOR }}
@@ -476,7 +480,7 @@ function TransactionRow({
                 : undefined
           }
         >
-          {prefix}¥{formatCents(transaction.amount)}
+          {prefix}¥ {formatCents(transaction.amount)}
         </strong>
       </span>
     </button>
@@ -1581,47 +1585,70 @@ export function FlowPage() {
                               className="flow-month__rows"
                               id={`flow-month-rows-${month.month}`}
                             >
-                              {month.list.map((transaction) => (
-                                <SwipeCell
-                                  key={transaction.id}
-                                  actionWidth={144}
-                                  open={openTransactionId === transaction.id}
-                                  onOpenChange={(open) =>
-                                    setOpenTransactionId(
-                                      open ? transaction.id : null,
-                                    )
-                                  }
-                                  actions={
-                                    <>
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          navigateToTally(
-                                            `/tally/${transaction.id}`,
-                                          )
-                                        }
-                                      >
-                                        <Pencil aria-hidden="true" size={17} />
-                                        编辑
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => requestDelete(transaction)}
-                                      >
-                                        <Trash2 aria-hidden="true" size={17} />
-                                        删除
-                                      </button>
-                                    </>
-                                  }
-                                >
-                                  <TransactionRow
-                                    transaction={transaction}
-                                    onClick={() =>
-                                      navigateToTally(`/tally/${transaction.id}`)
-                                    }
-                                  />
-                                </SwipeCell>
-                              ))}
+                              {[...month.days.values()].map((day) => {
+                                const heading = dayHeading(day.date)
+                                return (
+                                  <section
+                                    className="flow-day"
+                                    key={day.date}
+                                    aria-labelledby={`flow-day-${day.date}`}
+                                  >
+                                    <header className="flow-day__header">
+                                      <div>
+                                        <h3 id={`flow-day-${day.date}`}>{heading.label}</h3>
+                                        <span>{heading.detail}</span>
+                                      </div>
+                                      <p>
+                                        <span>支出 ¥ {formatCents(day.expense)}</span>
+                                        <span className="flow-day__income">收入 ¥ {formatCents(day.income)}</span>
+                                      </p>
+                                    </header>
+                                    <div className="flow-day__list">
+                                      {day.list.map((transaction) => (
+                                        <SwipeCell
+                                          key={transaction.id}
+                                          actionWidth={144}
+                                          open={openTransactionId === transaction.id}
+                                          onOpenChange={(open) =>
+                                            setOpenTransactionId(
+                                              open ? transaction.id : null,
+                                            )
+                                          }
+                                          actions={
+                                            <>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  navigateToTally(
+                                                    `/tally/${transaction.id}`,
+                                                  )
+                                                }
+                                              >
+                                                <Pencil aria-hidden="true" size={17} />
+                                                编辑
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => requestDelete(transaction)}
+                                              >
+                                                <Trash2 aria-hidden="true" size={17} />
+                                                删除
+                                              </button>
+                                            </>
+                                          }
+                                        >
+                                          <TransactionRow
+                                            transaction={transaction}
+                                            onClick={() =>
+                                              navigateToTally(`/tally/${transaction.id}`)
+                                            }
+                                          />
+                                        </SwipeCell>
+                                      ))}
+                                    </div>
+                                  </section>
+                                )
+                              })}
                             </div>
                           )}
                         </section>
