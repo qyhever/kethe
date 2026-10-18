@@ -2,6 +2,7 @@ import { Controller, Get, Query, Req } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import type { RequestWithContext } from '../common/types/request-with-context'
 import {
+  AccountTransactionsQueryDto,
   CategoryReportQueryDto,
   MonthQueryDto,
   TrendQueryDto,
@@ -26,6 +27,14 @@ export class DashboardController {
 @Controller('reports')
 export class ReportController {
   constructor(private readonly reports: ReportService) {}
+
+  @Get('account-transactions')
+  accountTransactions(
+    @Req() request: RequestWithContext,
+    @Query() query: AccountTransactionsQueryDto,
+  ) {
+    return this.reports.accountTransactions(request.user!.id, query)
+  }
 
   @Get('trend')
   trend(@Req() request: RequestWithContext, @Query() query: TrendQueryDto) {

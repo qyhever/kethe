@@ -5,6 +5,7 @@ import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import {
+  AccountTransactionsQueryDto,
   CategoryReportQueryDto,
   MonthQueryDto,
   TransactionQueryDto,
@@ -12,6 +13,7 @@ import {
   YearQueryDto,
 } from './dto/ledger.dto'
 import { Transaction } from './entities/transaction.entity'
+import { Account } from '../user/entities/account.entity'
 import { LedgerService } from './ledger.service'
 
 dayjs.extend(utc)
@@ -81,6 +83,124 @@ export class ReportService {
       today: this.withBalance(todaySummary),
       week: this.withBalance(weekSummary),
       recent: { list: recent.list, groups: recent.groups },
+    }
+  }
+
+  async accountTransactions(
+    userId: number,
+    query: AccountTransactionsQueryDto,
+  ) {
+    if (
+      !['month', 'year'].includes(query.view) ||
+      (query.view === 'month' &&
+        !/^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(query.month ?? '')) ||
+      (query.view === 'year' && !/^[1-9]\d{3}$/.test(query.year ?? ''))
+    )
+      throw new BadRequestException('必须提供有效的月或年周期')
+    const { start, end } =
+      query.view === 'month'
+        ? this.monthRange(query.month!)
+        : this.yearRange(query.year!)
+    const aggregate = (field: 'accountId' | 'targetAccountId') =>
+      this.dataSource
+        .getRepository(Transaction)
+        .createQueryBuilder('t')
+        .select(`t.${field}`, 'accountId')
+        .addSelect('t.transactionType', 'transactionType')
+        .addSelect('COUNT(*)', 'count')
+        .where('t.userId = :userId', { userId })
+        .andWhere('t.deletedAt IS NULL')
+        .andWhere('t.transactionTime >= :start AND t.transactionTime < :end', {
+          start,
+          end,
+        })
+        .andWhere(
+          field === 'targetAccountId'
+            ? 't.transactionType = 3'
+            : 't.transactionType IN (1, 2, 3)',
+        )
+        .groupBy(`t.${field}`)
+        .addGroupBy('t.transactionType')
+        .getRawMany<{
+          accountId: string
+          transactionType: number | string
+          count: string
+        }>()
+    const [accounts, outgoing, incoming] = await Promise.all([
+      this.dataSource.getRepository(Account).find({
+        select: {
+          id: true,
+          name: true,
+          iconKey: true,
+          isEnabled: true,
+          sortOrder: true,
+        },
+        where: { userId },
+        order: { sortOrder: 'ASC', id: 'ASC' },
+      }),
+      aggregate('accountId'),
+      aggregate('targetAccountId'),
+    ])
+    const counts = new Map<
+      string,
+      {
+        expenseCount: number
+        incomeCount: number
+        transferOutCount: number
+        transferInCount: number
+      }
+    >()
+    for (const row of [...outgoing, ...incoming]) {
+      const id = String(row.accountId)
+      if (!counts.has(id))
+        counts.set(id, {
+          expenseCount: 0,
+          incomeCount: 0,
+          transferOutCount: 0,
+          transferInCount: 0,
+        })
+    }
+    for (const row of outgoing) {
+      const key =
+        Number(row.transactionType) === 1
+          ? 'expenseCount'
+          : Number(row.transactionType) === 2
+            ? 'incomeCount'
+            : 'transferOutCount'
+      counts.get(String(row.accountId))![key] += Number(row.count)
+    }
+    for (const row of incoming)
+      counts.get(String(row.accountId))!.transferInCount += Number(row.count)
+    // Stable sort preserves the account sortOrder / bigint ID ordering for ties.
+    const list = accounts
+      .map((account) => {
+        const detail = counts.get(String(account.id)) ?? {
+          expenseCount: 0,
+          incomeCount: 0,
+          transferOutCount: 0,
+          transferInCount: 0,
+        }
+        return {
+          accountId: String(account.id),
+          accountName: account.name,
+          iconKey: account.iconKey,
+          isEnabled: account.isEnabled,
+          ...detail,
+          totalCount: Object.values(detail).reduce(
+            (sum, count) => sum + count,
+            0,
+          ),
+        }
+      })
+      .sort((a, b) => b.totalCount - a.totalCount)
+    return {
+      view: query.view,
+      ...(query.view === 'month'
+        ? { month: query.month }
+        : { year: query.year }),
+      totalCount: list.reduce((sum, row) => sum + row.totalCount, 0),
+      activeAccountCount: list.filter((row) => row.totalCount > 0).length,
+      list,
     }
   }
 

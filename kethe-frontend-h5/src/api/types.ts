@@ -366,3 +366,26 @@ export interface CategoryReportQuery {
   accountId?: string
   parentCategoryId?: string
 }
+
+export type AccountTransactionsQuery =
+  | { view: 'month'; month: string }
+  | { view: 'year'; year: string }
+
+export interface AccountTransactionsReport {
+  view: 'month' | 'year'
+  month?: string
+  year?: string
+  totalCount: number
+  activeAccountCount: number
+  list: Array<{
+    accountId: string
+    accountName: string
+    iconKey: string | null
+    isEnabled: boolean
+    expenseCount: number
+    incomeCount: number
+    transferOutCount: number
+    transferInCount: number
+    totalCount: number
+  }>
+}

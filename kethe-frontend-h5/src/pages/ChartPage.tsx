@@ -33,6 +33,7 @@ import { PeriodSheet, type PeriodOption } from '../components/PeriodSheet'
 import { Tabbar, type TabId } from '../components/Tarbar'
 import { useToast } from '../components/Toast'
 import './ChartPage.css'
+import './AccountTransactionsPage.css'
 
 const ZONE = 'Asia/Shanghai'
 const SERIES = [
@@ -494,7 +495,7 @@ export function ChartPage() {
     <div className="chart-page">
       <main className="chart-content">
         <header className="chart-header">
-          <h1>图表</h1>
+          <div className="chart-title-row"><h1>图表</h1><button type="button" onClick={() => navigate('/chart/account-transactions?source=chart')}>账户笔数</button></div>
           <div className="chart-header__filters">
             <div className="chart-segment" aria-label="收支类型">
               {(['expense', 'income'] as const).map((item) => (

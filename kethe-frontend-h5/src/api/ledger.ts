@@ -1,5 +1,7 @@
 import { del, get, patch, post, put } from '../utils/request'
 import type {
+  AccountTransactionsQuery,
+  AccountTransactionsReport,
   CreateTransactionPayload,
   DashboardOverview,
   LedgerAccount,
@@ -117,4 +119,8 @@ export function fetchCategoryReport(
   signal?: AbortSignal,
 ) {
   return get<CategoryReport>('/reports/categories', query, { signal })
+}
+
+export function fetchAccountTransactions(query: AccountTransactionsQuery, signal?: AbortSignal) {
+  return get<AccountTransactionsReport>('/reports/account-transactions', query, { signal })
 }

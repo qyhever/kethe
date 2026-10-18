@@ -1,3 +1,4 @@
+import './AccountTransactionsPage.css'
 import { AlertCircle, Check, ChevronDown, Circle, Edit3, Ellipsis, LoaderCircle, Plus, Power, RotateCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -63,6 +64,7 @@ export function AccountSettingsPage() {
     <main className="account-page account-list-page">
       <AccountHeader title="账户设置" onBack={() => navigate('/profile')} action={<button type="button" aria-label="新增账户" onClick={() => navigate('/profile/accounts/new')}><Plus /></button>} />
       {!loading && !error && accounts.length > 0 && <section className="account-summary"><span>净资产 <AlertCircle size={13} /></span><strong><Money cents={netWorth} /></strong><div><span>资产合计<strong><Money cents={assetTotal} /></strong></span><span>负债合计<strong><Money cents={liabilityTotal} /></strong></span></div></section>}
+      <button className="account-statistics-entry" type="button" onClick={() => navigate('/chart/account-transactions?source=accounts')}>交易笔数统计</button>
       <div className="account-page__content" aria-live="polite">{loading ? <PageStatus loading text="正在加载账户…" /> : error ? <PageStatus text={error} retry={load} /> : accounts.length === 0 ? <PageStatus text="还没有账户" secondary="创建账户后，资产与负债会在这里汇总" /> : <>{renderGroup('资产账户', assets)}{renderGroup('负债账户', liabilities)}{renderGroup('已停用账户', disabled)}</>}</div>
       <BottomAction onClick={() => navigate('/profile/accounts/new')}><Plus />新增账户</BottomAction>
     </main>

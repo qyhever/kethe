@@ -121,7 +121,8 @@ interface FlowYearGroup {
 }
 
 interface FlowPageCache {
-  returnTo: '/home' | '/chart' | '/bill'
+  returnTo: '/home' | '/chart' | '/bill' | '/chart/account-transactions'
+  returnSearch?: string
   filters: Filters
   draft: Filters
   isSearching: boolean
@@ -1053,6 +1054,7 @@ export function FlowPage() {
       chartFilters?: FlowNavigationFilters
       refreshFlow?: unknown
       returnTo?: unknown
+      returnSearch?: string
     } | null,
   )
   const searchNavigationFiltersRef = useRef(
@@ -1070,11 +1072,16 @@ export function FlowPage() {
   )
   const restoredCache = restoredCacheRef.current
   const navigationReturnTo = navigationStateRef.current?.returnTo
-  const returnTarget: '/home' | '/chart' | '/bill' =
-    navigationReturnTo === '/chart' || navigationReturnTo === '/bill'
+  const returnTarget: FlowPageCache['returnTo'] =
+    navigationReturnTo === '/chart' ||
+    navigationReturnTo === '/bill' ||
+    navigationReturnTo === '/chart/account-transactions'
       ? navigationReturnTo
       : restoredCache?.returnTo ?? '/home'
   const stableReturnToRef = useRef(returnTarget)
+  const returnSearchRef = useRef(
+    navigationStateRef.current?.returnSearch ?? restoredCache?.returnSearch ?? '',
+  )
   const initialFiltersRef = useRef(
     navigationFiltersRef.current
       ? filtersFromNavigation(navigationFiltersRef.current)
@@ -1149,7 +1156,7 @@ export function FlowPage() {
     if (stateNavigationFiltersRef.current && !searchNavigationFiltersRef.current) {
       navigate(
         { pathname: location.pathname, search: location.search },
-        { replace: true, state: { returnTo: stableReturnToRef.current } },
+        { replace: true, state: { returnTo: stableReturnToRef.current, returnSearch: returnSearchRef.current } },
       )
     }
   }, [location.pathname, location.search, navigate])
@@ -1280,6 +1287,7 @@ export function FlowPage() {
     setOpenTransactionId(null)
     flowPageCache = {
       returnTo: stableReturnToRef.current,
+      returnSearch: returnSearchRef.current,
       filters,
       draft,
       isSearching,
@@ -1405,11 +1413,16 @@ export function FlowPage() {
             aria-label={
               stableReturnToRef.current === '/chart'
                 ? '返回图表'
+                : stableReturnToRef.current === '/chart/account-transactions'
+                  ? '返回账户交易笔数'
                 : stableReturnToRef.current === '/bill'
                   ? '返回账单'
                   : '返回首页'
             }
-            onClick={() => navigate(stableReturnToRef.current)}
+            onClick={() => navigate({
+              pathname: stableReturnToRef.current,
+              search: stableReturnToRef.current === '/chart/account-transactions' ? returnSearchRef.current : '',
+            })}
           >
             <ArrowLeft aria-hidden="true" size={27} />
           </button>

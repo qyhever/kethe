@@ -10,6 +10,7 @@ import { ToastDemoPage } from './pages/ToastDemoPage'
 import { FlowPage } from './pages/FlowPage'
 import { SearchPage } from './pages/SearchPage'
 import { TallyPage } from './pages/TallyPage'
+import { AccountTransactionsPage } from './pages/AccountTransactionsPage'
 import { ChartPage } from './pages/ChartPage'
 import { BillPage } from './pages/BillPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -64,6 +65,7 @@ function App() {
         <Route element={<RequireAuth />}>
           <Route path="/home" element={<HomePage />} />
           <Route path="/flow" element={<FlowPage />} />
+          <Route path="/chart/account-transactions" element={<AccountTransactionsPage />} />
           <Route path="/chart" element={<ChartPage />} />
           <Route path="/bill" element={<BillPage />} />
           <Route path="/profile" element={<ProfilePage />} />

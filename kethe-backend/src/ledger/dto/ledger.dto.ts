@@ -14,6 +14,7 @@ import {
   MaxLength,
   Min,
   ValidateNested,
+  ValidateIf,
   ValidateBy,
 } from 'class-validator'
 import {
@@ -427,4 +428,23 @@ export class CategoryReportQueryDto {
   @IsOptional()
   @Matches(ID_PATTERN)
   parentCategoryId?: string
+}
+
+export class AccountTransactionsQueryDto {
+  @IsIn(['month', 'year'])
+  view!: 'month' | 'year'
+
+  @ValidateIf(
+    (query: AccountTransactionsQueryDto, value: unknown) =>
+      query.view === 'month' || value !== undefined,
+  )
+  @Matches(/^[1-9]\d{3}-(0[1-9]|1[0-2])$/)
+  month?: string
+
+  @ValidateIf(
+    (query: AccountTransactionsQueryDto, value: unknown) =>
+      query.view === 'year' || value !== undefined,
+  )
+  @Matches(/^[1-9]\d{3}$/)
+  year?: string
 }
