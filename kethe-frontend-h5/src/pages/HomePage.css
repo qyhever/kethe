@@ -34,6 +34,26 @@
   line-height: 1;
 }
 
+.home-navbar__flow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #dceaff;
+  border-radius: 16px;
+  color: var(--home-blue);
+  background: #f1f7ff;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background-color 160ms ease;
+}
+
+.home-navbar__flow:hover {
+  background: #e7f0ff;
+}
+
 .overview-card {
   position: relative;
   isolation: isolate;
@@ -402,6 +422,7 @@
 }
 
 .transaction-row:focus-visible,
+.home-navbar__flow:focus-visible,
 .period-card:focus-visible,
 .recent-card__more:focus-visible,
 .overview-card__chart:focus-visible {
@@ -733,6 +754,7 @@
   }
 
   .overview-card__chart,
+  .home-navbar__flow,
   .period-card,
   .transaction-row,
   .recent-card__more {

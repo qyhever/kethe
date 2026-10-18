@@ -4,6 +4,7 @@ import {
   CalendarRange,
   ChartNoAxesColumnIncreasing,
   ChevronRight,
+  ListOrdered,
   Minus,
   Pencil,
   RefreshCw,
@@ -451,7 +452,20 @@ export function HomePage() {
   return (
     <div className="home-page">
       <main className="home-content">
-        <Navbar title="首页" />
+        <Navbar
+          title="首页"
+          right={
+            <button
+              className="home-navbar__flow"
+              type="button"
+              aria-label="查看全部流水"
+              onClick={() => navigate('/flow')}
+            >
+              <ListOrdered aria-hidden="true" size={20} strokeWidth={2.1} />
+              <span>流水</span>
+            </button>
+          }
+        />
         {loading && <div className="home-state" role="status">正在加载首页数据…</div>}
         {!loading && error && (
           <div className="home-state home-state--error" role="alert">
