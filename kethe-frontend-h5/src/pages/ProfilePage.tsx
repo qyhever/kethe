@@ -9,6 +9,7 @@ import {
   Palette,
   Settings,
   WalletCards,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -29,6 +30,7 @@ const menuGroups: ProfileMenuItem[][] = [
   [
     { label: '分类设置', path: '/profile/categories', icon: Folder, tone: 'blue' },
     { label: '账户设置', path: '/profile/accounts', icon: WalletCards, tone: 'green' },
+    { label: '成员设置', path: '/profile/members', icon: UsersRound, tone: 'purple' },
   ],
   [
     { label: '数据导出', path: '/profile/export', icon: ChartNoAxesColumnIncreasing, tone: 'purple' },

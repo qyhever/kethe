@@ -1,0 +1,12 @@
+.member-page { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+.member-page__hint { margin: 12px 20px 18px; color: #7c8796; font-size: 13px; }
+.member-list, .member-form { margin: 16px; border-radius: 18px; overflow: hidden; background: #fff; }
+.member-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 74px; padding: 14px 16px; border: 0; border-bottom: 1px solid #f1f3f6; background: #fff; color: #283548; text-align: left; }
+.member-row strong { font-size: 15px; font-weight: 500; flex: 1; }
+.member-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 14px; background: var(--color-brand-soft); color: var(--color-brand); }
+.member-row__amount { font-size: 16px; font-variant-numeric: tabular-nums; }
+.member-row input { width: 60%; min-width: 0; border: 0; outline: 0; font: inherit; text-align: right; background: transparent; }
+.member-save { display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 40px); margin: 28px 20px; padding: 15px; border: 0; border-radius: 16px; background: var(--color-brand); color: var(--color-on-brand); font: inherit; }
+.member-save:disabled { opacity: .5; }
+.member-page__status { margin: 32px 20px; text-align: center; color: #7c8796; }
+.member-page__status button { margin-left: 12px; border: 0; background: transparent; color: var(--color-brand); }

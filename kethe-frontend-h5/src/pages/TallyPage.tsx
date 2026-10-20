@@ -24,6 +24,9 @@ import type {
   LedgerCategory,
   LedgerTransaction,
 } from '../api/types'
+import { fetchMembers, type LedgerMember } from '../api/members'
+import { MemberSheet } from '../components/Member/MemberSheet'
+import { MemberIcon } from '../components/Member/MemberIcon'
 import { AccountSheet } from '../components/AccountSheet'
 import { CategoryIcon } from '../components/CategoryIcon/CategoryIcon'
 import { useToast } from '../components/Toast'
@@ -378,7 +381,7 @@ export function TallyPage() {
   const isEditing = transactionId !== undefined
   const isValidTransactionId = !!transactionId && /^[1-9]\d*$/.test(transactionId)
   const tallyPath = isEditing ? `/tally/${transactionId}` : '/tally'
-  const routeState = location.state as { returnTo?: unknown } | null
+  const routeState = location.state as { returnTo?: unknown; returnSearch?: string } | null
   const returnTo =
     routeState?.returnTo === '/flow' ||
     routeState?.returnTo === '/home' ||
@@ -387,6 +390,22 @@ export function TallyPage() {
       : isEditing
         ? '/flow'
         : '/home'
+  const returnPath = returnTo === '/flow' ? returnTo + (routeState?.returnSearch ?? '') : returnTo
+  const [members, setMembers] = useState<LedgerMember[]>([])
+  const [memberId, setMemberId] = useState<string | null>(null)
+  const [memberError, setMemberError] = useState<string>()
+  const [membersLoading, setMembersLoading] = useState(true)
+  const [membersRetry, setMembersRetry] = useState(0)
+  const [memberOpen, setMemberOpen] = useState(false)
+  useEffect(() => {
+    let active = true
+    setMembersLoading(true)
+    setMemberError(undefined)
+    fetchMembers().then(items => { if (active) setMembers(items) }).catch((reason: unknown) => {
+      if (active) setMemberError(getErrorMessage(reason, '成员加载失败'))
+    }).finally(() => { if (active) setMembersLoading(false) })
+    return () => { active = false }
+  }, [membersRetry])
   const [type, setType] = useState<TallyType>('expense')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<Category>()
@@ -514,6 +533,7 @@ export function TallyPage() {
       : undefined
 
     setType(nextType)
+    setMemberId(transaction.memberId)
     setAmount(centsToAmount(transaction.amount))
     setCategory(matchedCategory ?? fallbackCategory)
     setAccount(
@@ -543,6 +563,7 @@ export function TallyPage() {
   ])
 
   const handleTypeChange = (nextType: TallyType) => {
+    if (nextType === 'transfer') setMemberId(null)
     setType(nextType)
     setCategory(undefined)
     setTargetAccount(undefined)
@@ -604,6 +625,7 @@ export function TallyPage() {
         ? { targetAccountId: targetAccount!.id }
         : { categoryId: category!.id }
       const payload: CreateTransactionPayload = {
+        memberId: type === 'transfer' ? null : memberId,
         transactionType: type === 'expense' ? 1 : type === 'income' ? 2 : 3,
         amount: cents,
         ...relatedResource,
@@ -616,8 +638,8 @@ export function TallyPage() {
       if (isEditing) await updateTransaction(transactionId!, payload)
       else await createTransaction(payload)
       toast.success(isEditing ? '修改成功' : '记账成功')
-      navigate(returnTo, {
-        state: returnTo === '/flow' ? { refreshFlow: true } : undefined,
+      navigate(returnPath, {
+        state: returnTo === '/flow' ? { refreshFlow: true, restoreFlow: true } : undefined,
       })
     } catch (error) {
       toast.error(
@@ -668,7 +690,7 @@ export function TallyPage() {
   return (
     <main className="tally-page tally-entry-page">
       <div className="tally-page__content">
-        <TallyHeader title={isEditing ? '编辑流水' : '记一笔'} onBack={() => navigate(returnTo)} />
+        <TallyHeader title={isEditing ? '编辑流水' : '记一笔'} onBack={() => navigate(returnPath, { state: returnTo === '/flow' ? { restoreFlow: true } : undefined })} />
         <TypeSegment disabled={isInteractionDisabled} value={type} onChange={handleTypeChange} />
         <AmountEditor amount={amount} disabled={isInteractionDisabled} onClear={() => setAmount('')} />
 
@@ -705,6 +727,9 @@ export function TallyPage() {
             disabled={isInteractionDisabled}
             onClick={() => setAccountPicker('account')}
           />
+          {type !== 'transfer' && <FormRow icon={<MemberIcon iconKey={members.find(item => item.id === memberId)?.iconKey ?? transaction?.memberIconKey} />} label="成员"
+            value={memberId === null ? '无' : members.find(item => item.id === memberId)?.name ?? (transaction?.memberId === memberId ? (transaction.memberName ?? '未知成员') + (transaction.memberDeleted ? '（已删除）' : '') : '未知成员')}
+            disabled={isInteractionDisabled} onClick={() => setMemberOpen(true)} />}
           {type === 'transfer' && (
             <FormRow
               icon={<WalletCards size={23} strokeWidth={1.8} />}
@@ -741,6 +766,9 @@ export function TallyPage() {
         </button>
       </footer>
 
+      <MemberSheet open={memberOpen} loading={membersLoading} error={memberError} onRetry={() => setMembersRetry(value => value + 1)}
+        accounts={[{ name: '无' }, ...members, ...(memberId && transaction?.memberId === memberId && transaction.memberDeleted && !members.some(item => item.id === memberId) ? [{ id: memberId, name: transaction.memberName + '（已删除）', iconKey: transaction.memberIconKey }] : [])]}
+        selectedId={memberId ?? undefined} onClose={() => setMemberOpen(false)} onSelect={item => { setMemberId(item.id ?? null); setMemberOpen(false) }} />
       <AccountSheet
         open={Boolean(accountPicker)}
         accounts={accounts.map((item) => {

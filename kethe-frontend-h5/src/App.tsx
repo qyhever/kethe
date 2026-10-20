@@ -13,6 +13,7 @@ import { TallyPage } from './pages/TallyPage'
 import { AccountTransactionsPage } from './pages/AccountTransactionsPage'
 import { ChartPage } from './pages/ChartPage'
 import { BillPage } from './pages/BillPage'
+import { MemberSettingsPage, MemberEditPage } from './pages/MemberSettingsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ProfilePlaceholderPage } from './pages/ProfilePlaceholderPage'
 import { CategorySettingsPage } from './pages/CategorySettingsPage'
@@ -72,6 +73,9 @@ function App() {
           <Route path="/profile/user" element={<ProfilePlaceholderPage title="个人资料" />} />
           <Route path="/profile/settings" element={<ProfilePlaceholderPage title="设置" />} />
           <Route path="/profile/categories" element={<CategorySettingsPage />} />
+          <Route path="/profile/members" element={<MemberSettingsPage />} />
+          <Route path="/profile/members/new" element={<MemberEditPage />} />
+          <Route path="/profile/members/:id/edit" element={<MemberEditPage />} />
           <Route path="/profile/accounts" element={<AccountSettingsPage />} />
           <Route path="/profile/accounts/new" element={<AccountCreatePage />} />
           <Route path="/profile/accounts/new/details" element={<AccountCreatePage details />} />

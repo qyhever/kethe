@@ -284,6 +284,10 @@ export class UpdateAccountDto {
 }
 
 export class CreateTransactionDto {
+  @IsOptional()
+  @Matches(ID_PATTERN)
+  memberId?: string | null
+
   @Type(() => Number)
   @IsEnum(TransactionType)
   transactionType!: TransactionType
@@ -356,6 +360,11 @@ export class TransactionQueryDto {
   @IsArray()
   @Matches(ID_PATTERN, { each: true })
   accountIds?: string[]
+
+  @IsOptional()
+  @IsArray()
+  @Matches(ID_PATTERN, { each: true })
+  memberIds?: string[]
 
   @IsOptional()
   @Matches(AMOUNT_PATTERN)

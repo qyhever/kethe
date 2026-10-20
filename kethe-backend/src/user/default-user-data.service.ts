@@ -1,3 +1,5 @@
+import { Member } from './entities/member.entity'
+import { DEFAULT_MEMBERS } from './member-options'
 import { Injectable } from '@nestjs/common'
 import type { EntityManager, Repository } from 'typeorm'
 import {
@@ -18,6 +20,25 @@ export class DefaultUserDataService {
 
     await this.createCategories(userId, categoryRepository)
     await this.createAccounts(userId, accountRepository)
+    const members = manager.getRepository(Member)
+    const existing = new Set(
+      (await members.find({ where: { userId }, withDeleted: true })).map(
+        (item) => item.systemKey,
+      ),
+    )
+    const missing = DEFAULT_MEMBERS.flatMap((definition, index) =>
+      existing.has(definition.systemKey)
+        ? []
+        : [
+            members.create({
+              userId,
+              ...definition,
+              isSystemDefault: true,
+              sortOrder: index + 1,
+            }),
+          ],
+    )
+    if (missing.length) await members.save(missing)
   }
 
   private async createCategories(

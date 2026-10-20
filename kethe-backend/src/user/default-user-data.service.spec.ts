@@ -5,6 +5,7 @@ import {
   DEFAULT_INCOME_CATEGORIES,
 } from './default-user-data.constants'
 import { DefaultUserDataService } from './default-user-data.service'
+import { Member } from './entities/member.entity'
 import { Account } from './entities/account.entity'
 import { Category } from './entities/category.entity'
 import {
@@ -17,6 +18,7 @@ describe('DefaultUserDataService', () => {
   let service: DefaultUserDataService
   let categoryRecords: Category[]
   let accountRecords: Account[]
+  let memberRecords: Member[]
   let manager: EntityManager
   let iconIdByKey: Map<string, string>
 
@@ -24,6 +26,7 @@ describe('DefaultUserDataService', () => {
     service = new DefaultUserDataService()
     categoryRecords = []
     accountRecords = []
+    memberRecords = []
     let nextCategoryId = 1
     iconIdByKey = new Map<string, string>()
     const resolveIconId = (iconKey: string) => {
@@ -62,9 +65,22 @@ describe('DefaultUserDataService', () => {
       find: jest.fn().mockResolvedValue([]),
     } as unknown as Repository<Account>
 
+    const memberRepository = {
+      find: jest.fn(() => Promise.resolve([...memberRecords])),
+      create: jest.fn((data: Partial<Member>) => data as Member),
+      save: jest.fn((data: Member[]) => {
+        memberRecords.push(...data)
+        return Promise.resolve(data)
+      }),
+    }
     manager = {
-      getRepository: jest.fn((entity: typeof Category | typeof Account) =>
-        entity === Category ? categoryRepository : accountRepository,
+      getRepository: jest.fn(
+        (entity: typeof Category | typeof Account | typeof Member) =>
+          entity === Member
+            ? memberRepository
+            : entity === Category
+              ? categoryRepository
+              : accountRepository,
       ),
     } as unknown as EntityManager
   })
@@ -166,6 +182,27 @@ describe('DefaultUserDataService', () => {
     expect(
       new Set(categoryRecords.map(({ systemKey }) => systemKey)).size,
     ).toBe(80)
+  })
+
+  it('创建六个默认成员，重复初始化保留名称修改和软删除状态', async () => {
+    await service.initialize(42, manager)
+    expect(memberRecords.map((item) => item.name)).toEqual([
+      '本人',
+      '老婆',
+      '老公',
+      '子女',
+      '父母',
+      '家庭共用',
+    ])
+    expect(memberRecords.map((item) => item.sortOrder)).toEqual([
+      1, 2, 3, 4, 5, 6,
+    ])
+    memberRecords[0].name = '自己'
+    memberRecords[1].deletedAt = new Date()
+    await service.initialize(42, manager)
+    expect(memberRecords).toHaveLength(6)
+    expect(memberRecords[0].name).toBe('自己')
+    expect(memberRecords[1].deletedAt).toBeInstanceOf(Date)
   })
 
   it('应该按顺序创建五个零余额人民币默认账户', async () => {

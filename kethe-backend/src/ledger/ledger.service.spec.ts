@@ -279,6 +279,7 @@ describe('LedgerService 流水视图', () => {
       transactionType: 1,
       categoryIds: ['10', '11'],
       accountIds: ['20', '21'],
+      memberIds: ['30', '31'],
       minAmount: '100',
       maxAmount: '5000',
       keyword: '午餐',
@@ -286,6 +287,14 @@ describe('LedgerService 流水视图', () => {
 
     await service.listTransactions(14, query)
 
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      't.memberId IN (:...memberIds)',
+      { memberIds: query.memberIds },
+    )
+    expect(summaryQueryBuilder.andWhere).toHaveBeenCalledWith(
+      't.memberId IN (:...memberIds)',
+      { memberIds: query.memberIds },
+    )
     expect(queryBuilder.offset).not.toHaveBeenCalled()
     expect(queryBuilder.limit).not.toHaveBeenCalled()
     expect(queryBuilder.andWhere).toHaveBeenCalledWith(
@@ -327,8 +336,8 @@ describe('LedgerService 流水视图', () => {
     expect(summaryQueryBuilder.andWhere).toHaveBeenCalledTimes(
       queryBuilder.andWhere.mock.calls.length,
     )
-    expect(summaryQueryBuilder.offset).toBeUndefined()
-    expect(summaryQueryBuilder.limit).toBeUndefined()
+    expect('offset' in summaryQueryBuilder).toBe(false)
+    expect('limit' in summaryQueryBuilder).toBe(false)
     expect(summaryQueryBuilder.select).toHaveBeenLastCalledWith(
       expect.arrayContaining([
         expect.stringContaining(

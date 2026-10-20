@@ -9,6 +9,7 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { DataSource, In, Repository } from 'typeorm'
+import { Member } from '../user/entities/member.entity'
 import { Account } from '../user/entities/account.entity'
 import { Category } from '../user/entities/category.entity'
 import {
@@ -63,6 +64,10 @@ interface CategoryRow {
 }
 
 interface TransactionRow {
+  memberId: string | null
+  memberName: string | null
+  memberIconKey: string | null
+  memberDeletedAt: Date | null
   id: string
   transactionType: number
   amount: string
@@ -499,7 +504,9 @@ export class LedgerService {
         dto,
         accounts,
       )
+      const memberId = await this.resolveMember(manager, userId, dto)
       const entity = manager.getRepository(Transaction).create({
+        memberId,
         userId,
         transactionType: dto.transactionType,
         amount: dto.amount,
@@ -543,8 +550,15 @@ export class LedgerService {
         dto,
         accounts,
       )
+      const memberId = await this.resolveMember(
+        manager,
+        userId,
+        dto,
+        old.memberId,
+      )
       this.applyBalance(accounts, old, -1)
       Object.assign(old, {
+        memberId,
         transactionType: dto.transactionType,
         amount: dto.amount,
         categoryId: category?.id ?? null,
@@ -743,8 +757,17 @@ export class LedgerService {
       .leftJoin(CategoryIcon, 'pi', 'pi.id = p.iconId')
       .leftJoin(Account, 'a', 'a.id = t.accountId')
       .leftJoin(Account, 'ta', 'ta.id = t.targetAccountId')
+      .leftJoin(
+        '(SELECT * FROM members)',
+        'm',
+        'm.id = t.memberId AND m.userId = t.userId',
+      )
       .select([
         't.id id',
+        't.memberId memberId',
+        'm.name memberName',
+        'm.iconKey memberIconKey',
+        'm.deletedAt memberDeletedAt',
         't.transactionType transactionType',
         't.amount amount',
         't.currency currency',
@@ -785,6 +808,10 @@ export class LedgerService {
         '(t.accountId IN (:...accountIds) OR t.targetAccountId IN (:...accountIds))',
         { accountIds: query.accountIds },
       )
+    if (query.memberIds?.length)
+      qb.andWhere('t.memberId IN (:...memberIds)', {
+        memberIds: query.memberIds,
+      })
     if (query.minAmount) qb.andWhere('t.amount >= :minAmount', query)
     if (query.maxAmount) qb.andWhere('t.amount <= :maxAmount', query)
     if (query.keyword) {
@@ -802,6 +829,29 @@ export class LedgerService {
       )
     }
     return qb
+  }
+
+  private async resolveMember(
+    manager: DataSource['manager'],
+    userId: number,
+    dto: CreateTransactionDto,
+    previous?: string | null,
+  ) {
+    if (dto.transactionType === TransactionType.TRANSFER) {
+      if (dto.memberId != null)
+        throw new BadRequestException('转账不能关联成员')
+      return null
+    }
+    const id = dto.memberId === undefined ? (previous ?? null) : dto.memberId
+    if (id === null) return null
+    const member = await manager.getRepository(Member).findOne({
+      where: { id, userId },
+      withDeleted: true,
+      lock: { mode: 'pessimistic_write' },
+    })
+    if (!member || (member.deletedAt && id !== previous))
+      throw new BadRequestException('成员不存在、已删除或无权访问')
+    return String(member.id)
   }
 
   private async lockAccounts(
@@ -896,6 +946,8 @@ export class LedgerService {
       id: String(row.id),
       transactionType: Number(row.transactionType),
       timePrecision: Number(row.timePrecision),
+      memberId: row.memberId == null ? null : String(row.memberId),
+      memberDeleted: !!row.memberDeletedAt,
       amount: String(row.amount),
       categoryId: row.categoryId === null ? null : String(row.categoryId),
       parentCategoryId:

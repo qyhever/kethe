@@ -31,6 +31,8 @@ import type {
   TransactionQuery,
   TransactionYearSummary,
 } from '../api/types'
+import { fetchMembers, type LedgerMember } from '../api/members'
+import { MemberIcon } from '../components/Member/MemberIcon'
 import { CategoryIcon } from '../components/CategoryIcon/CategoryIcon'
 import { DatePicker } from '../components/DatePicker'
 import { Dialog } from '../components/Dialog'
@@ -61,6 +63,7 @@ interface Filters {
   endDate: string
   categoryIds: string[]
   accountIds: string[]
+  memberIds: string[]
   minimum: string
   maximum: string
 }
@@ -69,6 +72,7 @@ interface FlowNavigationFilters {
   startDate: string
   endDate: string
   type: 'all' | 'expense' | 'income'
+  memberId?: string
   accountId?: string
   categoryId?: string
 }
@@ -77,9 +81,10 @@ function filtersFromNavigation(value: FlowNavigationFilters): Filters {
   return {
     ...EMPTY_FILTERS,
     type: value.type,
-    datePreset: 'custom',
+    datePreset: value.startDate || value.endDate ? 'custom' : 'all',
     startDate: value.startDate,
     endDate: value.endDate,
+    memberIds: value.memberId ? [value.memberId] : [],
     accountIds: value.accountId ? [value.accountId] : [],
     categoryIds: value.categoryId ? [value.categoryId] : [],
   }
@@ -87,19 +92,20 @@ function filtersFromNavigation(value: FlowNavigationFilters): Filters {
 
 function navigationFiltersFromSearch(search: string): FlowNavigationFilters | undefined {
   const params = new URLSearchParams(search)
+  const memberId = params.get('memberId')
   const startDate = params.get('startDate')
   const endDate = params.get('endDate')
   const type = params.get('type')
   if (
-    !startDate ||
-    !endDate ||
+    ((!startDate || !endDate) && (!memberId || !/^[1-9]\d*$/.test(memberId))) ||
     (type !== 'all' && type !== 'expense' && type !== 'income')
   )
     return undefined
 
   return {
-    startDate,
-    endDate,
+    startDate: startDate ?? '',
+    endDate: endDate ?? '',
+    memberId: memberId || undefined,
     type,
     accountId: params.get('accountId') || undefined,
     categoryId: params.get('categoryId') || undefined,
@@ -121,7 +127,8 @@ interface FlowYearGroup {
 }
 
 interface FlowPageCache {
-  returnTo: '/home' | '/chart' | '/bill' | '/chart/account-transactions'
+  locationKey: string
+  returnTo: '/home' | '/chart' | '/bill' | '/chart/account-transactions' | '/profile/members'
   returnSearch?: string
   filters: Filters
   draft: Filters
@@ -135,6 +142,7 @@ interface FlowPageCache {
   initialLoading: boolean
   initialError: string | null
   retryKey: number
+  members: LedgerMember[]
   accounts: LedgerAccount[]
   categories: LedgerCategory[]
   optionsLoading: boolean
@@ -154,6 +162,7 @@ const EMPTY_FILTERS: Filters = {
   startDate: '',
   endDate: '',
   categoryIds: [],
+  memberIds: [],
   accountIds: [],
   minimum: '',
   maximum: '',
@@ -370,6 +379,7 @@ function buildQuery(
       ?.apiValue,
     categoryIds: filters.categoryIds,
     accountIds: filters.accountIds,
+    memberIds: filters.memberIds,
     minAmount: filters.minimum ? yuanToCents(filters.minimum) : undefined,
     maxAmount: filters.maximum ? yuanToCents(filters.maximum) : undefined,
     keyword: keyword || undefined,
@@ -492,6 +502,7 @@ function FilterSheet({
   draft,
   categories,
   accounts,
+  members,
   optionsLoading,
   optionsError,
   isClosing,
@@ -504,6 +515,7 @@ function FilterSheet({
 }: {
   draft: Filters
   categories: LedgerCategory[]
+  members: LedgerMember[]
   accounts: LedgerAccount[]
   optionsLoading: boolean
   optionsError: string | null
@@ -516,7 +528,7 @@ function FilterSheet({
   onRetryOptions: () => void
 }) {
   const sheetRef = useRef<HTMLElement>(null)
-  const [drawer, setDrawer] = useState<'date' | 'category' | 'account' | null>(
+  const [drawer, setDrawer] = useState<'date' | 'category' | 'account' | 'member' | null>(
     null,
   )
   const [customDateSide, setCustomDateSide] = useState<'start' | 'end' | null>(
@@ -541,6 +553,8 @@ function FilterSheet({
   const accountNames = accounts
     .filter((account) => draft.accountIds.includes(account.id))
     .map((account) => account.name)
+  const memberNames = draft.memberIds.map(id => members.find(item => item.id === id)?.name ?? '已删除成员')
+  const allMembersSelected = members.length > 0 && members.every(item => draft.memberIds.includes(item.id))
   const customDateKey =
     customDateSide === 'start' ? 'startDate' : 'endDate'
   const customDate = customDateSide ? draft[customDateKey] : ''
@@ -712,9 +726,13 @@ function FilterSheet({
             <ChevronRight size={18} />
           </span>
         </button>
+        <button className="filter-field filter-field--select" type="button" disabled={optionsLoading || !!optionsError} onClick={() => setDrawer('member')}>
+          <span className="filter-field__title"><MemberIcon /><strong>成员</strong></span>
+          <span className="filter-field__summary">{selectionSummary(memberNames, '全部成员')}<ChevronRight size={18} /></span>
+        </button>
         {optionsLoading && (
           <p className="filter-options-state" role="status">
-            正在加载分类和账户…
+            正在加载分类、账户和成员…
           </p>
         )}
         {optionsError && (
@@ -782,7 +800,7 @@ function FilterSheet({
                   ? '日期范围'
                   : drawer === 'category'
                     ? '选择分类'
-                    : '选择账户'}
+                    : drawer === 'member' ? '选择成员' : '选择账户'}
               </h3>
               <span aria-hidden="true" />
             </header>
@@ -910,12 +928,12 @@ function FilterSheet({
                 onClick={() =>
                   onChange({
                     ...draft,
-                    [drawer === 'category' ? 'categoryIds' : 'accountIds']:
+                    [drawer === 'category' ? 'categoryIds' : drawer === 'member' ? 'memberIds' : 'accountIds']:
                       drawer === 'category'
                         ? allCategoriesSelected
                           ? []
                           : allVisibleCategoryIds
-                        : allAccountsSelected
+                        : drawer === 'member' ? allMembersSelected ? [] : members.map(item => item.id) : allAccountsSelected
                           ? []
                           : accounts.map((account) => account.id),
                   })
@@ -925,7 +943,7 @@ function FilterSheet({
                 {renderMark(
                   drawer === 'category'
                     ? allCategoriesSelected
-                    : allAccountsSelected,
+                    : drawer === 'member' ? allMembersSelected : allAccountsSelected,
                 )}
               </button>
               {drawer === 'category'
@@ -1002,7 +1020,12 @@ function FilterSheet({
                       </div>
                     )
                   })
-                : accounts.map((account) => {
+                : drawer === 'member' ? <>
+                    <button className="filter-picker__row" type="button" onClick={() => onChange({ ...draft, memberIds: [] })}>清除成员条件</button>
+                    {members.map(member => <button className="filter-picker__row" type="button" key={member.id} onClick={() => onChange({ ...draft, memberIds: toggleId([member.id], draft.memberIds) })}>
+                      <MemberIcon iconKey={member.iconKey} /><span>{member.name}</span>{renderMark(draft.memberIds.includes(member.id))}
+                    </button>)}
+                  </> : accounts.map((account) => {
                     const checked = draft.accountIds.includes(account.id)
                     return (
                       <button
@@ -1053,6 +1076,7 @@ export function FlowPage() {
       flowFilters?: FlowNavigationFilters
       chartFilters?: FlowNavigationFilters
       refreshFlow?: unknown
+      restoreFlow?: boolean
       returnTo?: unknown
       returnSearch?: string
     } | null,
@@ -1064,15 +1088,17 @@ export function FlowPage() {
     navigationStateRef.current?.flowFilters ??
       navigationStateRef.current?.chartFilters,
   )
+  const restoreCachedFlowRef = useRef(!!flowPageCache && (navigationStateRef.current?.restoreFlow === true || flowPageCache.locationKey === location.key))
   const navigationFiltersRef = useRef(
-    searchNavigationFiltersRef.current ?? stateNavigationFiltersRef.current,
+    restoreCachedFlowRef.current ? undefined : searchNavigationFiltersRef.current ?? stateNavigationFiltersRef.current,
   )
   const restoredCacheRef = useRef(
-    navigationFiltersRef.current ? null : flowPageCache,
+    restoreCachedFlowRef.current ? flowPageCache : navigationFiltersRef.current ? null : flowPageCache,
   )
   const restoredCache = restoredCacheRef.current
-  const navigationReturnTo = navigationStateRef.current?.returnTo
+  const navigationReturnTo = new URLSearchParams(location.search).get('source') === 'members' ? '/profile/members' : navigationStateRef.current?.returnTo
   const returnTarget: FlowPageCache['returnTo'] =
+    navigationReturnTo === '/profile/members' ||
     navigationReturnTo === '/chart' ||
     navigationReturnTo === '/bill' ||
     navigationReturnTo === '/chart/account-transactions'
@@ -1127,6 +1153,7 @@ export function FlowPage() {
     restoredCache?.initialError ?? null,
   )
   const [retryKey, setRetryKey] = useState(restoredCache?.retryKey ?? 0)
+  const [members, setMembers] = useState<LedgerMember[]>(restoredCache?.members ?? [])
   const [accounts, setAccounts] = useState<LedgerAccount[]>(
     restoredCache?.accounts ?? [],
   )
@@ -1174,11 +1201,11 @@ export function FlowPage() {
     const timeout = window.setTimeout(() => {
       if (flowPageCache === restoredCache) flowPageCache = null
       if (refreshAfterReturnRef.current) {
-        navigate(location.pathname, { replace: true, state: null })
+        navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: { returnTo: stableReturnToRef.current, returnSearch: returnSearchRef.current } })
       }
     })
     return () => window.clearTimeout(timeout)
-  }, [location.pathname, navigate, restoredCache])
+  }, [location.pathname, location.search, navigate, restoredCache])
 
   useEffect(() => {
     if (!search.trim()) {
@@ -1203,11 +1230,12 @@ export function FlowPage() {
     let active = true
     setOptionsLoading(true)
     setOptionsError(null)
-    Promise.all([fetchCategories(1), fetchCategories(2), fetchAccounts()])
-      .then(([expense, income, accountList]) => {
+    Promise.all([fetchCategories(1), fetchCategories(2), fetchAccounts(), fetchMembers()])
+      .then(([expense, income, accountList, memberList]) => {
         if (active) {
           setCategories([...expense, ...income])
           setAccounts(accountList)
+          setMembers(memberList)
         }
       })
       .catch((reason: unknown) => {
@@ -1273,7 +1301,7 @@ export function FlowPage() {
       .finally(() => {
         if (!controller.signal.aborted && generation === generationRef.current) {
           setInitialLoading(false)
-          const scrollY = deletionRefreshScrollRef.current
+          const scrollY = deletionRefreshScrollRef.current ?? (isRestoredRequest ? restoredCache?.scrollY ?? null : null)
           deletionRefreshScrollRef.current = null
           if (scrollY !== null) {
             window.requestAnimationFrame(() => window.scrollTo({ top: scrollY }))
@@ -1286,6 +1314,7 @@ export function FlowPage() {
   const navigateToTally = (path: string) => {
     setOpenTransactionId(null)
     flowPageCache = {
+      locationKey: location.key,
       returnTo: stableReturnToRef.current,
       returnSearch: returnSearchRef.current,
       filters,
@@ -1300,6 +1329,7 @@ export function FlowPage() {
       initialLoading,
       initialError,
       retryKey,
+      members,
       accounts,
       categories,
       optionsLoading,
@@ -1307,7 +1337,7 @@ export function FlowPage() {
       optionsRetryKey,
       scrollY: window.scrollY,
     }
-    navigate(path, { state: { returnTo: '/flow' } })
+    navigate(path, { state: { returnTo: '/flow', returnSearch: location.search } })
   }
 
   const requestDelete = (transaction: LedgerTransaction) => {
@@ -1411,7 +1441,7 @@ export function FlowPage() {
             className="flow-navbar__back"
             type="button"
             aria-label={
-              stableReturnToRef.current === '/chart'
+              stableReturnToRef.current === '/profile/members' ? '返回成员设置' : stableReturnToRef.current === '/chart'
                 ? '返回图表'
                 : stableReturnToRef.current === '/chart/account-transactions'
                   ? '返回账户交易笔数'
@@ -1688,6 +1718,7 @@ export function FlowPage() {
           draft={draft}
           categories={categories}
           accounts={accounts}
+          members={members}
           optionsLoading={optionsLoading}
           optionsError={optionsError}
           isClosing={isFilterClosing}

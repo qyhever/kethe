@@ -3,6 +3,7 @@
 @categoryId = 1
 @accountId = 1
 @transactionId = 1
+@memberId = 1
 
 ### 分类树
 GET {{baseUrl}}/categories?categoryType=1
@@ -22,6 +23,7 @@ Content-Type: application/json
   "amount": "3800",
   "categoryId": "{{categoryId}}",
   "accountId": "{{accountId}}",
+  "memberId": null,
   "currency": "CNY",
   "transactionTime": "2026-09-06T04:00:00.000Z",
   "timePrecision": 2,
@@ -39,7 +41,8 @@ Authorization: Bearer {{token}}
   "startTime": "2026-09-01T00:00:00.000Z",
   "endTime": "2026-10-01T00:00:00.000Z",
   "categoryIds": [],
-  "accountIds": []
+  "accountIds": [],
+  "memberIds": []
 }
 
 ### 首页概览
@@ -61,3 +64,40 @@ Authorization: Bearer {{token}}
 ### CSV 导出（最多 366 天）
 GET {{baseUrl}}/exports/transactions.csv?startTime=2026-09-01T00:00:00.000Z&endTime=2026-10-01T00:00:00.000Z
 Authorization: Bearer {{token}}
+
+### 成员列表（expenseAmount 为累计支出，单位：分）
+GET {{baseUrl}}/members
+Authorization: Bearer {{token}}
+
+### 预置成员图标标识
+GET {{baseUrl}}/members/options
+Authorization: Bearer {{token}}
+
+### 成员详情
+GET {{baseUrl}}/members/{{memberId}}
+Authorization: Bearer {{token}}
+
+### 新增成员
+POST {{baseUrl}}/members
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "家人", "iconKey": "family" }
+
+### 编辑成员
+PATCH {{baseUrl}}/members/{{memberId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "自己", "iconKey": "heart" }
+
+### 删除成员（软删除，历史关联保留）
+DELETE {{baseUrl}}/members/{{memberId}}
+Authorization: Bearer {{token}}
+
+### 查询成员全部支出（省略日期可跨年查询）
+POST {{baseUrl}}/transactions/query
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "transactionType": 1, "memberIds": ["{{memberId}}"] }

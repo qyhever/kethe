@@ -35,6 +35,9 @@ export class Transaction {
   @Column({ type: 'bigint', unsigned: true, nullable: true })
   categoryId!: string | null
 
+  @Column({ type: 'bigint', unsigned: true, nullable: true })
+  memberId!: string | null
+
   @Column({ type: 'bigint', unsigned: true })
   accountId!: string
 

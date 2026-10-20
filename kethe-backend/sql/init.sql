@@ -1,6 +1,7 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `transactions`;
+DROP TABLE IF EXISTS `members`;
 DROP TABLE IF EXISTS `accounts`;
 DROP TABLE IF EXISTS `categories`;
 DROP TABLE IF EXISTS `category_icons`;
@@ -322,6 +323,22 @@ CREATE TABLE accounts (
 -- ============================================================
 -- 4. 流水表
 -- ============================================================
+CREATE TABLE members (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  userId INT NOT NULL,
+  name VARCHAR(12) NOT NULL,
+  iconKey VARCHAR(64) NOT NULL,
+  systemKey VARCHAR(64) NULL,
+  isSystemDefault TINYINT(1) NOT NULL DEFAULT 0,
+  sortOrder INT UNSIGNED NOT NULL DEFAULT 0,
+  deletedAt DATETIME(3) NULL,
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_members_user_system (userId, systemKey),
+  CONSTRAINT fk_members_user FOREIGN KEY (userId) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE transactions (
     id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '流水ID',
     userId             INT NOT NULL COMMENT '所属用户ID',
@@ -331,6 +348,7 @@ CREATE TABLE transactions (
                         '交易金额，始终为正整数，使用最小货币单位，例如人民币分',
     categoryId         BIGINT UNSIGNED DEFAULT NULL COMMENT
                         '收支分类ID；支出/收入必填，转账为空',
+    memberId BIGINT UNSIGNED NULL,
     accountId          BIGINT UNSIGNED NOT NULL COMMENT
                         '主账户ID；支出=付款账户，收入=收款账户，转账=转出账户',
     targetAccountId   BIGINT UNSIGNED DEFAULT NULL COMMENT
@@ -351,6 +369,8 @@ CREATE TABLE transactions (
     PRIMARY KEY (id),
     CONSTRAINT chk_transactions_time_precision
         CHECK (timePrecision IN (1, 2)),
+    KEY idx_transactions_user_member_time (userId, memberId, transactionTime DESC),
+    CONSTRAINT fk_transactions_member FOREIGN KEY (memberId) REFERENCES members(id),
     KEY idx_transactions_user_time
         (userId, transactionTime DESC, id DESC),
     KEY idx_transactions_user_type_time

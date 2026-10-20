@@ -35,6 +35,7 @@ export function SwipeCell({
     startOffset: number
     axis: 'pending' | 'horizontal' | 'vertical'
     dragged: boolean
+    captureTarget: Element
   } | null>(null)
   const suppressClickRef = useRef(false)
   const [dragOffset, setDragOffset] = useState<number | null>(null)
@@ -52,8 +53,8 @@ export function SwipeCell({
     const gesture = gestureRef.current
     if (!gesture || gesture.pointerId !== event.pointerId) return
     gestureRef.current = null
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
+    if (gesture.captureTarget.hasPointerCapture(event.pointerId)) {
+      gesture.captureTarget.releasePointerCapture(event.pointerId)
     }
     if (gesture.axis === 'horizontal') {
       const offset = dragOffset ?? gesture.startOffset
@@ -81,6 +82,8 @@ export function SwipeCell({
         style={{ transform: `translate3d(${offset}px, 0, 0)` }}
         onPointerDown={(event) => {
           if (disabled || event.button !== 0) return
+          // 保持原点击目标，同时捕获快速移出行区域的拖动。
+          const captureTarget = event.target as Element
           gestureRef.current = {
             pointerId: event.pointerId,
             startX: event.clientX,
@@ -88,8 +91,9 @@ export function SwipeCell({
             startOffset: open ? -actionWidth : 0,
             axis: 'pending',
             dragged: false,
+            captureTarget,
           }
-          event.currentTarget.setPointerCapture(event.pointerId)
+          captureTarget.setPointerCapture(event.pointerId)
         }}
         onPointerMove={(event) => {
           const gesture = gestureRef.current
@@ -107,7 +111,7 @@ export function SwipeCell({
               Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical'
             if (gesture.axis === 'vertical') {
               gestureRef.current = null
-              event.currentTarget.releasePointerCapture(event.pointerId)
+              gesture.captureTarget.releasePointerCapture(event.pointerId)
               return
             }
           }
