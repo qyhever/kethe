@@ -1,5 +1,5 @@
+import { SettingsHeader } from '../components/SettingsHeader'
 import {
-  ArrowLeft,
   ChartNoAxesColumnIncreasing,
   ChevronRight,
   ListFilter,
@@ -21,14 +21,8 @@ const features = [
 
 export function AboutPage() {
   return (
-    <main className="about-page" aria-labelledby="about-title">
-      <header className="about-page__header">
-        <Link to="/profile" aria-label="返回我的页面">
-          <ArrowLeft aria-hidden="true" size={24} />
-        </Link>
-        <h1 id="about-title">关于产品</h1>
-        <span aria-hidden="true" />
-      </header>
+    <main className="about-page settings-layout" aria-labelledby="about-title">
+      <SettingsHeader title="关于产品" titleId="about-title" backTo="/profile" backLabel="返回我的页面" />
 
       <section className="about-brand" aria-labelledby="about-brand-name">
         <img src={brandLogo} alt="" className="about-brand__logo" />

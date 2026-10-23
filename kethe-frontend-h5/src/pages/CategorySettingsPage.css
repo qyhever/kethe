@@ -16,37 +16,6 @@
   padding-bottom: calc(112px + var(--safe-bottom));
 }
 
-.category-settings__header {
-  display: grid;
-  grid-template-columns: 44px 1fr 44px;
-  align-items: center;
-  min-height: 52px;
-  margin-bottom: 14px;
-}
-
-.category-settings__header h1 {
-  margin: 0;
-  text-align: center;
-  font-family: var(--font-family-display);
-  font-size: 22px;
-  letter-spacing: -0.02em;
-}
-
-.category-settings__header button {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  place-items: center;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--color-text-primary);
-}
-
-.category-settings__header button:active {
-  background: var(--color-fill-secondary);
-}
-
 .category-settings__type-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;

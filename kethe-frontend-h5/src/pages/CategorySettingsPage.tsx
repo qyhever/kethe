@@ -1,6 +1,6 @@
+import { SettingsHeader } from '../components/SettingsHeader'
 import {
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   LoaderCircle,
   Minus,
@@ -356,10 +356,7 @@ export function CategorySettingsPage() {
   if (mode === 'icons' && form) {
     return (
       <main className="category-settings category-settings--subpage">
-        <header className="category-settings__header">
-          <button type="button" aria-label="返回编辑分类" onClick={() => setMode('form')}><ChevronLeft /></button>
-          <h1>选择图标</h1><span />
-        </header>
+        <SettingsHeader title="选择图标" backLabel="返回编辑分类" onBack={() => setMode('form')} />
         <nav className="category-settings__icon-tabs" aria-label="图标分组">
           {iconGroups.map(([key, label]) => (
             <button className={iconGroup === key ? 'is-active' : ''} type="button" key={key} onClick={() => setIconGroup(key)}>{label}</button>
@@ -388,10 +385,7 @@ export function CategorySettingsPage() {
     const editingParentWithChildren = Boolean(form.id && categories.find((item) => item.id === form.id)?.children.length)
     return (
       <main className="category-settings category-settings--subpage">
-        <header className="category-settings__header">
-          <button type="button" aria-label="返回分类设置" onClick={() => { setMode('list'); setForm(null) }}><ChevronLeft /></button>
-          <h1>{form.id ? '编辑分类' : '新增分类'}</h1><span />
-        </header>
+        <SettingsHeader title={form.id ? '编辑分类' : '新增分类'} backLabel="返回分类设置" onBack={() => { setMode('list'); setForm(null) }} />
         {!form.id && <TypeTabs value={form.categoryType} onChange={(next) => setForm({ ...form, categoryType: next, parentId: null })} />}
         <section className="category-settings__form">
           {form.categoryType === 1 && (
@@ -453,10 +447,7 @@ export function CategorySettingsPage() {
 
   return (
     <main className="category-settings">
-      <header className="category-settings__header">
-        <button type="button" aria-label="返回我的" onClick={() => navigate('/profile')}><ChevronLeft /></button>
-        <h1>分类设置</h1><span />
-      </header>
+      <SettingsHeader title="分类设置" backLabel="返回我的" onBack={() => navigate('/profile')} />
       <TypeTabs value={type} onChange={setType} />
       <p className="category-settings__intro">管理{type === 1 ? '支出' : '收入'}分类，支持新增、编辑、删除和排序</p>
       <section className="category-settings__list" aria-live="polite" ref={listRef}>

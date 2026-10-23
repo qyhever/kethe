@@ -1,3 +1,4 @@
+import { SettingsHeader } from '../components/SettingsHeader'
 import { projectIconLabels } from '../components/ExpenseProject/project-icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -13,7 +14,7 @@ import {
   type ExpenseProject,
   type ProjectCategories,
 } from '../api/expense-projects'
-import { AccountHeader, Money } from '../components/Account/AccountUI'
+import { Money } from '../components/Account/AccountUI'
 import { ExpenseProjectIcon } from '../components/ExpenseProject/ExpenseProjectIcon'
 import { ExpenseProjectSheet } from '../components/ExpenseProject/ExpenseProjectSheet'
 import { DatePicker } from '../components/DatePicker'
@@ -78,8 +79,8 @@ export function ExpenseProjectListPage() {
     }
   }
   return (
-    <main className="account-page member-page project-page">
-      <AccountHeader
+    <main className="settings-layout account-page member-page project-page">
+      <SettingsHeader
         title="项目设置"
         onBack={() => navigate('/profile')}
         action={
@@ -278,8 +279,8 @@ export function ExpenseProjectEditPage() {
     }
   }
   return (
-    <main className="account-page member-page project-page">
-      <AccountHeader title={id ? '编辑项目' : '新增项目'} onBack={back} />
+    <main className="settings-layout account-page member-page project-page">
+      <SettingsHeader title={id ? '编辑项目' : '新增项目'} onBack={back} />
       {loading ? (
         <p className="member-page__status">正在加载…</p>
       ) : error ? (
@@ -443,8 +444,8 @@ export function ExpenseProjectDetailPage() {
     })
     .join(',')
   return (
-    <main className="account-page member-page project-page">
-      <AccountHeader
+    <main className="settings-layout account-page member-page project-page">
+      <SettingsHeader
         title="项目详情"
         onBack={() => navigate(root)}
         action={

@@ -1,10 +1,11 @@
+import { SettingsHeader } from '../components/SettingsHeader'
 import './AccountTransactionsPage.css'
 import { AlertCircle, Check, ChevronDown, Circle, Edit3, Ellipsis, LoaderCircle, Plus, Power, RotateCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { createAccount, fetchAccount, fetchAccountOptions, fetchAccounts, removeAccount, updateAccount } from '../api/ledger'
 import type { AccountOptions, AccountTypeOption, CreateAccountPayload, LedgerAccount, UpdateAccountPayload } from '../api/types'
-import { AccountHeader, AccountIcon, AccountIconSheet, AccountRow, Money } from '../components/Account/AccountUI'
+import { AccountIcon, AccountIconSheet, AccountRow, Money } from '../components/Account/AccountUI'
 import { Dialog } from '../components/Dialog/Dialog'
 import { useToast } from '../components/Toast'
 import './AccountSettingsPage.css'
@@ -61,8 +62,8 @@ export function AccountSettingsPage() {
     </section>
   )
   return (
-    <main className="account-page account-list-page">
-      <AccountHeader title="账户设置" onBack={() => navigate('/profile')} action={<button type="button" aria-label="新增账户" onClick={() => navigate('/profile/accounts/new')}><Plus /></button>} />
+    <main className="settings-layout account-page account-list-page">
+      <SettingsHeader title="账户设置" onBack={() => navigate('/profile')} action={<button type="button" aria-label="新增账户" onClick={() => navigate('/profile/accounts/new')}><Plus /></button>} />
       {!loading && !error && accounts.length > 0 && <section className="account-summary"><span>净资产 <AlertCircle size={13} /></span><strong><Money cents={netWorth} /></strong><div><span>资产合计<strong><Money cents={assetTotal} /></strong></span><span>负债合计<strong><Money cents={liabilityTotal} /></strong></span></div></section>}
       <button className="account-statistics-entry" type="button" onClick={() => navigate('/chart/account-transactions?source=accounts')}>交易笔数统计</button>
       <div className="account-page__content" aria-live="polite">{loading ? <PageStatus loading text="正在加载账户…" /> : error ? <PageStatus text={error} retry={load} /> : accounts.length === 0 ? <PageStatus text="还没有账户" secondary="创建账户后，资产与负债会在这里汇总" /> : <>{renderGroup('资产账户', assets)}{renderGroup('负债账户', liabilities)}{renderGroup('已停用账户', disabled)}</>}</div>
@@ -88,8 +89,8 @@ export function AccountCreatePage({ details = false }: { details?: boolean }) {
     setExpanded(first.subTypes.length > 0 ? first.value : null)
     setSelectedSubType(first.subTypes[0]?.value ?? '')
   }, [options])
-  if (error) return <main className="account-page"><AccountHeader title="新增账户" onBack={() => navigate(-1)} /><PageStatus text={error} retry={reload} /></main>
-  if (!options) return <main className="account-page"><AccountHeader title="新增账户" onBack={() => navigate(-1)} /><PageStatus loading text="正在加载…" /></main>
+  if (error) return <main className="settings-layout account-page"><SettingsHeader title="新增账户" onBack={() => navigate(-1)} /><PageStatus text={error} retry={reload} /></main>
+  if (!options) return <main className="settings-layout account-page"><SettingsHeader title="新增账户" onBack={() => navigate(-1)} /><PageStatus loading text="正在加载…" /></main>
   if (details && selectedTypeFromSearch) return <AccountFormPage options={options} selectedType={selectedTypeFromSearch} initialSubType={selectedTypeFromSearch.subTypes.some((item) => item.value === Number(search.get('subType'))) ? Number(search.get('subType')) : selectedTypeFromSearch.subTypes[0]?.value ?? ''} onBack={() => navigate(-1)} />
   const next = () => {
     if (selectedType === null) return
@@ -99,8 +100,8 @@ export function AccountCreatePage({ details = false }: { details?: boolean }) {
     navigate(`/profile/accounts/new/details?type=${type.value}${subType !== '' ? `&subType=${subType}` : ''}`)
   }
   return (
-    <main className="account-page account-create-page">
-      <AccountHeader title="新增账户" onBack={() => navigate(-1)} /><Steps current={1} />
+    <main className="settings-layout account-page account-create-page">
+      <SettingsHeader title="新增账户" onBack={() => navigate(-1)} /><Steps current={1} />
       <section className="account-type-list">{options.accountTypes.map((type) => {
         const open = expanded === type.value
         const selected = selectedType === type.value
@@ -140,16 +141,16 @@ export function AccountDetailPage() {
   const [acting, setActing] = useState(false)
   const load = useCallback(async () => { setLoading(true); setError(''); try { setAccount(await fetchAccount(id)) } catch (caught) { setError(errorMessage(caught, '加载账户失败')) } finally { setLoading(false) } }, [id])
   useEffect(() => void load(), [load])
-  if (loading) return <main className="account-page"><AccountHeader title="账户详情" onBack={() => navigate(-1)} /><PageStatus loading text="正在加载…" /></main>
-  if (error || !account) return <main className="account-page"><AccountHeader title="账户详情" onBack={() => navigate(-1)} /><PageStatus text={error || '账户不存在'} retry={load} /></main>
+  if (loading) return <main className="settings-layout account-page"><SettingsHeader title="账户详情" onBack={() => navigate(-1)} /><PageStatus loading text="正在加载…" /></main>
+  if (error || !account) return <main className="settings-layout account-page"><SettingsHeader title="账户详情" onBack={() => navigate(-1)} /><PageStatus text={error || '账户不存在'} retry={load} /></main>
   const type = optionFor(options, account.accountType)
   const subType = type?.subTypes.find((item) => item.value === account.accountSubType)
   const availableCredit = account.creditLimit ? (BigInt(account.creditLimit) - BigInt(account.outstandingDebt) < 0n ? 0n : BigInt(account.creditLimit) - BigInt(account.outstandingDebt)).toString() : null
   const toggle = async () => { setActing(true); try { const next = await updateAccount(account.id, { isEnabled: !account.isEnabled }); setAccount(next); setDialog(null); toast.success(account.isEnabled ? '账户已停用' : '账户已重新启用') } catch (caught) { toast.error(errorMessage(caught, '操作失败')) } finally { setActing(false) } }
   const remove = async () => { setActing(true); try { await removeAccount(account.id); toast.success('账户已删除'); navigate('/profile/accounts', { replace: true }) } catch (caught) { toast.error(errorMessage(caught, '删除失败')) } finally { setActing(false) } }
   return (
-    <main className="account-page account-detail-page">
-      <AccountHeader title="账户详情" onBack={() => navigate(-1)} action={<Ellipsis />} />
+    <main className="settings-layout account-page account-detail-page">
+      <SettingsHeader title="账户详情" onBack={() => navigate(-1)} action={<Ellipsis />} />
       <section className="account-detail__identity"><AccountIcon iconKey={account.iconKey} nature={account.accountNature} size={28} /><div><strong>{account.name}</strong><small>{account.accountNumberLast4 ? `尾号 ${account.accountNumberLast4}` : type?.label}</small></div>{!account.includeInNetWorth && <em>不计入净资产</em>}</section>
       <section className="account-detail__balance"><span>{account.accountNature === 2 ? '当前欠款' : '当前余额'} <AlertCircle size={13} /></span><strong><Money cents={account.accountNature === 2 ? account.outstandingDebt : account.currentBalance} /></strong>{account.creditLimit && <div><span>信用额度<strong><Money cents={account.creditLimit} /></strong></span><span>可用额度<strong><Money cents={availableCredit ?? '0'} /></strong></span></div>}</section>
       <DetailSection title="账户信息" rows={[
@@ -170,8 +171,8 @@ export function AccountEditPage() {
   const { id = '' } = useParams(); const navigate = useNavigate(); const { options, error: optionsError, reload } = useAccountOptions()
   const [account, setAccount] = useState<LedgerAccount | null>(null); const [error, setError] = useState('')
   useEffect(() => { void fetchAccount(id).then(setAccount).catch((caught) => setError(errorMessage(caught, '加载账户失败'))) }, [id])
-  if (error || optionsError) return <main className="account-page"><AccountHeader title="编辑账户" onBack={() => navigate(-1)} /><PageStatus text={error || optionsError} retry={error ? undefined : reload} /></main>
-  if (!options || !account) return <main className="account-page"><AccountHeader title="编辑账户" onBack={() => navigate(-1)} /><PageStatus loading text="正在加载…" /></main>
+  if (error || optionsError) return <main className="settings-layout account-page"><SettingsHeader title="编辑账户" onBack={() => navigate(-1)} /><PageStatus text={error || optionsError} retry={error ? undefined : reload} /></main>
+  if (!options || !account) return <main className="settings-layout account-page"><SettingsHeader title="编辑账户" onBack={() => navigate(-1)} /><PageStatus loading text="正在加载…" /></main>
   return <AccountFormPage options={options} selectedType={optionFor(options, account.accountType)!} initialSubType={account.accountSubType ?? ''} account={account} onBack={() => navigate(-1)} />
 }
 
@@ -202,8 +203,8 @@ function AccountFormPage({ options, selectedType, initialSubType, account, onBac
     } catch (caught) { toast.error(errorMessage(caught, '保存失败')); submitLock.current = false; setSaving(false) }
   }
   return (
-    <main className="account-page account-form-page">
-      <AccountHeader title={account ? '编辑账户' : '新增账户'} onBack={onBack} />{!account && <Steps current={2} />}
+    <main className="settings-layout account-page account-form-page">
+      <SettingsHeader title={account ? '编辑账户' : '新增账户'} onBack={onBack} />{!account && <Steps current={2} />}
       <section className="account-form">
         <button type="button" className="account-form__icon" onClick={() => setIconOpen(true)}><AccountIcon iconKey={form.iconKey} nature={form.accountNature} size={28} /><span>{account ? '更换图标' : '选择图标'}</span></button>
         <FormField label="账户名称" required count={`${form.name.length}/50`}><input maxLength={50} value={form.name} placeholder="例如：招商信用卡、支付宝" onChange={(event) => setForm({ ...form, name: event.target.value })} /></FormField>

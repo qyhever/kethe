@@ -5,29 +5,6 @@
   background: var(--color-background-secondary);
 }
 
-.settings-page__header {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
-  align-items: center;
-  min-height: 68px;
-}
-
-.settings-page__header > a {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  margin-left: -10px;
-  place-items: center;
-  border-radius: var(--radius-full);
-  color: var(--color-brand);
-}
-
-.settings-page__header h1 {
-  margin: 0;
-  text-align: center;
-  font: var(--font-weight-semibold) var(--font-size-body)/1.2 var(--font-family-sans);
-}
-
 .settings-page__menu {
   margin-top: 16px;
   overflow: hidden;
@@ -65,5 +42,4 @@
 .settings-page__copy strong { font-size: var(--font-size-body); }
 .settings-page__copy > span { color: var(--color-text-secondary); font-size: 13px; line-height: 1.5; }
 .settings-page__item > svg { flex-shrink: 0; color: var(--color-text-tertiary); }
-.settings-page__item:active,
-.settings-page__header > a:active { background: var(--color-fill-secondary); }
+.settings-page__item:active { background: var(--color-fill-secondary); }

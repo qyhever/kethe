@@ -5,32 +5,6 @@
   color: var(--color-text-primary);
 }
 
-.feedback-page__header {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
-  align-items: center;
-  min-height: 68px;
-}
-
-.feedback-page__header button {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-left: -10px;
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--color-brand);
-}
-
-.feedback-page__header button:hover { background: var(--color-fill-secondary); }
-.feedback-page__header button:active { transform: scale(0.94); }
-.feedback-page__header h1 {
-  margin: 0;
-  text-align: center;
-  font: var(--font-weight-semibold) var(--font-size-body)/1.2 var(--font-family-sans);
-}
-
 .feedback-form { display: grid; gap: var(--space-3); }
 .feedback-form label { font-size: var(--font-size-subheadline); font-weight: var(--font-weight-semibold); }
 .feedback-form textarea {

@@ -1,8 +1,9 @@
+import { SettingsHeader } from '../components/SettingsHeader'
 import { ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { createMember, fetchMember, fetchMemberOptions, fetchMembers, removeMember, updateMember, type LedgerMember } from '../api/members'
-import { AccountHeader, Money } from '../components/Account/AccountUI'
+import { Money } from '../components/Account/AccountUI'
 import { Dialog } from '../components/Dialog'
 import { MemberIcon } from '../components/Member/MemberIcon'
 import { memberIconLabels } from '../components/Member/member-icons'
@@ -39,8 +40,8 @@ export function MemberSettingsPage() {
       await load()
     } catch (reason) { toast.error(message(reason)) } finally { setDeleting(false) }
   }
-  return <main className="account-page member-page">
-    <AccountHeader title="成员设置" onBack={() => navigate('/profile')} action={<button type="button" aria-label="新增成员" onClick={() => navigate('/profile/members/new')}><Plus /></button>} />
+  return <main className="settings-layout account-page member-page">
+    <SettingsHeader title="成员设置" onBack={() => navigate('/profile')} action={<button type="button" aria-label="新增成员" onClick={() => navigate('/profile/members/new')}><Plus /></button>} />
     <p className="member-page__hint">金额为全部未删除流水的累计支出</p>
     {loading ? <p className="member-page__status" role="status">正在加载成员…</p> : error ? <div className="member-page__status" role="alert">{error}<button type="button" onClick={() => void load()}>重试</button></div> : <section className="member-list">
       {members.map(member => <SwipeCell key={member.id} actionWidth={144} open={openId === member.id} onOpenChange={open => setOpenId(open ? member.id : null)} actions={<>
@@ -94,8 +95,8 @@ export function MemberEditPage() {
       navigate('/profile/members', { replace: true })
     } catch (reason) { toast.error(message(reason)) } finally { savingRef.current = false; setSaving(false) }
   }
-  return <main className="account-page member-page">
-    <AccountHeader title={id ? '编辑成员' : '新增成员'} onBack={() => navigate('/profile/members')} />
+  return <main className="settings-layout account-page member-page">
+    <SettingsHeader title={id ? '编辑成员' : '新增成员'} onBack={() => navigate('/profile/members')} />
     {loading ? <p className="member-page__status" role="status">正在加载…</p> : error ? <div className="member-page__status" role="alert">{error}<button type="button" onClick={() => setRetry(value => value + 1)}>重试</button></div> : <form className="member-form" onSubmit={event => { event.preventDefault(); void save() }}>
       <label className="member-row"><strong>成员名称</strong><input aria-label="成员名称" placeholder="请输入成员名称" value={name} disabled={saving} onChange={event => setName(event.target.value)} /></label>
       <button className="member-row" type="button" disabled={saving} onClick={() => setPicker(true)}><strong>成员图标</strong><span className="member-icon"><MemberIcon iconKey={iconKey} /></span><ChevronRight size={18} /></button>

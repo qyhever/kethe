@@ -1,4 +1,5 @@
-import { ArrowLeft, ChevronRight, LockKeyhole, ShieldCheck } from 'lucide-react'
+import { SettingsHeader } from '../components/SettingsHeader'
+import { ChevronRight, LockKeyhole, ShieldCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import './SettingsPage.css'
@@ -15,14 +16,8 @@ interface SettingsMenuPageProps {
 
 function SettingsMenuPage({ title, backTo, backLabel, label, description, to, icon: Icon }: SettingsMenuPageProps) {
   return (
-    <main className="settings-page" aria-labelledby="settings-title">
-      <header className="settings-page__header">
-        <Link to={backTo} aria-label={backLabel}>
-          <ArrowLeft aria-hidden="true" size={24} />
-        </Link>
-        <h1 id="settings-title">{title}</h1>
-        <span aria-hidden="true" />
-      </header>
+    <main className="settings-page settings-layout" aria-labelledby="settings-title">
+      <SettingsHeader title={title} titleId="settings-title" backTo={backTo} backLabel={backLabel} />
       <nav className="settings-page__menu" aria-label={title}>
         <Link className="settings-page__item" to={to}>
           <span className="settings-page__icon"><Icon aria-hidden="true" size={23} /></span>

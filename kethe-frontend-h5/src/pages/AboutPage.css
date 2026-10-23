@@ -5,29 +5,6 @@
   color: var(--color-text-primary);
 }
 
-.about-page__header {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
-  align-items: center;
-  min-height: 68px;
-}
-
-.about-page__header a {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-left: -10px;
-  border-radius: var(--radius-full);
-  color: var(--color-brand);
-}
-
-.about-page__header h1 {
-  margin: 0;
-  text-align: center;
-  font: var(--font-weight-semibold) var(--font-size-body)/1.2 var(--font-family-sans);
-}
-
 .about-brand,
 .about-features {
   padding: var(--space-6) var(--space-5);
@@ -146,7 +123,6 @@
   text-decoration: none;
 }
 
-.about-page__header a:active,
 .about-page__feedback:active {
   background: var(--color-fill-secondary);
   transform: scale(0.95);

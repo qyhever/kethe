@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react'
+import { SettingsHeader } from '../components/SettingsHeader'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createFeedback } from '../api/feedbacks'
@@ -37,14 +37,8 @@ export function FeedbackPage() {
   }
 
   return (
-    <main className="feedback-page" aria-labelledby="feedback-title">
-      <header className="feedback-page__header">
-        <button type="button" aria-label="返回我的页面" onClick={() => navigate('/profile')}>
-          <ArrowLeft aria-hidden="true" size={24} />
-        </button>
-        <h1 id="feedback-title">意见反馈</h1>
-        <span aria-hidden="true" />
-      </header>
+    <main className="feedback-page settings-layout" aria-labelledby="feedback-title">
+      <SettingsHeader title="意见反馈" titleId="feedback-title" onBack={() => navigate('/profile')} backLabel="返回我的页面" />
       <form className="feedback-form" aria-busy={submitting} onSubmit={event => {
         event.preventDefault()
         void submit()

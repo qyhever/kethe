@@ -1,3 +1,4 @@
+import { SettingsHeader } from '../SettingsHeader'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -98,13 +99,17 @@ export function PasswordResetView(props: PasswordResetViewProps) {
     <main
       className="reset-password-page"
     >
-      <div className="reset-password-page__content">
-        <header className="reset-password-header">
-          <Link className="reset-password-header__back" to={backTo} aria-label={backLabel}>
-            <ChevronLeft aria-hidden="true" size={30} strokeWidth={2.2} />
-          </Link>
-          <span>{title}</span>
-        </header>
+      <div className={`reset-password-page__content${isReset ? ' settings-layout' : ''}`}>
+        {isReset ? (
+          <SettingsHeader title={title} backTo={backTo} backLabel={backLabel} />
+        ) : (
+          <header className="reset-password-header">
+            <Link className="reset-password-header__back" to={backTo} aria-label={backLabel}>
+              <ChevronLeft aria-hidden="true" size={30} strokeWidth={2.2} />
+            </Link>
+            <span>{title}</span>
+          </header>
+        )}
 
         <section className="reset-password-intro" aria-labelledby="reset-password-title">
           <img src={resetPasswordHero} alt="" />
