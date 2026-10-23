@@ -85,18 +85,18 @@ describe('DefaultUserDataService', () => {
     } as unknown as EntityManager
   })
 
-  it('应该按定义顺序创建 80 条默认分类并建立父子关系', async () => {
+  it('应该按定义顺序创建 86 条默认分类并建立父子关系', async () => {
     await service.initialize(42, manager)
 
-    expect(DEFAULT_EXPENSE_CATEGORIES).toHaveLength(12)
+    expect(DEFAULT_EXPENSE_CATEGORIES).toHaveLength(13)
     expect(
       DEFAULT_EXPENSE_CATEGORIES.reduce(
         (total, category) => total + category.children.length,
         0,
       ),
-    ).toBe(62)
+    ).toBe(67)
     expect(DEFAULT_INCOME_CATEGORIES).toHaveLength(6)
-    expect(categoryRecords).toHaveLength(80)
+    expect(categoryRecords).toHaveLength(86)
 
     const expenseParents = categoryRecords.filter(
       (category) => category.categoryType === 1 && category.parentId === null,
@@ -112,9 +112,9 @@ describe('DefaultUserDataService', () => {
       DEFAULT_EXPENSE_CATEGORIES.map(({ name }) => name),
     )
     expect(expenseParents.map(({ sortOrder }) => sortOrder)).toEqual(
-      Array.from({ length: 12 }, (_, index) => index + 1),
+      Array.from({ length: 13 }, (_, index) => index + 1),
     )
-    expect(expenseChildren).toHaveLength(62)
+    expect(expenseChildren).toHaveLength(67)
     const transport = expenseParents.find(
       ({ systemKey }) => systemKey === 'expense_transport',
     )
@@ -181,7 +181,123 @@ describe('DefaultUserDataService', () => {
     }
     expect(
       new Set(categoryRecords.map(({ systemKey }) => systemKey)).size,
-    ).toBe(80)
+    ).toBe(86)
+  })
+
+  it('创建景点门票、纪念品和住宿分类并使用专属图标', async () => {
+    await service.initialize(42, manager)
+
+    const accommodation = categoryRecords.find(
+      ({ systemKey }) => systemKey === 'expense_accommodation',
+    )!
+    expect(accommodation).toMatchObject({
+      name: '住宿',
+      parentId: null,
+      categoryType: 1,
+      iconId: iconIdByKey.get('accommodation'),
+    })
+    expect(
+      categoryRecords
+        .filter(({ parentId }) => parentId === accommodation.id)
+        .map(({ name }) => name),
+    ).toEqual(['酒店', '民宿', '其它住宿'])
+
+    for (const [systemKey, name, parentKey, iconKey] of [
+      [
+        'expense_entertainment_attraction_tickets',
+        '景点门票',
+        'expense_entertainment',
+        'attraction-ticket',
+      ],
+      ['expense_shopping_souvenir', '纪念品', 'expense_shopping', 'souvenir'],
+      ['expense_accommodation_hotel', '酒店', 'expense_accommodation', 'hotel'],
+      [
+        'expense_accommodation_homestay',
+        '民宿',
+        'expense_accommodation',
+        'homestay',
+      ],
+      [
+        'expense_accommodation_other',
+        '其它住宿',
+        'expense_accommodation',
+        'accommodation-other',
+      ],
+    ]) {
+      const parent = categoryRecords.find(
+        (item) => item.systemKey === parentKey,
+      )!
+      expect(
+        categoryRecords.find((item) => item.systemKey === systemKey),
+      ).toMatchObject({
+        name,
+        categoryType: 1,
+        parentId: parent.id,
+        iconId: iconIdByKey.get(iconKey),
+      })
+    }
+  })
+
+  it('为旧用户补齐新增分类，重复初始化保留修改及软删除状态', async () => {
+    await service.initialize(42, manager)
+    categoryRecords = categoryRecords.filter(
+      ({ systemKey }) =>
+        !systemKey?.startsWith('expense_accommodation') &&
+        systemKey !== 'expense_entertainment_attraction_tickets',
+    )
+    const souvenir = categoryRecords.find(
+      ({ systemKey }) => systemKey === 'expense_shopping_souvenir',
+    )!
+    const deletedAt = new Date()
+    Object.assign(souvenir, {
+      name: '旅行纪念',
+      iconId: 'custom-icon',
+      isEnabled: false,
+      deletedAt,
+      sortOrder: 99,
+    })
+
+    const repository = manager.getRepository(Category)
+    jest.spyOn(repository, 'findOne').mockImplementation((options) => {
+      const where = options.where as Partial<Category>
+      return Promise.resolve(
+        categoryRecords.find(
+          (item) =>
+            item.userId === where.userId && item.systemKey === where.systemKey,
+        ) ?? null,
+      )
+    })
+    jest.spyOn(repository, 'find').mockImplementation((options) => {
+      const where = options?.where as Partial<Category>
+      return Promise.resolve(
+        categoryRecords.filter((item) =>
+          Object.entries(where).every(
+            ([key, value]) => item[key as keyof Category] === value,
+          ),
+        ),
+      )
+    })
+
+    await service.initialize(42, manager)
+    await service.initialize(42, manager)
+
+    expect(categoryRecords).toHaveLength(86)
+    expect(
+      new Set(categoryRecords.map(({ systemKey }) => systemKey)).size,
+    ).toBe(86)
+    expect(souvenir).toMatchObject({
+      name: '旅行纪念',
+      iconId: 'custom-icon',
+      isEnabled: false,
+      deletedAt,
+      sortOrder: 99,
+    })
+    const accommodation = categoryRecords.find(
+      ({ systemKey }) => systemKey === 'expense_accommodation',
+    )!
+    expect(
+      categoryRecords.filter(({ parentId }) => parentId === accommodation.id),
+    ).toHaveLength(3)
   })
 
   it('创建六个默认成员，重复初始化保留名称修改和软删除状态', async () => {

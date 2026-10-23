@@ -123,6 +123,11 @@ export const DEFAULT_EXPENSE_CATEGORIES: ReadonlyArray<DefaultExpenseCategory> =
           iconKey: 'appliances',
         },
         {
+          name: '纪念品',
+          systemKey: 'expense_shopping_souvenir',
+          iconKey: 'souvenir',
+        },
+        {
           name: '其他购物',
           systemKey: 'expense_shopping_other',
           iconKey: 'shopping-other',
@@ -180,6 +185,32 @@ export const DEFAULT_EXPENSE_CATEGORIES: ReadonlyArray<DefaultExpenseCategory> =
           name: '运动',
           systemKey: 'expense_entertainment_sports',
           iconKey: 'fitness',
+        },
+        {
+          name: '景点门票',
+          systemKey: 'expense_entertainment_attraction_tickets',
+          iconKey: 'attraction-ticket',
+        },
+      ],
+    },
+    {
+      name: '住宿',
+      systemKey: 'expense_accommodation',
+      children: [
+        {
+          name: '酒店',
+          systemKey: 'expense_accommodation_hotel',
+          iconKey: 'hotel',
+        },
+        {
+          name: '民宿',
+          systemKey: 'expense_accommodation_homestay',
+          iconKey: 'homestay',
+        },
+        {
+          name: '其它住宿',
+          systemKey: 'expense_accommodation_other',
+          iconKey: 'accommodation-other',
         },
       ],
     },
