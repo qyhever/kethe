@@ -101,3 +101,29 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "transactionType": 1, "memberIds": ["{{memberId}}"] }
+
+### 查询当前个人资料
+GET {{baseUrl}}/user/me
+Authorization: Bearer {{token}}
+
+### 修改当前昵称或用户名（至少一个字段）
+PATCH {{baseUrl}}/user/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nickname": "记账用户",
+  "username": "ledger-user"
+}
+
+### 更换头像（将 ./avatar.png 替换为本地图片，最大 5 MiB）
+POST {{baseUrl}}/user/me/avatar
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=ProfileAvatarBoundary
+
+--ProfileAvatarBoundary
+Content-Disposition: form-data; name="file"; filename="avatar.png"
+Content-Type: image/png
+
+< ./avatar.png
+--ProfileAvatarBoundary--

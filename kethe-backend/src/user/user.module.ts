@@ -1,3 +1,4 @@
+import { AttachModule } from '../attach/attach.module'
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { User } from './entities/user.entity'
@@ -11,7 +12,10 @@ import { Category } from './entities/category.entity'
 import { DefaultUserDataService } from './default-user-data.service'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Category, Account, Member])],
+  imports: [
+    AttachModule,
+    TypeOrmModule.forFeature([User, Category, Account, Member]),
+  ],
   controllers: [UserController],
   providers: [
     UserService,

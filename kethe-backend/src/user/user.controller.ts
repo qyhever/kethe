@@ -10,8 +10,20 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common'
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
+import { FileInterceptor } from '@nestjs/platform-express'
+import type { AttachUploadFile } from '../attach/attach.types'
+import { UpdateProfileDto } from './dto/update-profile.dto'
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger'
 import type { RequestWithContext } from '../common/types/request-with-context'
 import {
   ApiAccessTokenErrorResponse,
@@ -90,6 +102,57 @@ export class UserController {
   })
   findCurrentUser(@Req() request: RequestWithContext) {
     return this.userService.findOne(request.user!.id)
+  }
+
+  @Patch('me')
+  @SuccessMessage('更新成功')
+  @ApiOperation({ summary: '修改当前用户昵称或用户名' })
+  @ApiWrappedOkResponse({
+    description: '更新后的当前用户',
+    message: '更新成功',
+    data: { model: User },
+  })
+  updateProfile(
+    @Req() request: RequestWithContext,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.userService.updateProfile(request.user!.id, dto)
+  }
+
+  @Post('me/avatar')
+  @HttpCode(HttpStatus.OK)
+  @SuccessMessage('更新成功')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        // Multer 在达到限制时即拒绝；多留 1 字节使恰好 5 MiB 可通过。
+        fileSize: 5 * 1024 * 1024 + 1,
+        files: 1,
+      },
+    }),
+  )
+  @ApiOperation({
+    summary: '更新当前用户头像',
+    description: 'JPG、PNG、WebP，非空且最大 5 MiB；立即保存',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiWrappedOkResponse({
+    description: '更新后的当前用户',
+    message: '更新成功',
+    data: { model: User },
+  })
+  updateAvatar(
+    @Req() request: RequestWithContext,
+    @UploadedFile() file?: AttachUploadFile & { mimetype: string },
+  ) {
+    return this.userService.updateAvatar(request.user!.id, file)
   }
 
   @Post('batch-delete')

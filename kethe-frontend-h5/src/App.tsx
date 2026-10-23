@@ -17,6 +17,7 @@ import { AccountTransactionsPage } from './pages/AccountTransactionsPage'
 import { ChartPage } from './pages/ChartPage'
 import { BillPage } from './pages/BillPage'
 import { MemberSettingsPage, MemberEditPage } from './pages/MemberSettingsPage'
+import { UserProfilePage, UserProfileTextPage, UserProfileAvatarPage } from './pages/UserProfilePages'
 import { ProfilePage } from './pages/ProfilePage'
 import { AboutPage } from './pages/AboutPage'
 import { FeedbackPage } from './pages/FeedbackPage'
@@ -75,7 +76,10 @@ function App() {
           <Route path="/chart" element={<ChartPage />} />
           <Route path="/bill" element={<BillPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/profile/user" element={<ProfilePlaceholderPage title="个人资料" />} />
+          <Route path="/profile/user" element={<UserProfilePage />} />
+          <Route path="/profile/user/nickname" element={<UserProfileTextPage field="nickname" />} />
+          <Route path="/profile/user/username" element={<UserProfileTextPage field="username" />} />
+          <Route path="/profile/user/avatar" element={<UserProfileAvatarPage />} />
           <Route path="/profile/settings" element={<SettingsPage />} />
           <Route path="/profile/settings/security" element={<AccountSecurityPage />} />
           <Route path="/profile/settings/security/reset-password" element={<ResetPasswordPage />} />

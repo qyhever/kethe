@@ -1,4 +1,11 @@
-import { Injectable } from '@nestjs/common'
+import {
+  BadRequestException,
+  FileTypeValidator,
+  Injectable,
+} from '@nestjs/common'
+import { AttachService } from '../attach/attach.service'
+import type { AttachUploadFile } from '../attach/attach.types'
+import { UpdateProfileDto } from './dto/update-profile.dto'
 import { ConfigService } from '@nestjs/config'
 import { hash } from 'bcryptjs'
 import { DataSource, type EntityManager } from 'typeorm'
@@ -18,6 +25,7 @@ import { DefaultUserDataService } from './default-user-data.service'
 @Injectable()
 export class UserService {
   constructor(
+    private readonly attachService: AttachService,
     private readonly dataSource: DataSource,
     private readonly userRepository: UserRepository,
     private readonly configService: ConfigService<EnvironmentVariables, true>,
@@ -170,6 +178,105 @@ export class UserService {
     }
 
     return user
+  }
+
+  private async editableUser(id: number): Promise<User | ServiceErrorResult> {
+    const user = await this.userRepository.findById(id)
+    if (!user || user.deletedAt)
+      return { error: true, message: ResponseMessageEnum.USER_NOT_FOUND }
+    if (!user.isEnabled)
+      return { error: true, message: ResponseMessageEnum.USER_DISABLED }
+    if (user.isSystemDefault)
+      return {
+        error: true,
+        message: ResponseMessageEnum.SYSTEM_DEFAULT_USER_CANNOT_BE_MODIFIED,
+      }
+    return user
+  }
+
+  async updateProfile(
+    id: number,
+    dto: UpdateProfileDto,
+  ): Promise<User | ServiceErrorResult> {
+    if (dto.nickname === undefined && dto.username === undefined)
+      throw new BadRequestException('至少提供昵称或用户名')
+    const user = await this.editableUser(id)
+    if ('error' in user) return user
+    const username = dto.username?.trim()
+    const nickname = dto.nickname?.trim()
+    for (const value of [username, nickname]) {
+      if (
+        value !== undefined &&
+        ([...value].length < 1 || [...value].length > 50)
+      )
+        throw new BadRequestException('昵称和用户名须为 1–50 个字符')
+    }
+    if (username === undefined || username === user.username) {
+      if (nickname === undefined || nickname === user.nickname) return user
+    } else if (await this.userRepository.existsByUsername(username)) {
+      return {
+        error: true,
+        message: ResponseMessageEnum.USERNAME_ALREADY_EXISTS,
+      }
+    }
+    const updated = Object.assign(new User(), user, {
+      username: username ?? user.username,
+      nickname: nickname ?? user.nickname,
+    })
+    try {
+      return await this.userRepository.save(updated)
+    } catch (error) {
+      const databaseError = error as {
+        code?: string
+        driverError?: { code?: string }
+      }
+      if (
+        databaseError.code === 'ER_DUP_ENTRY' ||
+        databaseError.driverError?.code === 'ER_DUP_ENTRY'
+      )
+        return {
+          error: true,
+          message: ResponseMessageEnum.USERNAME_ALREADY_EXISTS,
+        }
+      throw error
+    }
+  }
+
+  async updateAvatar(
+    id: number,
+    file?: AttachUploadFile & { mimetype: string },
+  ): Promise<User | ServiceErrorResult> {
+    const user = await this.editableUser(id)
+    if ('error' in user) return user
+    if (!file || !Buffer.isBuffer(file.buffer) || !file.buffer.length)
+      throw new BadRequestException('必须提供非空图片')
+    if (file.buffer.length > 5 * 1024 * 1024)
+      throw new BadRequestException('头像不能超过 5 MiB')
+    const extensions: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    }
+    const extension = extensions[file.mimetype]
+    if (
+      !extension ||
+      !(await new FileTypeValidator({ fileType: file.mimetype }).isValid({
+        ...file,
+        size: file.buffer.length,
+      }))
+    )
+      throw new BadRequestException(
+        '仅支持内容与格式一致的 JPG、PNG、WebP 图片',
+      )
+    const uploaded = await this.attachService.upload({
+      ...file,
+      originalname: 'avatar.' + extension,
+    })
+    if (uploaded.url.length > 255)
+      throw new BadRequestException('头像地址超过长度限制')
+    return this.userRepository.save(
+      Object.assign(new User(), user, { avatar: uploaded.url }),
+    )
   }
 
   async update(

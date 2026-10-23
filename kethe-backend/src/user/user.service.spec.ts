@@ -1,3 +1,4 @@
+import { AttachService } from '../attach/attach.service'
 import { Test, TestingModule } from '@nestjs/testing'
 import { ConfigService } from '@nestjs/config'
 import { compare, getRounds } from 'bcryptjs'
@@ -42,6 +43,7 @@ describe('UserService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
+        { provide: AttachService, useValue: { upload: jest.fn() } },
         {
           provide: DataSource,
           useValue: {

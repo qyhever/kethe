@@ -51,7 +51,6 @@ export function ProfilePage() {
   const signOut = useAuthStore((state) => state.signOut)
   const [avatarFailed, setAvatarFailed] = useState(false)
   const avatar = !avatarFailed && user?.avatar ? user.avatar : fallbackAvatar
-  const displayName = user?.nickname?.trim() || user?.username?.trim() || '用户'
 
   useEffect(() => {
     setAvatarFailed(false)
@@ -83,8 +82,8 @@ export function ProfilePage() {
             <img src={avatar} alt="" onError={() => setAvatarFailed(true)} />
           </span>
           <span className="profile-user-copy">
-            <strong>{displayName}</strong>
-            <span>{user?.email || '暂无邮箱信息'}</span>
+            <strong>{user?.nickname || '用户'}</strong>
+            <span>{user?.username}</span>
           </span>
           <ChevronRight className="profile-chevron" aria-hidden="true" size={22} />
         </button>
