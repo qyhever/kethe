@@ -4,6 +4,8 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { SettingsPage, AccountSecurityPage } from './pages/SettingsPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { HomePage } from './pages/HomePage'
 import { ToastProvider } from './components/Toast'
@@ -73,7 +75,9 @@ function App() {
           <Route path="/bill" element={<BillPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/user" element={<ProfilePlaceholderPage title="个人资料" />} />
-          <Route path="/profile/settings" element={<ProfilePlaceholderPage title="设置" />} />
+          <Route path="/profile/settings" element={<SettingsPage />} />
+          <Route path="/profile/settings/security" element={<AccountSecurityPage />} />
+          <Route path="/profile/settings/security/reset-password" element={<ResetPasswordPage />} />
           <Route path="/profile/categories" element={<CategorySettingsPage />} />
           <Route path="/profile/expense-projects" element={<ExpenseProjectListPage />} />
           <Route path="/profile/expense-projects/new" element={<ExpenseProjectEditPage />} />
@@ -99,7 +103,8 @@ function App() {
         <Route element={<RequireAnonymous />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<Navigate replace to="/forgot-password" />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

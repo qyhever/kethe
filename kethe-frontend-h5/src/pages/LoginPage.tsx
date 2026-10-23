@@ -69,7 +69,7 @@ export function LoginPage() {
             value={password}
           />
         </div>
-        <Link className="auth-form__forgot" to="/reset-password">
+        <Link className="auth-form__forgot" to="/forgot-password">
           忘记密码？
         </Link>
         <button className="auth-form__submit" disabled={submitting} type="submit">
