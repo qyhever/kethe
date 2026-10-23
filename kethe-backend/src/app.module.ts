@@ -20,6 +20,7 @@ import { AuthModule } from './auth/auth.module'
 import { ProjectModule } from './project/project.module'
 import { AttachModule } from './attach/attach.module'
 import { LedgerModule } from './ledger/ledger.module'
+import { FeedbackModule } from './feedback/feedback.module'
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { LedgerModule } from './ledger/ledger.module'
     ProjectModule,
     AttachModule,
     LedgerModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [
