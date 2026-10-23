@@ -1,3 +1,4 @@
+import { Loading } from '../Loading'
 import { Check } from 'lucide-react'
 import { ExpenseProjectIcon } from './ExpenseProjectIcon'
 import { useEffect, useId, useState } from 'react'
@@ -90,7 +91,7 @@ export function ExpenseProjectSheet({
         <header>
           <h2 id={titleId}>{title}</h2>
         </header>
-        {loading && <p className="account-sheet__status">正在加载消费项目…</p>}
+        {loading && <Loading variant="compact" text="正在加载消费项目…" />}
         {error && (
           <p className="account-sheet__status" role="alert">
             {error}{' '}

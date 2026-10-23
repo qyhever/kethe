@@ -1,3 +1,4 @@
+import { Loading } from '../components/Loading'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
@@ -26,7 +27,7 @@ function ProfileFrame({ title, list = false, children }: { title: string; list?:
   }, [refresh, attempt])
   return <main className="user-profile-page">
     <SettingsHeader title={title} backTo={list ? '/profile' : '/profile/user'} />
-    {status === 'loading' ? <p role="status">加载中…</p> : status === 'error' ? <div role="alert"><p>资料加载失败，请重试</p><button className="user-profile-submit" onClick={() => { setStatus('loading'); setAttempt(value => value + 1) }}>重试</button></div> : children}
+    {status === 'loading' ? <Loading /> : status === 'error' ? <div role="alert"><p>资料加载失败，请重试</p><button className="user-profile-submit" onClick={() => { setStatus('loading'); setAttempt(value => value + 1) }}>重试</button></div> : children}
   </main>
 }
 
@@ -104,7 +105,7 @@ function AvatarForm() {
       if (file) void upload(file)
     }} />
     <button type="button" className="user-profile-submit" disabled={busy || user?.isSystemDefault} onClick={() => input.current?.click()}>{busy ? '上传中…' : '更换头像'}</button>
-    {busy && <p role="status">正在保存头像，请稍候…</p>}
+    {busy && <Loading variant="compact" text="正在保存头像，请稍候…" />}
   </div>
 }
 

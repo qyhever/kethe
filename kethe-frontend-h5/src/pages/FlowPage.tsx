@@ -1,3 +1,4 @@
+import { Loading } from '../components/Loading'
 import {
   fetchExpenseProjects,
   type ExpenseProject,
@@ -802,9 +803,7 @@ function FilterSheet({
           </span>
         </button>
         {optionsLoading && (
-          <p className="filter-options-state" role="status">
-            正在加载分类、账户和成员…
-          </p>
+          <Loading variant="compact" text="正在加载分类、账户和成员…" />
         )}
         {optionsError && (
           <div className="filter-options-state is-error">
@@ -1763,9 +1762,7 @@ export function FlowPage() {
         </nav>
         <div className="flow-list">
           {initialLoading && (
-            <div className="flow-state" role="status">
-              正在加载流水…
-            </div>
+            <Loading text="正在加载流水…" />
           )}
           {!initialLoading && initialError && (
             <div className="flow-state flow-state--error" role="alert">

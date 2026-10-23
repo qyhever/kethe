@@ -1,3 +1,4 @@
+import { Loading } from '../components/Loading'
 import {
   fetchExpenseProjects,
   type ExpenseProject,
@@ -371,7 +372,7 @@ function CategoryPage({
             {error}
           </p>
         )}
-        {loading && <p className="tally-status">正在加载分类…</p>}
+        {loading && <Loading variant="compact" text="正在加载分类…" />}
         {!loading && !error && categories.length === 0 && (
           <p className="tally-status">暂无可用分类</p>
         )}
@@ -860,9 +861,7 @@ export function TallyPage() {
         />
 
         {isLoadingDetail && (
-          <p className="tally-status" role="status">
-            正在加载流水详情…
-          </p>
+          <Loading variant="compact" text="正在加载流水详情…" />
         )}
         {detailError && (
           <div className="tally-detail-error" role="alert">

@@ -1,3 +1,4 @@
+import { Loading } from '../components/Loading'
 import { SettingsHeader } from '../components/SettingsHeader'
 import { projectIconLabels } from '../components/ExpenseProject/project-icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -106,9 +107,7 @@ export function ExpenseProjectListPage() {
         ))}
       </div>
       {loading ? (
-        <p role="status" className="member-page__status">
-          正在加载…
-        </p>
+        <Loading />
       ) : error ? (
         <p role="alert" className="member-page__status">
           {error}
@@ -282,7 +281,7 @@ export function ExpenseProjectEditPage() {
     <main className="settings-layout account-page member-page project-page">
       <SettingsHeader title={id ? '编辑项目' : '新增项目'} onBack={back} />
       {loading ? (
-        <p className="member-page__status">正在加载…</p>
+        <Loading />
       ) : error ? (
         <p role="alert">
           {error}
@@ -465,7 +464,7 @@ export function ExpenseProjectDetailPage() {
           <button onClick={() => setRetry((v) => v + 1)}>重试</button>
         </p>
       ) : !item ? (
-        <p className="member-page__status">正在加载…</p>
+        <Loading />
       ) : (
         <>
           <section className="project-card">
@@ -509,7 +508,7 @@ export function ExpenseProjectDetailPage() {
                 <button onClick={() => setRetry((v) => v + 1)}>重试</button>
               </p>
             ) : !report ? (
-              <p>正在加载…</p>
+              <Loading variant="compact" text="正在加载分类构成…" />
             ) : (
               <>
                 {report.list.length > 0 && (

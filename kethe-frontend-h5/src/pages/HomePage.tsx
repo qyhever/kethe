@@ -1,3 +1,4 @@
+import { Loading } from '../components/Loading'
 import {
   ArrowDown,
   ArrowUp,
@@ -466,7 +467,7 @@ export function HomePage() {
             </button>
           }
         />
-        {loading && <div className="home-state" role="status">正在加载首页数据…</div>}
+        {loading && <div className="home-state"><Loading text="正在加载首页数据…" /></div>}
         {!loading && error && (
           <div className="home-state home-state--error" role="alert">
             <p>{error}</p>

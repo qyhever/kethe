@@ -1,10 +1,11 @@
+import { Loading } from '../Loading'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../stores/auth'
 
 function AuthChecking() {
   return (
     <main className="auth-checking" aria-live="polite" aria-busy="true">
-      正在验证登录状态…
+      <Loading text="正在验证登录状态…" />
     </main>
   )
 }

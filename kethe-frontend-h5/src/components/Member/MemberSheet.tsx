@@ -1,3 +1,4 @@
+import { Loading } from '../Loading'
 import { Check } from 'lucide-react'
 import { MemberIcon } from './MemberIcon'
 import { useEffect, useId, useState } from 'react'
@@ -90,7 +91,7 @@ export function MemberSheet({
         <header>
           <h2 id={titleId}>{title}</h2>
         </header>
-        {loading && <p className="account-sheet__status">正在加载成员…</p>}
+        {loading && <Loading variant="compact" text="正在加载成员…" />}
         {error && <p className="account-sheet__status" role="alert">{error} <button type="button" onClick={onRetry}>重试</button></p>}
         {!loading && accounts.length === 0 && <p className="account-sheet__status">暂无可用成员</p>}
         {!loading && accounts.map((account) => (

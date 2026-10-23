@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchYearlyBill } from '../api/ledger'
 import type { BillMonthSummary, YearlyBill } from '../api/types'
+import { Loading } from '../components/Loading'
 import { PeriodSheet, type PeriodOption } from '../components/PeriodSheet'
 import { Tabbar, type TabId } from '../components/Tarbar'
 import './BillPage.css'
@@ -49,18 +50,6 @@ function lastDayOfMonth(year: string, month: number) {
 
 function amountClass(value: string) {
   return formatCents(value).length > 13 ? ' is-long' : ''
-}
-
-function BillSkeleton() {
-  return (
-    <div className="bill-skeleton" aria-label="正在加载年度账单" role="status">
-      <div className="bill-skeleton__summary" />
-      <div className="bill-skeleton__table">
-        <i />
-        {MONTHS.map((month) => <i key={month} />)}
-      </div>
-    </div>
-  )
 }
 
 export function BillPage() {
@@ -143,7 +132,7 @@ export function BillPage() {
           <span className="bill-header__balance" aria-hidden="true" />
         </header>
 
-        {loading && <BillSkeleton />}
+        {loading && <Loading text="正在加载年度账单…" />}
 
         {!loading && error && (
           <section className="bill-error" role="alert">

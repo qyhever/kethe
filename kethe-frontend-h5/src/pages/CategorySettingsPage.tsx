@@ -1,3 +1,4 @@
+import { Loading } from '../components/Loading'
 import { SettingsHeader } from '../components/SettingsHeader'
 import {
   ChevronDown,
@@ -451,7 +452,7 @@ export function CategorySettingsPage() {
       <TypeTabs value={type} onChange={setType} />
       <p className="category-settings__intro">管理{type === 1 ? '支出' : '收入'}分类，支持新增、编辑、删除和排序</p>
       <section className="category-settings__list" aria-live="polite" ref={listRef}>
-        {loading ? <div className="category-settings__status"><LoaderCircle className="is-spinning" />加载中…</div>
+        {loading ? <Loading text="正在加载分类…" />
           : error ? <div className="category-settings__status"><p>{error}</p><button type="button" onClick={() => void load(type)}><RotateCcw size={17} />重新加载</button></div>
             : categories.length === 0 ? <div className="category-settings__status"><p>还没有{type === 1 ? '支出' : '收入'}分类</p><span>点击下方按钮创建第一个分类</span></div>
               : categories.map((item) => (

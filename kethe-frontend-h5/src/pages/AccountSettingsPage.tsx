@@ -1,3 +1,4 @@
+import { Loading } from '../components/Loading'
 import { SettingsHeader } from '../components/SettingsHeader'
 import './AccountTransactionsPage.css'
 import { AlertCircle, Check, ChevronDown, Circle, Edit3, Ellipsis, LoaderCircle, Plus, Power, RotateCcw, Trash2 } from 'lucide-react'
@@ -66,7 +67,7 @@ export function AccountSettingsPage() {
       <SettingsHeader title="账户设置" onBack={() => navigate('/profile')} action={<button type="button" aria-label="新增账户" onClick={() => navigate('/profile/accounts/new')}><Plus /></button>} />
       {!loading && !error && accounts.length > 0 && <section className="account-summary"><span>净资产 <AlertCircle size={13} /></span><strong><Money cents={netWorth} /></strong><div><span>资产合计<strong><Money cents={assetTotal} /></strong></span><span>负债合计<strong><Money cents={liabilityTotal} /></strong></span></div></section>}
       <button className="account-statistics-entry" type="button" onClick={() => navigate('/chart/account-transactions?source=accounts')}>交易笔数统计</button>
-      <div className="account-page__content" aria-live="polite">{loading ? <PageStatus loading text="正在加载账户…" /> : error ? <PageStatus text={error} retry={load} /> : accounts.length === 0 ? <PageStatus text="还没有账户" secondary="创建账户后，资产与负债会在这里汇总" /> : <>{renderGroup('资产账户', assets)}{renderGroup('负债账户', liabilities)}{renderGroup('已停用账户', disabled)}</>}</div>
+      <div className="account-page__content" aria-live="polite">{loading ? <Loading text="正在加载账户…" /> : error ? <PageStatus text={error} retry={load} /> : accounts.length === 0 ? <PageStatus text="还没有账户" secondary="创建账户后，资产与负债会在这里汇总" /> : <>{renderGroup('资产账户', assets)}{renderGroup('负债账户', liabilities)}{renderGroup('已停用账户', disabled)}</>}</div>
       <BottomAction onClick={() => navigate('/profile/accounts/new')}><Plus />新增账户</BottomAction>
     </main>
   )
@@ -90,7 +91,7 @@ export function AccountCreatePage({ details = false }: { details?: boolean }) {
     setSelectedSubType(first.subTypes[0]?.value ?? '')
   }, [options])
   if (error) return <main className="settings-layout account-page"><SettingsHeader title="新增账户" onBack={() => navigate(-1)} /><PageStatus text={error} retry={reload} /></main>
-  if (!options) return <main className="settings-layout account-page"><SettingsHeader title="新增账户" onBack={() => navigate(-1)} /><PageStatus loading text="正在加载…" /></main>
+  if (!options) return <main className="settings-layout account-page"><SettingsHeader title="新增账户" onBack={() => navigate(-1)} /><Loading text="正在加载…" /></main>
   if (details && selectedTypeFromSearch) return <AccountFormPage options={options} selectedType={selectedTypeFromSearch} initialSubType={selectedTypeFromSearch.subTypes.some((item) => item.value === Number(search.get('subType'))) ? Number(search.get('subType')) : selectedTypeFromSearch.subTypes[0]?.value ?? ''} onBack={() => navigate(-1)} />
   const next = () => {
     if (selectedType === null) return
@@ -141,7 +142,7 @@ export function AccountDetailPage() {
   const [acting, setActing] = useState(false)
   const load = useCallback(async () => { setLoading(true); setError(''); try { setAccount(await fetchAccount(id)) } catch (caught) { setError(errorMessage(caught, '加载账户失败')) } finally { setLoading(false) } }, [id])
   useEffect(() => void load(), [load])
-  if (loading) return <main className="settings-layout account-page"><SettingsHeader title="账户详情" onBack={() => navigate(-1)} /><PageStatus loading text="正在加载…" /></main>
+  if (loading) return <main className="settings-layout account-page"><SettingsHeader title="账户详情" onBack={() => navigate(-1)} /><Loading text="正在加载…" /></main>
   if (error || !account) return <main className="settings-layout account-page"><SettingsHeader title="账户详情" onBack={() => navigate(-1)} /><PageStatus text={error || '账户不存在'} retry={load} /></main>
   const type = optionFor(options, account.accountType)
   const subType = type?.subTypes.find((item) => item.value === account.accountSubType)
@@ -172,7 +173,7 @@ export function AccountEditPage() {
   const [account, setAccount] = useState<LedgerAccount | null>(null); const [error, setError] = useState('')
   useEffect(() => { void fetchAccount(id).then(setAccount).catch((caught) => setError(errorMessage(caught, '加载账户失败'))) }, [id])
   if (error || optionsError) return <main className="settings-layout account-page"><SettingsHeader title="编辑账户" onBack={() => navigate(-1)} /><PageStatus text={error || optionsError} retry={error ? undefined : reload} /></main>
-  if (!options || !account) return <main className="settings-layout account-page"><SettingsHeader title="编辑账户" onBack={() => navigate(-1)} /><PageStatus loading text="正在加载…" /></main>
+  if (!options || !account) return <main className="settings-layout account-page"><SettingsHeader title="编辑账户" onBack={() => navigate(-1)} /><Loading text="正在加载…" /></main>
   return <AccountFormPage options={options} selectedType={optionFor(options, account.accountType)!} initialSubType={account.accountSubType ?? ''} account={account} onBack={() => navigate(-1)} />
 }
 
@@ -226,5 +227,5 @@ function AccountFormPage({ options, selectedType, initialSubType, account, onBac
 
 function FormField({ label, required, hint, count, children }: { label: string; required?: boolean; hint?: string; count?: string; children: ReactNode }) { return <label className="account-form__field"><span>{label}{required && <em>*</em>}</span>{children}{hint && <small><AlertCircle size={13} />{hint}</small>}{count && <i>{count}</i>}</label> }
 function MoneyField({ value, placeholder, disabled, onChange }: { value: string; placeholder: string; disabled?: boolean; onChange: (value: string) => void }) { return <span className="account-form__money">¥<input disabled={disabled} inputMode="decimal" value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value.replace(/[^\d.]/g, ''))} /></span> }
-function PageStatus({ loading, text, secondary, retry }: { loading?: boolean; text: string; secondary?: string; retry?: () => void | Promise<void> }) { return <div className="account-status">{loading && <LoaderCircle className="is-spinning" />}<strong>{text}</strong>{secondary && <span>{secondary}</span>}{retry && <button type="button" onClick={() => void retry()}><RotateCcw />重新加载</button>}</div> }
+function PageStatus({ text, secondary, retry }: { text: string; secondary?: string; retry?: () => void | Promise<void> }) { return <div className="account-status"><strong>{text}</strong>{secondary && <span>{secondary}</span>}{retry && <button type="button" onClick={() => void retry()}><RotateCcw />重新加载</button>}</div> }
 function BottomAction({ children, onClick, disabled }: { children: ReactNode; onClick: () => void; disabled?: boolean }) { return <div className="account-bottom"><button type="button" disabled={disabled} onClick={onClick}>{children}</button></div> }

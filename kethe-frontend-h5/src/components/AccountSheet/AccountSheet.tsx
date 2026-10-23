@@ -1,3 +1,4 @@
+import { Loading } from '../Loading'
 import { Check, WalletCards } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import './AccountSheet.css'
@@ -83,7 +84,7 @@ export function AccountSheet({
         <header>
           <h2 id={titleId}>选择账户</h2>
         </header>
-        {loading && <p className="account-sheet__status">正在加载账户…</p>}
+        {loading && <Loading variant="compact" text="正在加载账户…" />}
         {!loading && accounts.length === 0 && <p className="account-sheet__status">暂无可用账户</p>}
         {!loading && accounts.map((account) => (
           <button

@@ -282,45 +282,6 @@
   background: var(--color-brand);
 }
 
-.bill-skeleton {
-  display: grid;
-  gap: 20px;
-}
-
-.bill-skeleton__summary,
-.bill-skeleton__table {
-  overflow: hidden;
-  border-radius: var(--radius-2xl);
-  background: var(--color-surface-raised);
-}
-
-.bill-skeleton__summary {
-  height: 242px;
-}
-
-.bill-skeleton__table {
-  display: grid;
-  padding: 0 18px;
-}
-
-.bill-skeleton__table i {
-  height: 56px;
-  border-bottom: 1px solid var(--color-separator);
-}
-
-.bill-skeleton__table i:first-child { height: 62px; }
-
-.bill-skeleton__summary::after,
-.bill-skeleton__table i::after {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(100deg, var(--color-fill-secondary) 20%, var(--color-fill-tertiary) 42%, var(--color-fill-secondary) 64%);
-  background-size: 210% 100%;
-  content: '';
-  animation: bill-shimmer 1.35s linear infinite;
-}
-
 .sr-only {
   position: absolute;
   width: 1px;
@@ -334,10 +295,6 @@
 @keyframes bill-rise {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes bill-shimmer {
-  to { background-position: -210% 0; }
 }
 
 @media (max-width: 430px) {
@@ -367,9 +324,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bill-summary,
-  .bill-months,
-  .bill-skeleton__summary::after,
-  .bill-skeleton__table i::after {
+  .bill-months {
     animation: none;
   }
 
