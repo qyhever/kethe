@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import fallbackAvatar from '../assets/avatar.svg'
 import { Tabbar, type TabId } from '../components/Tarbar'
+import { APP_VERSION } from '../constants/app'
 import { useAuthStore } from '../stores/auth'
 import './ProfilePage.css'
 
@@ -108,7 +109,7 @@ export function ProfilePage() {
           <LogOut aria-hidden="true" size={18} />
           退出登录
         </button>
-        <p className="profile-version">v1.0.0</p>
+        <p className="profile-version">{APP_VERSION}</p>
       </main>
       <Tabbar activeTab="profile" onTabClick={handleTab} />
     </div>

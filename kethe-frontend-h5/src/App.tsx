@@ -18,6 +18,7 @@ import { ChartPage } from './pages/ChartPage'
 import { BillPage } from './pages/BillPage'
 import { MemberSettingsPage, MemberEditPage } from './pages/MemberSettingsPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { AboutPage } from './pages/AboutPage'
 import { FeedbackPage } from './pages/FeedbackPage'
 import { ProfilePlaceholderPage } from './pages/ProfilePlaceholderPage'
 import { CategorySettingsPage } from './pages/CategorySettingsPage'
@@ -94,7 +95,7 @@ function App() {
           <Route path="/profile/export" element={<ProfilePlaceholderPage title="数据导出" />} />
           <Route path="/profile/theme" element={<ProfilePlaceholderPage title="主题设置" />} />
           <Route path="/profile/currency" element={<ProfilePlaceholderPage title="货币设置" />} />
-          <Route path="/profile/about" element={<ProfilePlaceholderPage title="关于产品" />} />
+          <Route path="/profile/about" element={<AboutPage />} />
           <Route path="/profile/feedback" element={<FeedbackPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/tally/*" element={<TallyPage />} />
