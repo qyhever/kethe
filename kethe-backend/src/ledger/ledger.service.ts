@@ -1,3 +1,4 @@
+import { ExpenseProject } from './entities/expense-project.entity'
 import {
   BadRequestException,
   ConflictException,
@@ -64,6 +65,11 @@ interface CategoryRow {
 }
 
 interface TransactionRow {
+  expenseProjectId: string | null
+  expenseProjectName: string | null
+  expenseProjectIconKey: string | null
+  expenseProjectArchived: boolean
+
   memberId: string | null
   memberName: string | null
   memberIconKey: string | null
@@ -504,8 +510,14 @@ export class LedgerService {
         dto,
         accounts,
       )
+      const expenseProjectId = await this.resolveExpenseProject(
+        manager,
+        userId,
+        dto,
+      )
       const memberId = await this.resolveMember(manager, userId, dto)
       const entity = manager.getRepository(Transaction).create({
+        expenseProjectId,
         memberId,
         userId,
         transactionType: dto.transactionType,
@@ -556,8 +568,15 @@ export class LedgerService {
         dto,
         old.memberId,
       )
+      const expenseProjectId = await this.resolveExpenseProject(
+        manager,
+        userId,
+        dto,
+        old.expenseProjectId,
+      )
       this.applyBalance(accounts, old, -1)
       Object.assign(old, {
+        expenseProjectId,
         memberId,
         transactionType: dto.transactionType,
         amount: dto.amount,
@@ -762,7 +781,16 @@ export class LedgerService {
         'm',
         'm.id = t.memberId AND m.userId = t.userId',
       )
+      .leftJoin(
+        '(SELECT * FROM expense_projects)',
+        'ep',
+        'ep.id = t.expenseProjectId AND ep.userId = t.userId',
+      )
       .select([
+        't.expenseProjectId expenseProjectId',
+        'ep.name expenseProjectName',
+        'ep.iconKey expenseProjectIconKey',
+        'ep.isArchived expenseProjectArchived',
         't.id id',
         't.memberId memberId',
         'm.name memberName',
@@ -808,6 +836,10 @@ export class LedgerService {
         '(t.accountId IN (:...accountIds) OR t.targetAccountId IN (:...accountIds))',
         { accountIds: query.accountIds },
       )
+    if (query.expenseProjectIds?.length)
+      qb.andWhere('t.expenseProjectId IN (:...expenseProjectIds)', {
+        expenseProjectIds: query.expenseProjectIds,
+      })
     if (query.memberIds?.length)
       qb.andWhere('t.memberId IN (:...memberIds)', {
         memberIds: query.memberIds,
@@ -829,6 +861,30 @@ export class LedgerService {
       )
     }
     return qb
+  }
+
+  private async resolveExpenseProject(
+    manager: DataSource['manager'],
+    userId: number,
+    dto: CreateTransactionDto,
+    previous?: string | null,
+  ) {
+    if (dto.transactionType !== TransactionType.EXPENSE) {
+      if (dto.expenseProjectId != null)
+        throw new BadRequestException('仅支出流水可关联消费项目')
+      return null
+    }
+    const id =
+      dto.expenseProjectId === undefined
+        ? (previous ?? null)
+        : dto.expenseProjectId
+    if (id === null) return null
+    const item = await manager
+      .getRepository(ExpenseProject)
+      .findOne({ where: { id, userId }, lock: { mode: 'pessimistic_write' } })
+    if (!item || (item.isArchived && id !== previous))
+      throw new BadRequestException('消费项目不存在、已归档或无权访问')
+    return String(item.id)
   }
 
   private async resolveMember(
@@ -948,6 +1004,9 @@ export class LedgerService {
       timePrecision: Number(row.timePrecision),
       memberId: row.memberId == null ? null : String(row.memberId),
       memberDeleted: !!row.memberDeletedAt,
+      expenseProjectId:
+        row.expenseProjectId == null ? null : String(row.expenseProjectId),
+      expenseProjectArchived: !!row.expenseProjectArchived,
       amount: String(row.amount),
       categoryId: row.categoryId === null ? null : String(row.categoryId),
       parentCategoryId:

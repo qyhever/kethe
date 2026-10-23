@@ -1,0 +1,170 @@
+.project-page {
+  padding-bottom: calc(var(--space-8, 32px) + env(safe-area-inset-bottom));
+}
+.project-tabs {
+  display: flex;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px);
+}
+.project-tabs button {
+  flex: 1;
+  padding: var(--space-3, 12px);
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-fill);
+  color: var(--color-text-primary);
+}
+.project-tabs button[aria-pressed='true'] {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+}
+.project-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.project-name strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-name small,
+.project-total small {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption-1);
+}
+.project-total {
+  flex-shrink: 0;
+  text-align: right;
+}
+.project-card {
+  margin: var(--space-4, 16px);
+  padding: var(--space-4, 16px);
+  border-radius: var(--radius-lg, 20px);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.project-card h1,
+.project-remark {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.project-card p {
+  color: var(--color-text-secondary);
+}
+.project-card .member-row {
+  width: 100%;
+  padding-inline: 0;
+  gap: var(--space-2, 8px);
+}
+.project-card .member-row:disabled {
+  opacity: 1;
+  color: var(--color-text-primary);
+}
+.project-donut {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  margin: var(--space-4, 16px) auto;
+  display: grid;
+  place-items: center;
+}
+.project-donut > span {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  display: grid;
+  place-items: center;
+}
+.project-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.project-page textarea {
+  min-width: 0;
+  width: 65%;
+  min-height: 80px;
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 0;
+  resize: vertical;
+}
+.project-page .member-save {
+  position: static;
+  margin: var(--space-6, 24px) auto;
+}
+
+.project-page .member-list,
+.project-page .member-form,
+.project-page .member-row {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+.project-page .member-row {
+  border-color: var(--color-separator);
+}
+.project-page .member-row input {
+  color: var(--color-text-primary);
+}
+.project-page .member-page__status {
+  color: var(--color-text-secondary);
+}
+.project-page .project-name strong {
+  flex: initial;
+}
+.project-page .project-card .member-row strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-page .member-row > button {
+  color: var(--color-text-primary);
+  background: transparent;
+}
+.project-page .member-row > button:last-child {
+  color: var(--color-brand);
+}
+
+.project-card h1 {
+  margin-block: var(--space-3, 12px) var(--space-2, 8px);
+  font-size: var(--font-size-title-2);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+.project-card h2 {
+  margin-block: var(--space-4, 16px) var(--space-2, 8px);
+  font-size: var(--font-size-title-3);
+  font-weight: var(--font-weight-semibold);
+}
+.project-card > h2 {
+  font-variant-numeric: tabular-nums;
+}
+.project-card:first-of-type > h2 {
+  font-size: var(--font-size-large-title);
+}
+.project-card p {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-relaxed);
+}
+
+.project-page .member-list,
+.project-page .member-form {
+  margin: var(--space-4, 16px);
+  border-radius: var(--radius-lg, 20px);
+}
+.project-page .member-row {
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px);
+}
+.project-page .member-icon {
+  border-radius: var(--radius-md, 12px);
+}
+.project-page .member-save {
+  border-radius: var(--radius-md, 12px);
+  padding: var(--space-4, 16px);
+}

@@ -1,3 +1,4 @@
+import { ExpenseProjectListPage, ExpenseProjectEditPage, ExpenseProjectDetailPage } from './pages/ExpenseProjectPages'
 import { useEffect, useRef } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
@@ -73,6 +74,10 @@ function App() {
           <Route path="/profile/user" element={<ProfilePlaceholderPage title="个人资料" />} />
           <Route path="/profile/settings" element={<ProfilePlaceholderPage title="设置" />} />
           <Route path="/profile/categories" element={<CategorySettingsPage />} />
+          <Route path="/profile/expense-projects" element={<ExpenseProjectListPage />} />
+          <Route path="/profile/expense-projects/new" element={<ExpenseProjectEditPage />} />
+          <Route path="/profile/expense-projects/:id" element={<ExpenseProjectDetailPage />} />
+          <Route path="/profile/expense-projects/:id/edit" element={<ExpenseProjectEditPage />} />
           <Route path="/profile/members" element={<MemberSettingsPage />} />
           <Route path="/profile/members/new" element={<MemberEditPage />} />
           <Route path="/profile/members/:id/edit" element={<MemberEditPage />} />

@@ -1,4 +1,9 @@
 import {
+  fetchExpenseProjects,
+  type ExpenseProject,
+} from '../api/expense-projects'
+import { ExpenseProjectIcon } from '../components/ExpenseProject/ExpenseProjectIcon'
+import {
   ArrowLeft,
   CalendarDays,
   Check,
@@ -63,6 +68,7 @@ interface Filters {
   endDate: string
   categoryIds: string[]
   accountIds: string[]
+  expenseProjectIds: string[]
   memberIds: string[]
   minimum: string
   maximum: string
@@ -72,6 +78,7 @@ interface FlowNavigationFilters {
   startDate: string
   endDate: string
   type: 'all' | 'expense' | 'income'
+  expenseProjectId?: string
   memberId?: string
   accountId?: string
   categoryId?: string
@@ -84,20 +91,26 @@ function filtersFromNavigation(value: FlowNavigationFilters): Filters {
     datePreset: value.startDate || value.endDate ? 'custom' : 'all',
     startDate: value.startDate,
     endDate: value.endDate,
+    expenseProjectIds: value.expenseProjectId ? [value.expenseProjectId] : [],
     memberIds: value.memberId ? [value.memberId] : [],
     accountIds: value.accountId ? [value.accountId] : [],
     categoryIds: value.categoryId ? [value.categoryId] : [],
   }
 }
 
-function navigationFiltersFromSearch(search: string): FlowNavigationFilters | undefined {
+function navigationFiltersFromSearch(
+  search: string,
+): FlowNavigationFilters | undefined {
   const params = new URLSearchParams(search)
+  const expenseProjectId = params.get('expenseProjectId')
   const memberId = params.get('memberId')
   const startDate = params.get('startDate')
   const endDate = params.get('endDate')
   const type = params.get('type')
   if (
-    ((!startDate || !endDate) && (!memberId || !/^[1-9]\d*$/.test(memberId))) ||
+    ((!startDate || !endDate) &&
+      (!memberId || !/^[1-9]\d*$/.test(memberId)) &&
+      (!expenseProjectId || !/^[1-9]\d*$/.test(expenseProjectId))) ||
     (type !== 'all' && type !== 'expense' && type !== 'income')
   )
     return undefined
@@ -105,6 +118,7 @@ function navigationFiltersFromSearch(search: string): FlowNavigationFilters | un
   return {
     startDate: startDate ?? '',
     endDate: endDate ?? '',
+    expenseProjectId: expenseProjectId || undefined,
     memberId: memberId || undefined,
     type,
     accountId: params.get('accountId') || undefined,
@@ -128,7 +142,13 @@ interface FlowYearGroup {
 
 interface FlowPageCache {
   locationKey: string
-  returnTo: '/home' | '/chart' | '/bill' | '/chart/account-transactions' | '/profile/members'
+  returnTo:
+    | '/home'
+    | '/chart'
+    | '/bill'
+    | '/chart/account-transactions'
+    | '/profile/members'
+    | `/profile/expense-projects/${string}`
   returnSearch?: string
   filters: Filters
   draft: Filters
@@ -142,6 +162,7 @@ interface FlowPageCache {
   initialLoading: boolean
   initialError: string | null
   retryKey: number
+  projects: ExpenseProject[]
   members: LedgerMember[]
   accounts: LedgerAccount[]
   categories: LedgerCategory[]
@@ -162,6 +183,7 @@ const EMPTY_FILTERS: Filters = {
   startDate: '',
   endDate: '',
   categoryIds: [],
+  expenseProjectIds: [],
   memberIds: [],
   accountIds: [],
   minimum: '',
@@ -362,10 +384,7 @@ function nextShanghaiDay(date: string) {
   return next.toISOString().slice(0, 10)
 }
 
-function buildQuery(
-  filters: Filters,
-  keyword: string,
-): TransactionQuery {
+function buildQuery(filters: Filters, keyword: string): TransactionQuery {
   return {
     startTime: filters.startDate
       ? new Date(`${filters.startDate}T00:00:00+08:00`).toISOString()
@@ -379,6 +398,7 @@ function buildQuery(
       ?.apiValue,
     categoryIds: filters.categoryIds,
     accountIds: filters.accountIds,
+    expenseProjectIds: filters.expenseProjectIds,
     memberIds: filters.memberIds,
     minAmount: filters.minimum ? yuanToCents(filters.minimum) : undefined,
     maxAmount: filters.maximum ? yuanToCents(filters.maximum) : undefined,
@@ -423,7 +443,12 @@ function groupTransactions(items: LedgerTransaction[]) {
       month: monthKey,
       days: new Map<string, FlowDayGroup>(),
     }
-    const day = month.days.get(date) ?? { date, list: [], income: 0n, expense: 0n }
+    const day = month.days.get(date) ?? {
+      date,
+      list: [],
+      income: 0n,
+      expense: 0n,
+    }
     day.list.push(item)
     if (item.transactionType === 1) day.expense += BigInt(item.amount)
     if (item.transactionType === 2) day.income += BigInt(item.amount)
@@ -475,11 +500,18 @@ function TransactionRow({
         />
       </span>
       <span className="flow-row__copy">
-        <strong>{category}{detail ? ` · ${detail}` : ''}</strong>
+        <strong>
+          {category}
+          {detail ? ` · ${detail}` : ''}
+        </strong>
         <small className="flow-row__subject">
           {transaction.remark?.trim() || '无备注'}
         </small>
-        <small>{transaction.timePrecision === 1 ? account : `${transactionTime(transaction.transactionTime)} · ${account}`}</small>
+        <small>
+          {transaction.timePrecision === 1
+            ? account
+            : `${transactionTime(transaction.transactionTime)} · ${account}`}
+        </small>
       </span>
       <span className="flow-row__value">
         <strong
@@ -503,6 +535,7 @@ function FilterSheet({
   categories,
   accounts,
   members,
+  projects,
   optionsLoading,
   optionsError,
   isClosing,
@@ -515,6 +548,7 @@ function FilterSheet({
 }: {
   draft: Filters
   categories: LedgerCategory[]
+  projects: ExpenseProject[]
   members: LedgerMember[]
   accounts: LedgerAccount[]
   optionsLoading: boolean
@@ -528,9 +562,9 @@ function FilterSheet({
   onRetryOptions: () => void
 }) {
   const sheetRef = useRef<HTMLElement>(null)
-  const [drawer, setDrawer] = useState<'date' | 'category' | 'account' | 'member' | null>(
-    null,
-  )
+  const [drawer, setDrawer] = useState<
+    'date' | 'category' | 'account' | 'member' | 'project' | null
+  >(null)
   const [customDateSide, setCustomDateSide] = useState<'start' | 'end' | null>(
     null,
   )
@@ -553,10 +587,19 @@ function FilterSheet({
   const accountNames = accounts
     .filter((account) => draft.accountIds.includes(account.id))
     .map((account) => account.name)
-  const memberNames = draft.memberIds.map(id => members.find(item => item.id === id)?.name ?? '已删除成员')
-  const allMembersSelected = members.length > 0 && members.every(item => draft.memberIds.includes(item.id))
-  const customDateKey =
-    customDateSide === 'start' ? 'startDate' : 'endDate'
+  const projectNames = draft.expenseProjectIds.map(
+    (id) => projects.find((item) => item.id === id)?.name ?? '未知项目',
+  )
+  const allProjectsSelected =
+    projects.length > 0 &&
+    projects.every((item) => draft.expenseProjectIds.includes(item.id))
+  const memberNames = draft.memberIds.map(
+    (id) => members.find((item) => item.id === id)?.name ?? '已删除成员',
+  )
+  const allMembersSelected =
+    members.length > 0 &&
+    members.every((item) => draft.memberIds.includes(item.id))
+  const customDateKey = customDateSide === 'start' ? 'startDate' : 'endDate'
   const customDate = customDateSide ? draft[customDateKey] : ''
   const customDateLabel = customDateSide === 'start' ? '开始日期' : '结束日期'
   useEffect(() => {
@@ -586,10 +629,10 @@ function FilterSheet({
     onChange({
       ...draft,
       type,
+      expenseProjectIds:
+        type === 'income' || type === 'transfer' ? [] : draft.expenseProjectIds,
       categoryIds:
-        apiType === 3
-          ? []
-          : draft.categoryIds.filter((id) => validIds.has(id)),
+        apiType === 3 ? [] : draft.categoryIds.filter((id) => validIds.has(id)),
     })
   }
   const toggleId = (ids: string[], selectedIds: string[]) => {
@@ -601,10 +644,7 @@ function FilterSheet({
     }
     return [...selected]
   }
-  const toggleCategoryChild = (
-    category: LedgerCategory,
-    childId: string,
-  ) => {
+  const toggleCategoryChild = (category: LedgerCategory, childId: string) => {
     const selected = new Set(toggleId([childId], draft.categoryIds))
     if (
       category.children.length > 0 &&
@@ -726,9 +766,40 @@ function FilterSheet({
             <ChevronRight size={18} />
           </span>
         </button>
-        <button className="filter-field filter-field--select" type="button" disabled={optionsLoading || !!optionsError} onClick={() => setDrawer('member')}>
-          <span className="filter-field__title"><MemberIcon /><strong>成员</strong></span>
-          <span className="filter-field__summary">{selectionSummary(memberNames, '全部成员')}<ChevronRight size={18} /></span>
+        <button
+          className="filter-field filter-field--select"
+          type="button"
+          disabled={optionsLoading || !!optionsError}
+          onClick={() => setDrawer('member')}
+        >
+          <span className="filter-field__title">
+            <MemberIcon />
+            <strong>成员</strong>
+          </span>
+          <span className="filter-field__summary">
+            {selectionSummary(memberNames, '全部成员')}
+            <ChevronRight size={18} />
+          </span>
+        </button>
+        <button
+          className="filter-field filter-field--select"
+          type="button"
+          disabled={
+            draft.type === 'income' ||
+            draft.type === 'transfer' ||
+            optionsLoading ||
+            !!optionsError
+          }
+          onClick={() => setDrawer('project')}
+        >
+          <span className="filter-field__title">
+            <ExpenseProjectIcon />
+            <strong>消费项目</strong>
+          </span>
+          <span className="filter-field__summary">
+            {selectionSummary(projectNames, '不限')}
+            <ChevronRight size={18} />
+          </span>
         </button>
         {optionsLoading && (
           <p className="filter-options-state" role="status">
@@ -800,7 +871,11 @@ function FilterSheet({
                   ? '日期范围'
                   : drawer === 'category'
                     ? '选择分类'
-                    : drawer === 'member' ? '选择成员' : '选择账户'}
+                    : drawer === 'project'
+                      ? '选择消费项目'
+                      : drawer === 'member'
+                        ? '选择成员'
+                        : '选择账户'}
               </h3>
               <span aria-hidden="true" />
             </header>
@@ -921,33 +996,51 @@ function FilterSheet({
                 </div>
               </div>
             ) : (
-            <div className="filter-picker__list">
-              <button
-                className="filter-picker__row filter-picker__all"
-                type="button"
-                onClick={() =>
-                  onChange({
-                    ...draft,
-                    [drawer === 'category' ? 'categoryIds' : drawer === 'member' ? 'memberIds' : 'accountIds']:
-                      drawer === 'category'
-                        ? allCategoriesSelected
-                          ? []
-                          : allVisibleCategoryIds
-                        : drawer === 'member' ? allMembersSelected ? [] : members.map(item => item.id) : allAccountsSelected
-                          ? []
-                          : accounts.map((account) => account.id),
-                  })
-                }
-              >
-                <strong>全选</strong>
-                {renderMark(
-                  drawer === 'category'
-                    ? allCategoriesSelected
-                    : drawer === 'member' ? allMembersSelected : allAccountsSelected,
-                )}
-              </button>
-              {drawer === 'category'
-                ? visibleCategories.map((category) => {
+              <div className="filter-picker__list">
+                <button
+                  className="filter-picker__row filter-picker__all"
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      ...draft,
+                      [drawer === 'category'
+                        ? 'categoryIds'
+                        : drawer === 'project'
+                          ? 'expenseProjectIds'
+                          : drawer === 'member'
+                            ? 'memberIds'
+                            : 'accountIds']:
+                        drawer === 'category'
+                          ? allCategoriesSelected
+                            ? []
+                            : allVisibleCategoryIds
+                          : drawer === 'project'
+                            ? allProjectsSelected
+                              ? []
+                              : projects.map((item) => item.id)
+                            : drawer === 'member'
+                              ? allMembersSelected
+                                ? []
+                                : members.map((item) => item.id)
+                              : allAccountsSelected
+                                ? []
+                                : accounts.map((account) => account.id),
+                    })
+                  }
+                >
+                  <strong>全选</strong>
+                  {renderMark(
+                    drawer === 'category'
+                      ? allCategoriesSelected
+                      : drawer === 'project'
+                        ? allProjectsSelected
+                        : drawer === 'member'
+                          ? allMembersSelected
+                          : allAccountsSelected,
+                  )}
+                </button>
+                {drawer === 'category' ? (
+                  visibleCategories.map((category) => {
                     const ids = categoryIds(category)
                     const selectedCount = ids.filter((id) =>
                       draft.categoryIds.includes(id),
@@ -966,7 +1059,8 @@ function FilterSheet({
                             onClick={() =>
                               setExpanded((current) => {
                                 const next = new Set(current)
-                                if (next.has(category.id)) next.delete(category.id)
+                                if (next.has(category.id))
+                                  next.delete(category.id)
                                 else next.add(category.id)
                                 return next
                               })
@@ -1020,12 +1114,75 @@ function FilterSheet({
                       </div>
                     )
                   })
-                : drawer === 'member' ? <>
-                    <button className="filter-picker__row" type="button" onClick={() => onChange({ ...draft, memberIds: [] })}>清除成员条件</button>
-                    {members.map(member => <button className="filter-picker__row" type="button" key={member.id} onClick={() => onChange({ ...draft, memberIds: toggleId([member.id], draft.memberIds) })}>
-                      <MemberIcon iconKey={member.iconKey} /><span>{member.name}</span>{renderMark(draft.memberIds.includes(member.id))}
-                    </button>)}
-                  </> : accounts.map((account) => {
+                ) : drawer === 'project' ? (
+                  <>
+                    <button
+                      className="filter-picker__row"
+                      type="button"
+                      onClick={() =>
+                        onChange({ ...draft, expenseProjectIds: [] })
+                      }
+                    >
+                      不限
+                    </button>
+                    {projects.map((project) => (
+                      <button
+                        className="filter-picker__row"
+                        type="button"
+                        key={project.id}
+                        onClick={() =>
+                          onChange({
+                            ...draft,
+                            expenseProjectIds: toggleId(
+                              [project.id],
+                              draft.expenseProjectIds,
+                            ),
+                          })
+                        }
+                      >
+                        <ExpenseProjectIcon iconKey={project.iconKey} />
+                        <span>
+                          {project.name}
+                          {project.isArchived ? '（已归档）' : ''}
+                        </span>
+                        {renderMark(
+                          draft.expenseProjectIds.includes(project.id),
+                        )}
+                      </button>
+                    ))}
+                    {!projects.length && (
+                      <p className="filter-options-state">暂无消费项目</p>
+                    )}
+                  </>
+                ) : drawer === 'member' ? (
+                  <>
+                    <button
+                      className="filter-picker__row"
+                      type="button"
+                      onClick={() => onChange({ ...draft, memberIds: [] })}
+                    >
+                      清除成员条件
+                    </button>
+                    {members.map((member) => (
+                      <button
+                        className="filter-picker__row"
+                        type="button"
+                        key={member.id}
+                        onClick={() =>
+                          onChange({
+                            ...draft,
+                            memberIds: toggleId([member.id], draft.memberIds),
+                          })
+                        }
+                      >
+                        <MemberIcon iconKey={member.iconKey} />
+                        <span>{member.name}</span>
+                        {renderMark(draft.memberIds.includes(member.id))}
+                      </button>
+                    ))}
+                  </>
+                ) : (
+                  accounts.map((account) => {
                     const checked = draft.accountIds.includes(account.id)
                     return (
                       <button
@@ -1046,7 +1203,8 @@ function FilterSheet({
                         {renderMark(checked)}
                       </button>
                     )
-                  })}
+                  })
+                )}
               </div>
             )}
           </section>
@@ -1088,30 +1246,55 @@ export function FlowPage() {
     navigationStateRef.current?.flowFilters ??
       navigationStateRef.current?.chartFilters,
   )
-  const restoreCachedFlowRef = useRef(!!flowPageCache && (navigationStateRef.current?.restoreFlow === true || flowPageCache.locationKey === location.key))
+  const restoreCachedFlowRef = useRef(
+    !!flowPageCache &&
+      (navigationStateRef.current?.restoreFlow === true ||
+        flowPageCache.locationKey === location.key),
+  )
   const navigationFiltersRef = useRef(
-    restoreCachedFlowRef.current ? undefined : searchNavigationFiltersRef.current ?? stateNavigationFiltersRef.current,
+    restoreCachedFlowRef.current
+      ? undefined
+      : (searchNavigationFiltersRef.current ??
+          stateNavigationFiltersRef.current),
   )
   const restoredCacheRef = useRef(
-    restoreCachedFlowRef.current ? flowPageCache : navigationFiltersRef.current ? null : flowPageCache,
+    restoreCachedFlowRef.current
+      ? flowPageCache
+      : navigationFiltersRef.current
+        ? null
+        : flowPageCache,
   )
   const restoredCache = restoredCacheRef.current
-  const navigationReturnTo = new URLSearchParams(location.search).get('source') === 'members' ? '/profile/members' : navigationStateRef.current?.returnTo
+  const projectSourceId = new URLSearchParams(location.search).get(
+    'expenseProjectId',
+  )
+  const navigationReturnTo =
+    new URLSearchParams(location.search).get('source') === 'expense-project' &&
+    projectSourceId &&
+    /^[1-9]\d*$/.test(projectSourceId)
+      ? '/profile/expense-projects/' + projectSourceId
+      : new URLSearchParams(location.search).get('source') === 'members'
+        ? '/profile/members'
+        : navigationStateRef.current?.returnTo
   const returnTarget: FlowPageCache['returnTo'] =
+    (typeof navigationReturnTo === 'string' &&
+      /^\/profile\/expense-projects\/[1-9]\d*$/.test(navigationReturnTo)) ||
     navigationReturnTo === '/profile/members' ||
     navigationReturnTo === '/chart' ||
     navigationReturnTo === '/bill' ||
     navigationReturnTo === '/chart/account-transactions'
-      ? navigationReturnTo
-      : restoredCache?.returnTo ?? '/home'
+      ? (navigationReturnTo as FlowPageCache['returnTo'])
+      : (restoredCache?.returnTo ?? '/home')
   const stableReturnToRef = useRef(returnTarget)
   const returnSearchRef = useRef(
-    navigationStateRef.current?.returnSearch ?? restoredCache?.returnSearch ?? '',
+    navigationStateRef.current?.returnSearch ??
+      restoredCache?.returnSearch ??
+      '',
   )
   const initialFiltersRef = useRef(
     navigationFiltersRef.current
       ? filtersFromNavigation(navigationFiltersRef.current)
-      : restoredCache?.filters ?? currentYearFilters(),
+      : (restoredCache?.filters ?? currentYearFilters()),
   )
   const refreshAfterReturnRef = useRef(
     navigationStateRef.current?.refreshFlow === true,
@@ -1119,11 +1302,10 @@ export function FlowPage() {
   const [filters, setFilters] = useState<Filters>(
     () => initialFiltersRef.current,
   )
-  const [draft, setDraft] = useState<Filters>(
-    () =>
-      navigationFiltersRef.current
-        ? initialFiltersRef.current
-        : restoredCache?.draft ?? currentYearFilters(),
+  const [draft, setDraft] = useState<Filters>(() =>
+    navigationFiltersRef.current
+      ? initialFiltersRef.current
+      : (restoredCache?.draft ?? currentYearFilters()),
   )
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isFilterClosing, setIsFilterClosing] = useState(false)
@@ -1153,7 +1335,12 @@ export function FlowPage() {
     restoredCache?.initialError ?? null,
   )
   const [retryKey, setRetryKey] = useState(restoredCache?.retryKey ?? 0)
-  const [members, setMembers] = useState<LedgerMember[]>(restoredCache?.members ?? [])
+  const [projects, setProjects] = useState<ExpenseProject[]>(
+    restoredCache?.projects ?? [],
+  )
+  const [members, setMembers] = useState<LedgerMember[]>(
+    restoredCache?.members ?? [],
+  )
   const [accounts, setAccounts] = useState<LedgerAccount[]>(
     restoredCache?.accounts ?? [],
   )
@@ -1169,8 +1356,12 @@ export function FlowPage() {
   const [optionsRetryKey, setOptionsRetryKey] = useState(
     restoredCache?.optionsRetryKey ?? 0,
   )
-  const [openTransactionId, setOpenTransactionId] = useState<string | null>(null)
-  const [pendingDelete, setPendingDelete] = useState<LedgerTransaction | null>(null)
+  const [openTransactionId, setOpenTransactionId] = useState<string | null>(
+    null,
+  )
+  const [pendingDelete, setPendingDelete] = useState<LedgerTransaction | null>(
+    null,
+  )
   const [deleting, setDeleting] = useState(false)
   const requestRef = useRef<AbortController | null>(null)
   const generationRef = useRef(0)
@@ -1180,10 +1371,19 @@ export function FlowPage() {
     if (!navigationFiltersRef.current) return
     flowPageCache = null
     navigationFiltersRef.current = undefined
-    if (stateNavigationFiltersRef.current && !searchNavigationFiltersRef.current) {
+    if (
+      stateNavigationFiltersRef.current &&
+      !searchNavigationFiltersRef.current
+    ) {
       navigate(
         { pathname: location.pathname, search: location.search },
-        { replace: true, state: { returnTo: stableReturnToRef.current, returnSearch: returnSearchRef.current } },
+        {
+          replace: true,
+          state: {
+            returnTo: stableReturnToRef.current,
+            returnSearch: returnSearchRef.current,
+          },
+        },
       )
     }
   }, [location.pathname, location.search, navigate])
@@ -1201,7 +1401,16 @@ export function FlowPage() {
     const timeout = window.setTimeout(() => {
       if (flowPageCache === restoredCache) flowPageCache = null
       if (refreshAfterReturnRef.current) {
-        navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: { returnTo: stableReturnToRef.current, returnSearch: returnSearchRef.current } })
+        navigate(
+          { pathname: location.pathname, search: location.search },
+          {
+            replace: true,
+            state: {
+              returnTo: stableReturnToRef.current,
+              returnSearch: returnSearchRef.current,
+            },
+          },
+        )
       }
     })
     return () => window.clearTimeout(timeout)
@@ -1230,12 +1439,19 @@ export function FlowPage() {
     let active = true
     setOptionsLoading(true)
     setOptionsError(null)
-    Promise.all([fetchCategories(1), fetchCategories(2), fetchAccounts(), fetchMembers()])
-      .then(([expense, income, accountList, memberList]) => {
+    Promise.all([
+      fetchCategories(1),
+      fetchCategories(2),
+      fetchAccounts(),
+      fetchMembers(),
+      fetchExpenseProjects('all'),
+    ])
+      .then(([expense, income, accountList, memberList, projectList]) => {
         if (active) {
           setCategories([...expense, ...income])
           setAccounts(accountList)
           setMembers(memberList)
+          setProjects(projectList)
         }
       })
       .catch((reason: unknown) => {
@@ -1282,10 +1498,7 @@ export function FlowPage() {
       setInitialLoading(true)
     }
     setInitialError(null)
-    fetchTransactions(
-      buildQuery(filters, debouncedSearch),
-      controller.signal,
-    )
+    fetchTransactions(buildQuery(filters, debouncedSearch), controller.signal)
       .then((result) => {
         if (generation === generationRef.current) {
           setItems(result.list)
@@ -1299,12 +1512,19 @@ export function FlowPage() {
           )
       })
       .finally(() => {
-        if (!controller.signal.aborted && generation === generationRef.current) {
+        if (
+          !controller.signal.aborted &&
+          generation === generationRef.current
+        ) {
           setInitialLoading(false)
-          const scrollY = deletionRefreshScrollRef.current ?? (isRestoredRequest ? restoredCache?.scrollY ?? null : null)
+          const scrollY =
+            deletionRefreshScrollRef.current ??
+            (isRestoredRequest ? (restoredCache?.scrollY ?? null) : null)
           deletionRefreshScrollRef.current = null
           if (scrollY !== null) {
-            window.requestAnimationFrame(() => window.scrollTo({ top: scrollY }))
+            window.requestAnimationFrame(() =>
+              window.scrollTo({ top: scrollY }),
+            )
           }
         }
       })
@@ -1329,6 +1549,7 @@ export function FlowPage() {
       initialLoading,
       initialError,
       retryKey,
+      projects,
       members,
       accounts,
       categories,
@@ -1337,7 +1558,9 @@ export function FlowPage() {
       optionsRetryKey,
       scrollY: window.scrollY,
     }
-    navigate(path, { state: { returnTo: '/flow', returnSearch: location.search } })
+    navigate(path, {
+      state: { returnTo: '/flow', returnSearch: location.search },
+    })
   }
 
   const requestDelete = (transaction: LedgerTransaction) => {
@@ -1403,6 +1626,10 @@ export function FlowPage() {
       return {
         ...current,
         type,
+        expenseProjectIds:
+          type === 'income' || type === 'transfer'
+            ? []
+            : current.expenseProjectIds,
         categoryIds:
           apiType === 3
             ? []
@@ -1441,18 +1668,28 @@ export function FlowPage() {
             className="flow-navbar__back"
             type="button"
             aria-label={
-              stableReturnToRef.current === '/profile/members' ? '返回成员设置' : stableReturnToRef.current === '/chart'
-                ? '返回图表'
-                : stableReturnToRef.current === '/chart/account-transactions'
-                  ? '返回账户交易笔数'
-                : stableReturnToRef.current === '/bill'
-                  ? '返回账单'
-                  : '返回首页'
+              stableReturnToRef.current.startsWith('/profile/expense-projects/')
+                ? '返回项目详情'
+                : stableReturnToRef.current === '/profile/members'
+                  ? '返回成员设置'
+                  : stableReturnToRef.current === '/chart'
+                    ? '返回图表'
+                    : stableReturnToRef.current ===
+                        '/chart/account-transactions'
+                      ? '返回账户交易笔数'
+                      : stableReturnToRef.current === '/bill'
+                        ? '返回账单'
+                        : '返回首页'
             }
-            onClick={() => navigate({
-              pathname: stableReturnToRef.current,
-              search: stableReturnToRef.current === '/chart/account-transactions' ? returnSearchRef.current : '',
-            })}
+            onClick={() =>
+              navigate({
+                pathname: stableReturnToRef.current,
+                search:
+                  stableReturnToRef.current === '/chart/account-transactions'
+                    ? returnSearchRef.current
+                    : '',
+              })
+            }
           >
             <ArrowLeft aria-hidden="true" size={27} />
           </button>
@@ -1584,118 +1821,143 @@ export function FlowPage() {
                       id={`flow-year-months-${year.year}`}
                     >
                       {year.months.map((month) => {
-                      const monthSummary = yearSummary?.months.find(
-                        (summary) => summary.month === month.month,
-                      )
-                      const expanded = !collapsedMonths.has(month.month)
-                      return (
-                        <section
-                          className="flow-month"
-                          key={month.month}
-                          aria-labelledby={`flow-month-${month.month}`}
-                        >
-                          <button
-                            className="flow-month__header"
-                            type="button"
-                            aria-expanded={expanded}
-                            aria-controls={`flow-month-rows-${month.month}`}
-                            onClick={() => toggleMonth(month.month)}
+                        const monthSummary = yearSummary?.months.find(
+                          (summary) => summary.month === month.month,
+                        )
+                        const expanded = !collapsedMonths.has(month.month)
+                        return (
+                          <section
+                            className="flow-month"
+                            key={month.month}
+                            aria-labelledby={`flow-month-${month.month}`}
                           >
-                            <span className="flow-month__title">
-                              <strong id={`flow-month-${month.month}`}>
-                                {Number(month.month.slice(5))}月
-                              </strong>
-                              <small>{month.month.slice(0, 4)}</small>
-                            </span>
-                            <span className="flow-month__summary">
-                              <strong>
-                                {formatCents(monthSummary?.balance ?? '0')}
-                              </strong>
-                              <small>
-                                <span>收入 {formatCents(monthSummary?.income ?? '0')}</span>
-                                <i aria-hidden="true">|</i>
-                                <span>支出 {formatCents(monthSummary?.expense ?? '0')}</span>
-                              </small>
-                            </span>
-                            {expanded ? (
-                              <ChevronUp aria-hidden="true" size={19} />
-                            ) : (
-                              <ChevronDown aria-hidden="true" size={19} />
-                            )}
-                          </button>
-                          {expanded && (
-                            <div
-                              className="flow-month__rows"
-                              id={`flow-month-rows-${month.month}`}
+                            <button
+                              className="flow-month__header"
+                              type="button"
+                              aria-expanded={expanded}
+                              aria-controls={`flow-month-rows-${month.month}`}
+                              onClick={() => toggleMonth(month.month)}
                             >
-                              {[...month.days.values()].map((day) => {
-                                const heading = dayHeading(day.date)
-                                return (
-                                  <section
-                                    className="flow-day"
-                                    key={day.date}
-                                    aria-labelledby={`flow-day-${day.date}`}
-                                  >
-                                    <header className="flow-day__header">
-                                      <div>
-                                        <h3 id={`flow-day-${day.date}`}>{heading.label}</h3>
-                                        <span>{heading.detail}</span>
-                                      </div>
-                                      <p>
-                                        <span>支出 ¥ {formatCents(day.expense)}</span>
-                                        <span className="flow-day__income">收入 ¥ {formatCents(day.income)}</span>
-                                      </p>
-                                    </header>
-                                    <div className="flow-day__list">
-                                      {day.list.map((transaction) => (
-                                        <SwipeCell
-                                          key={transaction.id}
-                                          actionWidth={144}
-                                          open={openTransactionId === transaction.id}
-                                          onOpenChange={(open) =>
-                                            setOpenTransactionId(
-                                              open ? transaction.id : null,
-                                            )
-                                          }
-                                          actions={
-                                            <>
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  navigateToTally(
-                                                    `/tally/${transaction.id}`,
-                                                  )
-                                                }
-                                              >
-                                                <Pencil aria-hidden="true" size={17} />
-                                                编辑
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={() => requestDelete(transaction)}
-                                              >
-                                                <Trash2 aria-hidden="true" size={17} />
-                                                删除
-                                              </button>
-                                            </>
-                                          }
-                                        >
-                                          <TransactionRow
-                                            transaction={transaction}
-                                            onClick={() =>
-                                              navigateToTally(`/tally/${transaction.id}`)
+                              <span className="flow-month__title">
+                                <strong id={`flow-month-${month.month}`}>
+                                  {Number(month.month.slice(5))}月
+                                </strong>
+                                <small>{month.month.slice(0, 4)}</small>
+                              </span>
+                              <span className="flow-month__summary">
+                                <strong>
+                                  {formatCents(monthSummary?.balance ?? '0')}
+                                </strong>
+                                <small>
+                                  <span>
+                                    收入{' '}
+                                    {formatCents(monthSummary?.income ?? '0')}
+                                  </span>
+                                  <i aria-hidden="true">|</i>
+                                  <span>
+                                    支出{' '}
+                                    {formatCents(monthSummary?.expense ?? '0')}
+                                  </span>
+                                </small>
+                              </span>
+                              {expanded ? (
+                                <ChevronUp aria-hidden="true" size={19} />
+                              ) : (
+                                <ChevronDown aria-hidden="true" size={19} />
+                              )}
+                            </button>
+                            {expanded && (
+                              <div
+                                className="flow-month__rows"
+                                id={`flow-month-rows-${month.month}`}
+                              >
+                                {[...month.days.values()].map((day) => {
+                                  const heading = dayHeading(day.date)
+                                  return (
+                                    <section
+                                      className="flow-day"
+                                      key={day.date}
+                                      aria-labelledby={`flow-day-${day.date}`}
+                                    >
+                                      <header className="flow-day__header">
+                                        <div>
+                                          <h3 id={`flow-day-${day.date}`}>
+                                            {heading.label}
+                                          </h3>
+                                          <span>{heading.detail}</span>
+                                        </div>
+                                        <p>
+                                          <span>
+                                            支出 ¥ {formatCents(day.expense)}
+                                          </span>
+                                          <span className="flow-day__income">
+                                            收入 ¥ {formatCents(day.income)}
+                                          </span>
+                                        </p>
+                                      </header>
+                                      <div className="flow-day__list">
+                                        {day.list.map((transaction) => (
+                                          <SwipeCell
+                                            key={transaction.id}
+                                            actionWidth={144}
+                                            open={
+                                              openTransactionId ===
+                                              transaction.id
                                             }
-                                          />
-                                        </SwipeCell>
-                                      ))}
-                                    </div>
-                                  </section>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </section>
-                      )
+                                            onOpenChange={(open) =>
+                                              setOpenTransactionId(
+                                                open ? transaction.id : null,
+                                              )
+                                            }
+                                            actions={
+                                              <>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    navigateToTally(
+                                                      `/tally/${transaction.id}`,
+                                                    )
+                                                  }
+                                                >
+                                                  <Pencil
+                                                    aria-hidden="true"
+                                                    size={17}
+                                                  />
+                                                  编辑
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    requestDelete(transaction)
+                                                  }
+                                                >
+                                                  <Trash2
+                                                    aria-hidden="true"
+                                                    size={17}
+                                                  />
+                                                  删除
+                                                </button>
+                                              </>
+                                            }
+                                          >
+                                            <TransactionRow
+                                              transaction={transaction}
+                                              onClick={() =>
+                                                navigateToTally(
+                                                  `/tally/${transaction.id}`,
+                                                )
+                                              }
+                                            />
+                                          </SwipeCell>
+                                        ))}
+                                      </div>
+                                    </section>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </section>
+                        )
                       })}
                     </div>
                   )}
@@ -1718,6 +1980,7 @@ export function FlowPage() {
           draft={draft}
           categories={categories}
           accounts={accounts}
+          projects={projects}
           members={members}
           optionsLoading={optionsLoading}
           optionsError={optionsError}

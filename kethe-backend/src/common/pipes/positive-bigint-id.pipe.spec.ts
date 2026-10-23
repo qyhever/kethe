@@ -8,7 +8,10 @@ describe('PositiveBigIntIdPipe', () => {
     expect(pipe.transform('9007199254740993')).toBe('9007199254740993')
   })
 
-  it.each(['0', '-1', '1.5', 'abc'])('拒绝非法 ID %s', (id) => {
-    expect(() => pipe.transform(id)).toThrow(BadRequestException)
-  })
+  it.each(['0', '-1', '1.5', 'abc', '18446744073709551616', '9'.repeat(100)])(
+    '拒绝非法 ID %s',
+    (id) => {
+      expect(() => pipe.transform(id)).toThrow(BadRequestException)
+    },
+  )
 })

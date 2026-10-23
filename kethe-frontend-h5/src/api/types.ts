@@ -207,6 +207,7 @@ export interface CategoryRemovalResult {
 }
 
 export interface CreateTransactionPayload {
+  expenseProjectId?: string | null
   memberId?: string | null
   transactionType: 1 | 2 | 3
   amount: string
@@ -241,6 +242,10 @@ export interface DashboardMonthSummary extends DashboardSummary {
 }
 
 export interface LedgerTransaction {
+  expenseProjectId: string | null
+  expenseProjectName: string | null
+  expenseProjectIconKey: string | null
+  expenseProjectArchived: boolean
   memberId: string | null
   memberName: string | null
   memberIconKey: string | null
@@ -274,6 +279,7 @@ export interface TransactionQuery {
   transactionType?: 1 | 2 | 3
   categoryIds?: string[]
   accountIds?: string[]
+  expenseProjectIds?: string[]
   memberIds?: string[]
   minAmount?: string
   maxAmount?: string

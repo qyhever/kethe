@@ -279,6 +279,7 @@ describe('LedgerService 流水视图', () => {
       transactionType: 1,
       categoryIds: ['10', '11'],
       accountIds: ['20', '21'],
+      expenseProjectIds: ['40', '41'],
       memberIds: ['30', '31'],
       minAmount: '100',
       maxAmount: '5000',
@@ -295,6 +296,11 @@ describe('LedgerService 流水视图', () => {
       't.memberId IN (:...memberIds)',
       { memberIds: query.memberIds },
     )
+    for (const builder of [queryBuilder, summaryQueryBuilder])
+      expect(builder.andWhere).toHaveBeenCalledWith(
+        't.expenseProjectId IN (:...expenseProjectIds)',
+        { expenseProjectIds: query.expenseProjectIds },
+      )
     expect(queryBuilder.offset).not.toHaveBeenCalled()
     expect(queryBuilder.limit).not.toHaveBeenCalled()
     expect(queryBuilder.andWhere).toHaveBeenCalledWith(

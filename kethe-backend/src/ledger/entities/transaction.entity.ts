@@ -23,6 +23,9 @@ export class Transaction {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id!: string
 
+  @Column({ type: 'bigint', unsigned: true, nullable: true })
+  expenseProjectId!: string | null
+
   @Column({ type: 'int' })
   userId!: number
 

@@ -1,4 +1,10 @@
 import {
+  fetchExpenseProjects,
+  type ExpenseProject,
+} from '../api/expense-projects'
+import { ExpenseProjectSheet } from '../components/ExpenseProject/ExpenseProjectSheet'
+import { ExpenseProjectIcon } from '../components/ExpenseProject/ExpenseProjectIcon'
+import {
   ArrowLeft,
   CalendarDays,
   ChevronRight,
@@ -78,29 +84,31 @@ function centsToAmount(value: string) {
 }
 
 function normalizeCategories(items: LedgerCategory[]): Category[] {
-  return items.filter((parent) => parent.isEnabled).map((parent) => {
-    const children = (parent.children ?? [])
-      .filter((child) => child.isEnabled)
-      .map((child) => ({
-        id: child.id,
-        label: child.name,
-        parentId: child.parentId ?? parent.id,
-        iconKey: child.iconKey,
-        svgContent: child.svgContent,
-        iconColor: child.iconColor,
-        children: [],
-      }))
+  return items
+    .filter((parent) => parent.isEnabled)
+    .map((parent) => {
+      const children = (parent.children ?? [])
+        .filter((child) => child.isEnabled)
+        .map((child) => ({
+          id: child.id,
+          label: child.name,
+          parentId: child.parentId ?? parent.id,
+          iconKey: child.iconKey,
+          svgContent: child.svgContent,
+          iconColor: child.iconColor,
+          children: [],
+        }))
 
-    return {
-      id: parent.id,
-      label: parent.name,
-      parentId: parent.parentId,
-      iconKey: parent.iconKey,
-      svgContent: parent.svgContent,
-      iconColor: parent.iconColor,
-      children,
-    }
-  })
+      return {
+        id: parent.id,
+        label: parent.name,
+        parentId: parent.parentId,
+        iconKey: parent.iconKey,
+        svgContent: parent.svgContent,
+        iconColor: parent.iconColor,
+        children,
+      }
+    })
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -140,7 +148,11 @@ function TypeSegment({
   const items = compact ? tallyTypes.slice(0, 2) : tallyTypes
 
   return (
-    <div className={`tally-segment${compact ? ' tally-segment--compact' : ''}`} role="tablist" aria-label="记账类型">
+    <div
+      className={`tally-segment${compact ? ' tally-segment--compact' : ''}`}
+      role="tablist"
+      aria-label="记账类型"
+    >
       {items.map((item) => (
         <button
           className={value === item.id ? 'is-active' : undefined}
@@ -180,12 +192,23 @@ function AmountEditor({
   onClear: () => void
 }) {
   return (
-    <div className="tally-amount" aria-live="polite" aria-label={`金额 ${amount || '0.00'} 元`}>
+    <div
+      className="tally-amount"
+      aria-live="polite"
+      aria-label={`金额 ${amount || '0.00'} 元`}
+    >
       <span className="tally-amount__currency">¥</span>
       <span className="tally-amount__caret" aria-hidden="true" />
-      <strong className={amount ? 'has-value' : undefined}>{amount || '0.00'}</strong>
+      <strong className={amount ? 'has-value' : undefined}>
+        {amount || '0.00'}
+      </strong>
       {amount && (
-        <button disabled={disabled} type="button" aria-label="清空金额" onClick={onClear}>
+        <button
+          disabled={disabled}
+          type="button"
+          aria-label="清空金额"
+          onClick={onClear}
+        >
           <X aria-hidden="true" size={14} strokeWidth={3} />
         </button>
       )}
@@ -209,10 +232,21 @@ function FormRow({
   onClick: () => void
 }) {
   return (
-    <button className="tally-form-row" type="button" disabled={disabled} onClick={onClick}>
+    <button
+      className="tally-form-row"
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+    >
       <span className="tally-form-row__icon">{icon}</span>
       <span className="tally-form-row__label">{label}</span>
-      <span className={muted ? 'tally-form-row__value is-muted' : 'tally-form-row__value'}>{value}</span>
+      <span
+        className={
+          muted ? 'tally-form-row__value is-muted' : 'tally-form-row__value'
+        }
+      >
+        {value}
+      </span>
       <ChevronRight aria-hidden="true" size={20} strokeWidth={1.8} />
     </button>
   )
@@ -233,15 +267,37 @@ function NumericKeyboard({
     <div className="tally-keyboard" aria-label="数字键盘">
       <div className="tally-keyboard__numbers">
         {numbers.map((number) => (
-          <button disabled={disabled} key={number} type="button" onClick={() => onInput(number)}>{number}</button>
+          <button
+            disabled={disabled}
+            key={number}
+            type="button"
+            onClick={() => onInput(number)}
+          >
+            {number}
+          </button>
         ))}
       </div>
       <div className="tally-keyboard__actions">
-        <button className="tally-keyboard__delete" disabled={disabled} type="button" aria-label="退格" onClick={onDelete}>
+        <button
+          className="tally-keyboard__delete"
+          disabled={disabled}
+          type="button"
+          aria-label="退格"
+          onClick={onDelete}
+        >
           <Delete aria-hidden="true" size={25} strokeWidth={1.8} />
         </button>
-        <button disabled={disabled} type="button" aria-label="小数点" onClick={() => onInput('.')}>.</button>
-        <button disabled={disabled} type="button" onClick={() => onInput('0')}>0</button>
+        <button
+          disabled={disabled}
+          type="button"
+          aria-label="小数点"
+          onClick={() => onInput('.')}
+        >
+          .
+        </button>
+        <button disabled={disabled} type="button" onClick={() => onInput('0')}>
+          0
+        </button>
       </div>
     </div>
   )
@@ -304,12 +360,26 @@ function CategoryPage({
     <main className="tally-page tally-category-page">
       <div className="tally-page__content">
         <TallyHeader title="选择分类" onBack={onBack} />
-        <TypeSegment compact disabled={disabled} value={visibleType} onChange={onTypeChange} />
-        {error && <p className="tally-status tally-status--error" role="alert">{error}</p>}
+        <TypeSegment
+          compact
+          disabled={disabled}
+          value={visibleType}
+          onChange={onTypeChange}
+        />
+        {error && (
+          <p className="tally-status tally-status--error" role="alert">
+            {error}
+          </p>
+        )}
         {loading && <p className="tally-status">正在加载分类…</p>}
-        {!loading && !error && categories.length === 0 && <p className="tally-status">暂无可用分类</p>}
+        {!loading && !error && categories.length === 0 && (
+          <p className="tally-status">暂无可用分类</p>
+        )}
         {!loading && categories.length > 0 && (
-          <section className="tally-category-list" aria-label={`${visibleType === 'income' ? '收入' : '支出'}分类`}>
+          <section
+            className="tally-category-list"
+            aria-label={`${visibleType === 'income' ? '收入' : '支出'}分类`}
+          >
             {categories.map((category) => {
               const isExpanded = expandedIds.has(category.id)
               const hasChildren = category.children.length > 0
@@ -318,7 +388,10 @@ function CategoryPage({
               } as CSSProperties
 
               return (
-                <div className={`tally-category-group${isExpanded ? ' is-expanded' : ''}`} key={category.id}>
+                <div
+                  className={`tally-category-group${isExpanded ? ' is-expanded' : ''}`}
+                  key={category.id}
+                >
                   <button
                     className={`tally-category-list__parent${selected?.id === category.id ? ' is-selected' : ''}`}
                     type="button"
@@ -330,13 +403,25 @@ function CategoryPage({
                       <CategoryVisual category={category} />
                     </span>
                     <span>{category.label}</span>
-                    <ChevronRight className="tally-category-list__chevron" aria-hidden="true" size={20} strokeWidth={1.8} />
+                    <ChevronRight
+                      className="tally-category-list__chevron"
+                      aria-hidden="true"
+                      size={20}
+                      strokeWidth={1.8}
+                    />
                   </button>
                   {hasChildren && (
-                    <div className="tally-category-list__children" hidden={!isExpanded}>
+                    <div
+                      className="tally-category-list__children"
+                      hidden={!isExpanded}
+                    >
                       {category.children.map((child) => (
                         <button
-                          className={selected?.id === child.id ? 'is-selected' : undefined}
+                          className={
+                            selected?.id === child.id
+                              ? 'is-selected'
+                              : undefined
+                          }
                           key={child.id}
                           type="button"
                           disabled={disabled}
@@ -344,12 +429,20 @@ function CategoryPage({
                         >
                           <span
                             className="category-icon-badge category-icon-badge--child"
-                            style={{ '--icon-color': child.iconColor ?? '#64748B' } as CSSProperties}
+                            style={
+                              {
+                                '--icon-color': child.iconColor ?? '#64748B',
+                              } as CSSProperties
+                            }
                           >
                             <CategoryVisual category={child} />
                           </span>
                           <span>{child.label}</span>
-                          <ChevronRight aria-hidden="true" size={18} strokeWidth={1.8} />
+                          <ChevronRight
+                            aria-hidden="true"
+                            size={18}
+                            strokeWidth={1.8}
+                          />
                         </button>
                       ))}
                     </div>
@@ -379,9 +472,13 @@ export function TallyPage() {
       : normalizedPath.match(/^\/tally\/([^/]+)(?:\/category)?$/)
   const transactionId = transactionMatch?.[1]
   const isEditing = transactionId !== undefined
-  const isValidTransactionId = !!transactionId && /^[1-9]\d*$/.test(transactionId)
+  const isValidTransactionId =
+    !!transactionId && /^[1-9]\d*$/.test(transactionId)
   const tallyPath = isEditing ? `/tally/${transactionId}` : '/tally'
-  const routeState = location.state as { returnTo?: unknown; returnSearch?: string } | null
+  const routeState = location.state as {
+    returnTo?: unknown
+    returnSearch?: string
+  } | null
   const returnTo =
     routeState?.returnTo === '/flow' ||
     routeState?.returnTo === '/home' ||
@@ -390,7 +487,34 @@ export function TallyPage() {
       : isEditing
         ? '/flow'
         : '/home'
-  const returnPath = returnTo === '/flow' ? returnTo + (routeState?.returnSearch ?? '') : returnTo
+  const returnPath =
+    returnTo === '/flow'
+      ? returnTo + (routeState?.returnSearch ?? '')
+      : returnTo
+  const [projects, setProjects] = useState<ExpenseProject[]>([])
+  const [expenseProjectId, setExpenseProjectId] = useState<string | null>(null)
+  const [projectOpen, setProjectOpen] = useState(false)
+  const [projectError, setProjectError] = useState<string>()
+  const [projectsLoading, setProjectsLoading] = useState(true)
+  const [projectsRetry, setProjectsRetry] = useState(0)
+  useEffect(() => {
+    let active = true
+    setProjectsLoading(true)
+    setProjectError(undefined)
+    fetchExpenseProjects()
+      .then((items) => {
+        if (active) setProjects(items)
+      })
+      .catch((reason: unknown) => {
+        if (active) setProjectError(getErrorMessage(reason, '项目加载失败'))
+      })
+      .finally(() => {
+        if (active) setProjectsLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [projectsRetry])
   const [members, setMembers] = useState<LedgerMember[]>([])
   const [memberId, setMemberId] = useState<string | null>(null)
   const [memberError, setMemberError] = useState<string>()
@@ -401,10 +525,19 @@ export function TallyPage() {
     let active = true
     setMembersLoading(true)
     setMemberError(undefined)
-    fetchMembers().then(items => { if (active) setMembers(items) }).catch((reason: unknown) => {
-      if (active) setMemberError(getErrorMessage(reason, '成员加载失败'))
-    }).finally(() => { if (active) setMembersLoading(false) })
-    return () => { active = false }
+    fetchMembers()
+      .then((items) => {
+        if (active) setMembers(items)
+      })
+      .catch((reason: unknown) => {
+        if (active) setMemberError(getErrorMessage(reason, '成员加载失败'))
+      })
+      .finally(() => {
+        if (active) setMembersLoading(false)
+      })
+    return () => {
+      active = false
+    }
   }, [membersRetry])
   const [type, setType] = useState<TallyType>('expense')
   const [amount, setAmount] = useState('')
@@ -434,11 +567,12 @@ export function TallyPage() {
     let active = true
 
     async function loadResources() {
-      const [accountsResult, expenseResult, incomeResult] = await Promise.allSettled([
-        fetchAccounts(),
-        fetchCategories(1),
-        fetchCategories(2),
-      ])
+      const [accountsResult, expenseResult, incomeResult] =
+        await Promise.allSettled([
+          fetchAccounts(),
+          fetchCategories(1),
+          fetchCategories(2),
+        ])
 
       if (!active) return
 
@@ -533,6 +667,7 @@ export function TallyPage() {
       : undefined
 
     setType(nextType)
+    setExpenseProjectId(transaction.expenseProjectId)
     setMemberId(transaction.memberId)
     setAmount(centsToAmount(transaction.amount))
     setCategory(matchedCategory ?? fallbackCategory)
@@ -544,10 +679,10 @@ export function TallyPage() {
     )
     setTargetAccount(
       transaction.targetAccountId
-        ? accounts.find((item) => item.id === transaction.targetAccountId) ?? {
+        ? (accounts.find((item) => item.id === transaction.targetAccountId) ?? {
             id: transaction.targetAccountId,
             name: transaction.targetAccountName || '未知账户',
-          }
+          })
         : undefined,
     )
     setDateTime(toLocalDateTime(transaction.transactionTime))
@@ -563,6 +698,7 @@ export function TallyPage() {
   ])
 
   const handleTypeChange = (nextType: TallyType) => {
+    if (nextType !== 'expense') setExpenseProjectId(null)
     if (nextType === 'transfer') setMemberId(null)
     setType(nextType)
     setCategory(undefined)
@@ -576,7 +712,8 @@ export function TallyPage() {
         return current ? `${current}.` : '0.'
       }
       const decimal = current.split('.')[1]
-      if (decimal?.length === 2 || current.replace('.', '').length >= 9) return current
+      if (decimal?.length === 2 || current.replace('.', '').length >= 9)
+        return current
       if (current === '0') return key
       return `${current}${key}`
     })
@@ -621,10 +758,12 @@ export function TallyPage() {
     savingRef.current = true
     setIsSaving(true)
     try {
-      const relatedResource = type === 'transfer'
-        ? { targetAccountId: targetAccount!.id }
-        : { categoryId: category!.id }
+      const relatedResource =
+        type === 'transfer'
+          ? { targetAccountId: targetAccount!.id }
+          : { categoryId: category!.id }
       const payload: CreateTransactionPayload = {
+        expenseProjectId: type === 'expense' ? expenseProjectId : null,
         memberId: type === 'transfer' ? null : memberId,
         transactionType: type === 'expense' ? 1 : type === 'income' ? 2 : 3,
         amount: cents,
@@ -639,7 +778,10 @@ export function TallyPage() {
       else await createTransaction(payload)
       toast.success(isEditing ? '修改成功' : '记账成功')
       navigate(returnPath, {
-        state: returnTo === '/flow' ? { refreshFlow: true, restoreFlow: true } : undefined,
+        state:
+          returnTo === '/flow'
+            ? { refreshFlow: true, restoreFlow: true }
+            : undefined,
       })
     } catch (error) {
       toast.error(
@@ -657,8 +799,10 @@ export function TallyPage() {
 
   if (isCategoryPage && (!isEditing || isDetailHydrated)) {
     const visibleType = type === 'income' ? 'income' : 'expense'
-    const categories = visibleType === 'income' ? incomeCategories : expenseCategories
-    const categoryError = visibleType === 'income' ? incomeCategoryError : expenseCategoryError
+    const categories =
+      visibleType === 'income' ? incomeCategories : expenseCategories
+    const categoryError =
+      visibleType === 'income' ? incomeCategoryError : expenseCategoryError
 
     return (
       <CategoryPage
@@ -680,28 +824,54 @@ export function TallyPage() {
 
   const formattedDate = dateTime
     ? timePrecision === 1
-      ? dateTime.slice(0, 10).replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1年$2月$3日')
-      : dateTime.replace(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/, '$1年$2月$3日  $4:$5')
+      ? dateTime
+          .slice(0, 10)
+          .replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1年$2月$3日')
+      : dateTime.replace(
+          /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/,
+          '$1年$2月$3日  $4:$5',
+        )
     : '请选择'
-  const accountValue = account?.name ?? (isLoadingResources ? '加载中…' : accountError ? '加载失败' : '请选择')
-  const isInteractionDisabled =
-    isSaving || (isEditing && !isDetailHydrated)
+  const accountValue =
+    account?.name ??
+    (isLoadingResources ? '加载中…' : accountError ? '加载失败' : '请选择')
+  const isInteractionDisabled = isSaving || (isEditing && !isDetailHydrated)
 
   return (
     <main className="tally-page tally-entry-page">
       <div className="tally-page__content">
-        <TallyHeader title={isEditing ? '编辑流水' : '记一笔'} onBack={() => navigate(returnPath, { state: returnTo === '/flow' ? { restoreFlow: true } : undefined })} />
-        <TypeSegment disabled={isInteractionDisabled} value={type} onChange={handleTypeChange} />
-        <AmountEditor amount={amount} disabled={isInteractionDisabled} onClear={() => setAmount('')} />
+        <TallyHeader
+          title={isEditing ? '编辑流水' : '记一笔'}
+          onBack={() =>
+            navigate(returnPath, {
+              state: returnTo === '/flow' ? { restoreFlow: true } : undefined,
+            })
+          }
+        />
+        <TypeSegment
+          disabled={isInteractionDisabled}
+          value={type}
+          onChange={handleTypeChange}
+        />
+        <AmountEditor
+          amount={amount}
+          disabled={isInteractionDisabled}
+          onClear={() => setAmount('')}
+        />
 
         {isLoadingDetail && (
-          <p className="tally-status" role="status">正在加载流水详情…</p>
+          <p className="tally-status" role="status">
+            正在加载流水详情…
+          </p>
         )}
         {detailError && (
           <div className="tally-detail-error" role="alert">
             <p>{detailError}</p>
             {isValidTransactionId && (
-              <button type="button" onClick={() => setDetailRetryKey((key) => key + 1)}>
+              <button
+                type="button"
+                onClick={() => setDetailRetryKey((key) => key + 1)}
+              >
                 重试
               </button>
             )}
@@ -713,10 +883,14 @@ export function TallyPage() {
             <FormRow
               icon={<LayoutList size={23} strokeWidth={1.8} />}
               label="分类"
-              value={category?.label ?? (isLoadingResources ? '加载中…' : '请选择')}
+              value={
+                category?.label ?? (isLoadingResources ? '加载中…' : '请选择')
+              }
               muted={!category}
               disabled={isInteractionDisabled}
-              onClick={() => navigate(`${tallyPath}/category`, { state: location.state })}
+              onClick={() =>
+                navigate(`${tallyPath}/category`, { state: location.state })
+              }
             />
           )}
           <FormRow
@@ -727,14 +901,61 @@ export function TallyPage() {
             disabled={isInteractionDisabled}
             onClick={() => setAccountPicker('account')}
           />
-          {type !== 'transfer' && <FormRow icon={<MemberIcon iconKey={members.find(item => item.id === memberId)?.iconKey ?? transaction?.memberIconKey} />} label="成员"
-            value={memberId === null ? '无' : members.find(item => item.id === memberId)?.name ?? (transaction?.memberId === memberId ? (transaction.memberName ?? '未知成员') + (transaction.memberDeleted ? '（已删除）' : '') : '未知成员')}
-            disabled={isInteractionDisabled} onClick={() => setMemberOpen(true)} />}
+          {type !== 'transfer' && (
+            <FormRow
+              icon={
+                <MemberIcon
+                  iconKey={
+                    members.find((item) => item.id === memberId)?.iconKey ??
+                    transaction?.memberIconKey
+                  }
+                />
+              }
+              label="成员"
+              value={
+                memberId === null
+                  ? '无'
+                  : (members.find((item) => item.id === memberId)?.name ??
+                    (transaction?.memberId === memberId
+                      ? (transaction.memberName ?? '未知成员') +
+                        (transaction.memberDeleted ? '（已删除）' : '')
+                      : '未知成员'))
+              }
+              disabled={isInteractionDisabled}
+              onClick={() => setMemberOpen(true)}
+            />
+          )}
+          {type === 'expense' && (
+            <FormRow
+              icon={
+                <ExpenseProjectIcon
+                  iconKey={
+                    projects.find((item) => item.id === expenseProjectId)
+                      ?.iconKey ?? transaction?.expenseProjectIconKey
+                  }
+                />
+              }
+              label="项目"
+              value={
+                expenseProjectId === null
+                  ? '无'
+                  : (projects.find((item) => item.id === expenseProjectId)
+                      ?.name ??
+                    (transaction?.expenseProjectName ?? '未知项目') +
+                      (transaction?.expenseProjectArchived ? '（已归档）' : ''))
+              }
+              disabled={isInteractionDisabled}
+              onClick={() => setProjectOpen(true)}
+            />
+          )}
           {type === 'transfer' && (
             <FormRow
               icon={<WalletCards size={23} strokeWidth={1.8} />}
               label="转入账户"
-              value={targetAccount?.name ?? (isLoadingResources ? '加载中…' : '请选择')}
+              value={
+                targetAccount?.name ??
+                (isLoadingResources ? '加载中…' : '请选择')
+              }
               muted={!targetAccount}
               disabled={isInteractionDisabled}
               onClick={() => setAccountPicker('target')}
@@ -748,9 +969,17 @@ export function TallyPage() {
             onClick={() => setIsTimePickerOpen(true)}
           />
           <label className="tally-form-row tally-note-row">
-            <span className="tally-form-row__icon"><NotebookPen size={23} strokeWidth={1.8} /></span>
+            <span className="tally-form-row__icon">
+              <NotebookPen size={23} strokeWidth={1.8} />
+            </span>
             <span className="tally-form-row__label">备注</span>
-            <input aria-label="备注" disabled={isInteractionDisabled} placeholder="添加备注（选填）" value={note} onChange={(event) => setNote(event.target.value)} />
+            <input
+              aria-label="备注"
+              disabled={isInteractionDisabled}
+              placeholder="添加备注（选填）"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+            />
           </label>
         </section>
       </div>
@@ -761,29 +990,93 @@ export function TallyPage() {
           onInput={handleAmountInput}
           onDelete={() => setAmount((current) => current.slice(0, -1))}
         />
-        <button className="tally-save" disabled={isInteractionDisabled} type="button" onClick={() => void handleSave()}>
+        <button
+          className="tally-save"
+          disabled={isInteractionDisabled}
+          type="button"
+          onClick={() => void handleSave()}
+        >
           {isSaving ? '保存中…' : '保存'}
         </button>
       </footer>
 
-      <MemberSheet open={memberOpen} loading={membersLoading} error={memberError} onRetry={() => setMembersRetry(value => value + 1)}
-        accounts={[{ name: '无' }, ...members, ...(memberId && transaction?.memberId === memberId && transaction.memberDeleted && !members.some(item => item.id === memberId) ? [{ id: memberId, name: transaction.memberName + '（已删除）', iconKey: transaction.memberIconKey }] : [])]}
-        selectedId={memberId ?? undefined} onClose={() => setMemberOpen(false)} onSelect={item => { setMemberId(item.id ?? null); setMemberOpen(false) }} />
+      <ExpenseProjectSheet
+        open={projectOpen}
+        loading={projectsLoading}
+        error={projectError}
+        onRetry={() => setProjectsRetry((value) => value + 1)}
+        accounts={[
+          { name: '无' },
+          ...projects,
+          ...(expenseProjectId &&
+          transaction?.expenseProjectId === expenseProjectId &&
+          transaction.expenseProjectArchived &&
+          !projects.some((item) => item.id === expenseProjectId)
+            ? [
+                {
+                  id: expenseProjectId,
+                  name: transaction.expenseProjectName + '（已归档）',
+                  iconKey: transaction.expenseProjectIconKey,
+                },
+              ]
+            : []),
+        ]}
+        selectedId={expenseProjectId ?? undefined}
+        onClose={() => setProjectOpen(false)}
+        onSelect={(item) => {
+          setExpenseProjectId(item.id ?? null)
+          setProjectOpen(false)
+        }}
+      />
+      <MemberSheet
+        open={memberOpen}
+        loading={membersLoading}
+        error={memberError}
+        onRetry={() => setMembersRetry((value) => value + 1)}
+        accounts={[
+          { name: '无' },
+          ...members,
+          ...(memberId &&
+          transaction?.memberId === memberId &&
+          transaction.memberDeleted &&
+          !members.some((item) => item.id === memberId)
+            ? [
+                {
+                  id: memberId,
+                  name: transaction.memberName + '（已删除）',
+                  iconKey: transaction.memberIconKey,
+                },
+              ]
+            : []),
+        ]}
+        selectedId={memberId ?? undefined}
+        onClose={() => setMemberOpen(false)}
+        onSelect={(item) => {
+          setMemberId(item.id ?? null)
+          setMemberOpen(false)
+        }}
+      />
       <AccountSheet
         open={Boolean(accountPicker)}
         accounts={accounts.map((item) => {
-          const excludeId = type === 'transfer'
-            ? accountPicker === 'account' ? targetAccount?.id : account?.id
-            : undefined
+          const excludeId =
+            type === 'transfer'
+              ? accountPicker === 'account'
+                ? targetAccount?.id
+                : account?.id
+              : undefined
           const disabled = item.id === excludeId
           return { ...item, disabled, hint: disabled ? '当前账户' : undefined }
         })}
         loading={isLoadingResources}
-        selectedId={accountPicker === 'account' ? account?.id : targetAccount?.id}
+        selectedId={
+          accountPicker === 'account' ? account?.id : targetAccount?.id
+        }
         onClose={() => setAccountPicker(undefined)}
         onSelect={(nextAccount) => {
           if (!nextAccount.id) return
-          if (accountPicker === 'target') setTargetAccount(nextAccount as AccountOption)
+          if (accountPicker === 'target')
+            setTargetAccount(nextAccount as AccountOption)
           else setAccount(nextAccount as AccountOption)
           setAccountPicker(undefined)
         }}
