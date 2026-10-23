@@ -424,7 +424,7 @@ CREATE TABLE transactions (
   COMMENT='用户记账流水表';
 
 UPDATE categories AS child
-JOIN categories AS parent ON parent.id = child.parentId
+JOIN categories AS parent ON parent.id = child.parentId AND parent.userId = child.userId
 JOIN (
   SELECT 'expense_food_breakfast' AS systemKey, 'breakfast' AS iconKey
   UNION ALL SELECT 'expense_food_lunch', 'lunch'
