@@ -12,9 +12,9 @@ services:
       NODE_ENV: production
     volumes:
         - ./logs:/app/logs
-        - /var/www/html/kethe-uploads:/var/www/html/kethe-uploads
-        - /var/www/html/kethe-larges:/var/www/html/kethe-larges
-        - /var/www/html/kethe-chunks:/var/www/html/kethe-chunks
+        - /usr/share/nginx/html/kethe-uploads:/usr/share/nginx/html/kethe-uploads
+        - /usr/share/nginx/html/kethe-larges:/usr/share/nginx/html/kethe-larges
+        - /usr/share/nginx/html/kethe-chunks:/usr/share/nginx/html/kethe-chunks
     healthcheck:
       test:
         - CMD
