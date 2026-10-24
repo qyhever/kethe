@@ -200,7 +200,6 @@ function AmountEditor({
   return (
     <div className="tally-amount">
       <span className="tally-amount__currency">¥</span>
-      <span className="tally-amount__caret" aria-hidden="true" />
       <input
         ref={inputRef}
         aria-label="金额（元）"

@@ -90,26 +90,17 @@
 }
 
 .tally-amount__currency {
-  margin-right: 12px;
+  margin-right: 24px;
   color: #17212e;
   font-family: var(--font-family-display);
   font-size: 33px;
   font-weight: 500;
 }
 
-.tally-amount__caret {
-  flex: 0 0 auto;
-  width: 2px;
-  height: 70px;
-  margin-right: 10px;
-  border-radius: 2px;
-  background: var(--tally-blue);
-  visibility: hidden;
-}
-
-.tally-amount:focus-within .tally-amount__caret {
-  visibility: visible;
-  animation: tally-caret 1.05s steps(2, start) infinite;
+/* iOS 连续点按可能使 input 失焦，自定义键盘打开期间仍处于金额输入状态。 */
+.tally-entry-page.is-keyboard-open .tally-amount__currency,
+.tally-amount:has(input:focus) .tally-amount__currency {
+  color: var(--tally-blue);
 }
 
 .tally-amount input {
@@ -501,10 +492,6 @@ button.tally-form-row:disabled {
   background: var(--color-brand-soft);
 }
 
-@keyframes tally-caret {
-  50% { opacity: 0; }
-}
-
 @keyframes tally-list-in {
   from { opacity: 0; transform: translateY(7px); }
   to { opacity: 1; transform: translateY(0); }
@@ -528,10 +515,6 @@ button.tally-form-row:disabled {
     min-height: 145px;
     padding-right: 12px;
     padding-left: 12px;
-  }
-
-  .tally-amount__caret {
-    height: 65px;
   }
 
   .tally-amount input {
@@ -592,7 +575,6 @@ button.tally-form-row:disabled {
     transition: none;
   }
 
-  .tally-amount:focus-within .tally-amount__caret,
   .tally-category-list {
     animation: none;
   }
