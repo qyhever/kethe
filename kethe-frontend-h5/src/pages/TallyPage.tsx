@@ -8,6 +8,7 @@ import { ExpenseProjectIcon } from '../components/ExpenseProject/ExpenseProjectI
 import {
   ArrowLeft,
   CalendarDays,
+  ChevronDown,
   ChevronRight,
   Delete,
   LayoutList,
@@ -15,7 +16,7 @@ import {
   WalletCards,
   X,
 } from 'lucide-react'
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -186,28 +187,40 @@ function TallyHeader({ title, onBack }: { title: string; onBack: () => void }) {
 function AmountEditor({
   amount,
   disabled = false,
+  inputRef,
+  onFocus,
+  onBlur,
   onClear,
 }: {
   amount: string
   disabled?: boolean
+  inputRef: RefObject<HTMLInputElement | null>
+  onFocus: () => void
+  onBlur: () => void
   onClear: () => void
 }) {
   return (
-    <div
-      className="tally-amount"
-      aria-live="polite"
-      aria-label={`金额 ${amount || '0.00'} 元`}
-    >
+    <div className="tally-amount">
       <span className="tally-amount__currency">¥</span>
       <span className="tally-amount__caret" aria-hidden="true" />
-      <strong className={amount ? 'has-value' : undefined}>
-        {amount || '0.00'}
-      </strong>
+      <input
+        ref={inputRef}
+        aria-label="金额（元）"
+        aria-controls="tally-numeric-keyboard"
+        inputMode="none"
+        readOnly
+        disabled={disabled}
+        placeholder="0.00"
+        value={amount}
+        onFocus={onFocus}
+        onBlur={onBlur}
+      />
       {amount && (
         <button
           disabled={disabled}
           type="button"
           aria-label="清空金额"
+          onPointerDown={(event) => event.preventDefault()}
           onClick={onClear}
         >
           <X aria-hidden="true" size={14} strokeWidth={3} />
@@ -463,6 +476,8 @@ export function TallyPage() {
   const location = useLocation()
   const toast = useToast()
   const savingRef = useRef(false)
+  const amountInputRef = useRef<HTMLInputElement>(null)
+  const [isAmountFocused, setIsAmountFocused] = useState(false)
   const normalizedPath = location.pathname.replace(/\/$/, '')
   const isCategoryPage =
     normalizedPath === '/tally/category' ||
@@ -839,7 +854,17 @@ export function TallyPage() {
   const isInteractionDisabled = isSaving || (isEditing && !isDetailHydrated)
 
   return (
-    <main className="tally-page tally-entry-page">
+    <main
+      className={`tally-page tally-entry-page${isAmountFocused ? ' is-keyboard-open' : ''}`}
+      onPointerDown={(event) => {
+        if (
+          event.target instanceof Element &&
+          !event.target.closest('.tally-amount, .tally-keyboard-footer')
+        ) {
+          amountInputRef.current?.blur()
+        }
+      }}
+    >
       <div className="tally-page__content">
         <TallyHeader
           title={isEditing ? '编辑流水' : '记一笔'}
@@ -857,6 +882,9 @@ export function TallyPage() {
         <AmountEditor
           amount={amount}
           disabled={isInteractionDisabled}
+          inputRef={amountInputRef}
+          onFocus={() => setIsAmountFocused(true)}
+          onBlur={() => setIsAmountFocused(false)}
           onClear={() => setAmount('')}
         />
 
@@ -983,12 +1011,37 @@ export function TallyPage() {
         </section>
       </div>
 
-      <footer className="tally-entry-footer">
+      <div
+        id="tally-numeric-keyboard"
+        className={`tally-entry-footer tally-keyboard-footer${isAmountFocused ? ' is-visible' : ''}`}
+        aria-hidden={!isAmountFocused}
+        inert={!isAmountFocused}
+        onPointerDown={(event) => event.preventDefault()}
+      >
+        <div className="tally-keyboard-toolbar">
+          <button
+            className="tally-keyboard-hide"
+            type="button"
+            aria-label="收起数字键盘"
+            onClick={() => {
+              amountInputRef.current?.blur()
+              setIsAmountFocused(false)
+            }}
+          >
+            <ChevronDown aria-hidden="true" size={24} strokeWidth={1.8} />
+          </button>
+        </div>
         <NumericKeyboard
           disabled={isInteractionDisabled}
           onInput={handleAmountInput}
           onDelete={() => setAmount((current) => current.slice(0, -1))}
         />
+      </div>
+      <footer
+        className={`tally-entry-footer tally-save-footer${isAmountFocused ? ' is-hidden' : ''}`}
+        aria-hidden={isAmountFocused}
+        inert={isAmountFocused}
+      >
         <button
           className="tally-save"
           disabled={isInteractionDisabled}

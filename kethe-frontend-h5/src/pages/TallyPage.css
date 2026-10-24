@@ -98,18 +98,31 @@
 }
 
 .tally-amount__caret {
+  flex: 0 0 auto;
   width: 2px;
   height: 70px;
   margin-right: 10px;
   border-radius: 2px;
   background: var(--tally-blue);
+  visibility: hidden;
+}
+
+.tally-amount:focus-within .tally-amount__caret {
+  visibility: visible;
   animation: tally-caret 1.05s steps(2, start) infinite;
 }
 
-.tally-amount strong {
+.tally-amount input {
+  flex: 1 1 auto;
+  width: 0;
   min-width: 0;
   overflow: hidden;
-  color: #aeb5c0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: #202a37;
+  background: transparent;
+  caret-color: transparent;
   font-family: var(--font-family-display);
   font-size: clamp(50px, 8.3vw, 64px);
   font-weight: 400;
@@ -119,8 +132,9 @@
   white-space: nowrap;
 }
 
-.tally-amount strong.has-value {
-  color: #202a37;
+.tally-amount input::placeholder {
+  color: #aeb5c0;
+  opacity: 1;
 }
 
 .tally-amount > button {
@@ -221,46 +235,109 @@ button.tally-form-row:disabled {
 }
 
 .tally-entry-page {
+  --tally-key-height: 57px;
+  --tally-save-height: 64px;
+  --tally-footer-height: calc(var(--tally-save-height) + 30px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
 }
 
+.tally-entry-page.is-keyboard-open {
+  --tally-footer-height: calc(var(--tally-key-height) * 3 + 98px + var(--safe-bottom));
+}
+
 .tally-entry-page .tally-page__content {
   flex: 1 1 auto;
-  width: 100%;
+  padding-bottom: calc(28px + var(--tally-footer-height));
 }
 
 .tally-entry-footer {
-  flex: 0 0 auto;
+  position: fixed;
+  z-index: 20;
+  right: 0;
+  bottom: 0;
+  left: 0;
   width: min(100%, 750px);
   margin: 0 auto;
-  padding: 12px 30px calc(18px + var(--safe-bottom));
-  background: rgba(246, 248, 251, 0.9);
+  padding: 12px 0 var(--safe-bottom);
+  /* background: rgba(246, 248, 251, 0.9);
   -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px); */
+}
+
+.tally-keyboard-footer {
+  z-index: 21;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(100%);
+  transition:
+    transform var(--duration-normal) var(--ease-emphasized),
+    opacity var(--duration-normal) var(--ease-standard),
+    visibility 0s var(--duration-normal);
+}
+
+.tally-keyboard-footer.is-visible {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
+.tally-save-footer {
+  visibility: visible;
+  opacity: 1;
+  transition:
+    opacity var(--duration-normal) var(--ease-standard),
+    visibility 0s;
+}
+
+.tally-save-footer.is-hidden {
+  visibility: hidden;
+  opacity: 0;
+  transition-delay: 0s, var(--duration-normal);
+}
+
+.tally-keyboard-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 2px;
+}
+
+.tally-keyboard-hide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25%;
+  height: 44px;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.tally-keyboard-hide:active {
+  background: #e5e9ef;
 }
 
 .tally-keyboard {
   display: grid;
   grid-template-columns: 3fr 1fr;
-  gap: 9px;
+  gap: 2px;
 }
 
 .tally-keyboard__numbers {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 9px;
+  gap: 2px;
 }
 
 .tally-keyboard__actions {
   display: grid;
   grid-template-rows: repeat(3, 1fr);
-  gap: 9px;
+  gap: 2px;
 }
 
 .tally-keyboard button {
-  min-height: 57px;
-  border-radius: 13px;
+  min-height: var(--tally-key-height);
+  /* border-radius: 13px; */
   color: #131d29;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 2px 8px rgba(25, 38, 58, 0.035);
@@ -284,8 +361,7 @@ button.tally-form-row:disabled {
 
 .tally-save {
   width: 100%;
-  min-height: 64px;
-  margin-top: 17px;
+  min-height: var(--tally-save-height);
   border-radius: 17px;
   color: #fff;
   background: linear-gradient(100deg, #2d72f4, #176bf3 55%, #2879f4);
@@ -454,21 +530,13 @@ button.tally-form-row:disabled {
     height: 65px;
   }
 
-  .tally-amount strong {
+  .tally-amount input {
     font-size: clamp(46px, 14vw, 58px);
   }
 
-  .tally-entry-footer {
-    padding-right: 16px;
-    padding-left: 16px;
-  }
-
-  .tally-keyboard button {
-    min-height: 54px;
-  }
-
-  .tally-save {
-    min-height: 61px;
+  .tally-entry-page {
+    --tally-key-height: 54px;
+    --tally-save-height: 61px;
   }
 
   .tally-category-list__parent {
@@ -489,13 +557,9 @@ button.tally-form-row:disabled {
     min-height: 58px;
   }
 
-  .tally-keyboard button {
-    min-height: 51px;
-  }
-
-  .tally-save {
-    min-height: 60px;
-    margin-top: 14px;
+  .tally-entry-page {
+    --tally-key-height: 51px;
+    --tally-save-height: 60px;
   }
 }
 
@@ -512,18 +576,19 @@ button.tally-form-row:disabled {
     min-height: 54px;
   }
 
-  .tally-keyboard button {
-    min-height: 47px;
-  }
-
-  .tally-save {
-    min-height: 52px;
-    margin-top: 10px;
+  .tally-entry-page {
+    --tally-key-height: 47px;
+    --tally-save-height: 52px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tally-amount__caret,
+  .tally-keyboard-footer,
+  .tally-save-footer {
+    transition: none;
+  }
+
+  .tally-amount:focus-within .tally-amount__caret,
   .tally-category-list {
     animation: none;
   }
