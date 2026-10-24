@@ -448,7 +448,7 @@ export function CategorySettingsPage() {
 
   return (
     <main className="category-settings">
-      <SettingsHeader title="分类设置" backLabel="返回我的" onBack={() => navigate('/profile')} />
+      <SettingsHeader title="分类设置" backLabel="返回我的" onBack={() => navigate('/profile')} action={<button type="button" aria-label="新增分类" onClick={openNew}><Plus /></button>} />
       <TypeTabs value={type} onChange={setType} />
       <p className="category-settings__intro">管理{type === 1 ? '支出' : '收入'}分类，支持新增、编辑、删除和排序</p>
       <section className="category-settings__list" aria-live="polite" ref={listRef}>
@@ -467,7 +467,7 @@ export function CategorySettingsPage() {
                 </div>
               ))}
       </section>
-      <div className="category-settings__footer"><button type="button" disabled={loading || Boolean(error)} onClick={openNew}><Plus size={24} />新增分类</button></div>
+      {/* <div className="category-settings__footer"><button type="button" disabled={loading || Boolean(error)} onClick={openNew}><Plus size={24} />新增分类</button></div> */}
       <Dialog
         open={Boolean(pendingDelete)}
         title="移除分类"

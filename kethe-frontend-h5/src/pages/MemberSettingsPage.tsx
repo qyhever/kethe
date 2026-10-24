@@ -53,7 +53,6 @@ export function MemberSettingsPage() {
       </button></SwipeCell>)}
       {members.length === 0 && <p className="member-page__status">暂无成员，添加一个吧</p>}
     </section>}
-    <button type="button" className="member-save" onClick={() => navigate('/profile/members/new')}><Plus size={20} />新增成员</button>
     <Dialog open={pending !== null} title="删除成员" description={'确定删除“' + (pending?.name ?? '') + '”吗？历史流水将保留成员关联，新增记账将无法选择该成员。'} danger confirmText="删除" loading={deleting} onConfirm={confirmDelete} onCancel={() => setPending(null)} />
   </main>
 }
