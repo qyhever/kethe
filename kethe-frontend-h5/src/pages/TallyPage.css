@@ -266,6 +266,10 @@ button.tally-form-row:disabled {
 }
 
 .tally-keyboard-footer {
+  /* 连续点按按键不触发 iOS 双击缩放或文字选择。 */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
   z-index: 21;
   visibility: hidden;
   opacity: 0;

@@ -189,14 +189,12 @@ function AmountEditor({
   disabled = false,
   inputRef,
   onFocus,
-  onBlur,
   onClear,
 }: {
   amount: string
   disabled?: boolean
   inputRef: RefObject<HTMLInputElement | null>
   onFocus: () => void
-  onBlur: () => void
   onClear: () => void
 }) {
   return (
@@ -213,7 +211,7 @@ function AmountEditor({
         placeholder="0.00"
         value={amount}
         onFocus={onFocus}
-        onBlur={onBlur}
+        onClick={onFocus}
       />
       {amount && (
         <button
@@ -477,7 +475,7 @@ export function TallyPage() {
   const toast = useToast()
   const savingRef = useRef(false)
   const amountInputRef = useRef<HTMLInputElement>(null)
-  const [isAmountFocused, setIsAmountFocused] = useState(false)
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
   const normalizedPath = location.pathname.replace(/\/$/, '')
   const isCategoryPage =
     normalizedPath === '/tally/category' ||
@@ -855,13 +853,20 @@ export function TallyPage() {
 
   return (
     <main
-      className={`tally-page tally-entry-page${isAmountFocused ? ' is-keyboard-open' : ''}`}
+      className={`tally-page tally-entry-page${isKeyboardOpen ? ' is-keyboard-open' : ''}`}
+      // 自定义键盘由用户操作开关，避免 iOS 手势引发的 input blur 将其收起。
+      onFocusCapture={(event) => {
+        if (!event.target.closest('.tally-amount, .tally-keyboard-footer')) {
+          setIsKeyboardOpen(false)
+        }
+      }}
       onPointerDown={(event) => {
         if (
           event.target instanceof Element &&
           !event.target.closest('.tally-amount, .tally-keyboard-footer')
         ) {
           amountInputRef.current?.blur()
+          setIsKeyboardOpen(false)
         }
       }}
     >
@@ -883,8 +888,7 @@ export function TallyPage() {
           amount={amount}
           disabled={isInteractionDisabled}
           inputRef={amountInputRef}
-          onFocus={() => setIsAmountFocused(true)}
-          onBlur={() => setIsAmountFocused(false)}
+          onFocus={() => setIsKeyboardOpen(true)}
           onClear={() => setAmount('')}
         />
 
@@ -1013,9 +1017,9 @@ export function TallyPage() {
 
       <div
         id="tally-numeric-keyboard"
-        className={`tally-entry-footer tally-keyboard-footer${isAmountFocused ? ' is-visible' : ''}`}
-        aria-hidden={!isAmountFocused}
-        inert={!isAmountFocused}
+        className={`tally-entry-footer tally-keyboard-footer${isKeyboardOpen ? ' is-visible' : ''}`}
+        aria-hidden={!isKeyboardOpen}
+        inert={!isKeyboardOpen}
         onPointerDown={(event) => event.preventDefault()}
       >
         <div className="tally-keyboard-toolbar">
@@ -1025,7 +1029,7 @@ export function TallyPage() {
             aria-label="收起数字键盘"
             onClick={() => {
               amountInputRef.current?.blur()
-              setIsAmountFocused(false)
+              setIsKeyboardOpen(false)
             }}
           >
             <ChevronDown aria-hidden="true" size={24} strokeWidth={1.8} />
@@ -1038,9 +1042,9 @@ export function TallyPage() {
         />
       </div>
       <footer
-        className={`tally-entry-footer tally-save-footer${isAmountFocused ? ' is-hidden' : ''}`}
-        aria-hidden={isAmountFocused}
-        inert={isAmountFocused}
+        className={`tally-entry-footer tally-save-footer${isKeyboardOpen ? ' is-hidden' : ''}`}
+        aria-hidden={isKeyboardOpen}
+        inert={isKeyboardOpen}
       >
         <button
           className="tally-save"
