@@ -1,6 +1,6 @@
 import { ExpenseProjectListPage, ExpenseProjectEditPage, ExpenseProjectDetailPage } from './pages/ExpenseProjectPages'
-import { useEffect, useRef } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect, useLayoutEffect, useRef } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -43,8 +43,23 @@ import './styles/tailwind.css'
 
 
 function App() {
+  const { pathname } = useLocation()
   const versionNotificationRef = useRef<VersionUpdateNotificationRef>(null)
   const initializeAuth = useAuthStore((state) => state.initialize)
+
+  useLayoutEffect(() => {
+    // 由应用控制滚动，避免浏览器在前进、后退时覆盖页面的滚动策略。
+    const previousScrollRestoration = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+    return () => {
+      window.history.scrollRestoration = previousScrollRestoration
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    // 页面切换时在绘制前回顶；同页参数更新不重置，页面仍可主动恢复缓存位置。
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [pathname])
 
   useEffect(() => {
     void initializeAuth()
