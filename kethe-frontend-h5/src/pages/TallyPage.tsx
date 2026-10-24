@@ -6,7 +6,7 @@ import {
 import { ExpenseProjectSheet } from '../components/ExpenseProject/ExpenseProjectSheet'
 import { ExpenseProjectIcon } from '../components/ExpenseProject/ExpenseProjectIcon'
 import {
-  ArrowLeft,
+  ChevronLeft,
   CalendarDays,
   ChevronDown,
   ChevronRight,
@@ -176,7 +176,7 @@ function TallyHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <header className="tally-header">
       <button type="button" aria-label="返回" onClick={onBack}>
-        <ArrowLeft aria-hidden="true" size={25} strokeWidth={2.1} />
+        <ChevronLeft aria-hidden="true" size={25} strokeWidth={2.1} />
       </button>
       <h1>{title}</h1>
       <span aria-hidden="true" />

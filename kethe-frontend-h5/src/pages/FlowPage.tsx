@@ -5,7 +5,7 @@ import {
 } from '../api/expense-projects'
 import { ExpenseProjectIcon } from '../components/ExpenseProject/ExpenseProjectIcon'
 import {
-  ArrowLeft,
+  ChevronLeft,
   CalendarDays,
   Check,
   ChevronDown,
@@ -863,7 +863,7 @@ function FilterSheet({
                   setDrawer(null)
                 }}
               >
-                <ArrowLeft size={23} />
+                <ChevronLeft size={23} />
               </button>
               <h3 id="filter-picker-title">
                 {drawer === 'date'
@@ -1690,7 +1690,7 @@ export function FlowPage() {
               })
             }
           >
-            <ArrowLeft aria-hidden="true" size={27} />
+            <ChevronLeft aria-hidden="true" size={27} />
           </button>
           {isSearching ? (
             <div className="flow-search">
