@@ -6,19 +6,31 @@
 .tabbar {
   position: fixed;
   z-index: 99;
-  left: 50%;
-  right: auto;
+  left: 0;
+  right: 0;
   bottom: 0;
   width: min(100%, 750px);
   height: calc(var(--tabbar-height) + var(--safe-bottom));
-  transform: translateX(-50%);
+  margin: 0 auto;
   padding: 0 0 var(--safe-bottom);
   box-sizing: border-box;
-  background: var(--tabbar-bg);
+  background: var(--color-background-secondary);
   border-top: 1px solid rgba(224, 224, 224, 0.9);
   font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* Safari 工具栏收起时可能短暂抬高 fixed 元素，向下延伸背景遮住流水。
+ * 仅延伸装饰层，不改变导航高度、安全区或按钮的点击范围。 */
+.tabbar::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: var(--safe-bottom);
+  height: max(var(--safe-bottom), calc(100lvh - 100svh));
+  background: inherit;
+  pointer-events: none;
 }
 
 .tabbar-inner {
