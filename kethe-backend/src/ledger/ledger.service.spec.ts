@@ -280,6 +280,7 @@ describe('LedgerService 流水视图', () => {
       categoryIds: ['10', '11'],
       accountIds: ['20', '21'],
       expenseProjectIds: ['40', '41'],
+      merchantIds: ['50', '9007199254740993'],
       memberIds: ['30', '31'],
       minAmount: '100',
       maxAmount: '5000',
@@ -300,6 +301,11 @@ describe('LedgerService 流水视图', () => {
       expect(builder.andWhere).toHaveBeenCalledWith(
         't.expenseProjectId IN (:...expenseProjectIds)',
         { expenseProjectIds: query.expenseProjectIds },
+      )
+    for (const builder of [queryBuilder, summaryQueryBuilder])
+      expect(builder.andWhere).toHaveBeenCalledWith(
+        't.merchantId IN (:...merchantIds)',
+        { merchantIds: query.merchantIds },
       )
     expect(queryBuilder.offset).not.toHaveBeenCalled()
     expect(queryBuilder.limit).not.toHaveBeenCalled()

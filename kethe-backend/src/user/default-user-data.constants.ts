@@ -417,3 +417,13 @@ export const DEFAULT_ACCOUNTS = [
     iconKey: 'alipay',
   },
 ] as const
+
+export const DEFAULT_MERCHANTS = [
+  { name: '超市', iconKey: 'shopping-cart', systemKey: 'merchant_supermarket' },
+  { name: '商场', iconKey: 'building', systemKey: 'merchant_mall' },
+  { name: '亚马逊', iconKey: 'globe', systemKey: 'merchant_amazon' },
+  { name: '淘宝', iconKey: 'shopping-bag', systemKey: 'merchant_taobao' },
+  { name: '京东', iconKey: 'package', systemKey: 'merchant_jd' },
+  { name: '拼多多', iconKey: 'tags', systemKey: 'merchant_pinduoduo' },
+  { name: '其他', iconKey: 'store', systemKey: 'merchant_other' },
+] as const

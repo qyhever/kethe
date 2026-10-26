@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm'
 import { DefaultUserDataService } from '../user/default-user-data.service'
+import { Merchant } from '../ledger/entities/merchant.entity'
 import { Member } from '../user/entities/member.entity'
 import { Account } from '../user/entities/account.entity'
 import { Category } from '../user/entities/category.entity'
@@ -21,7 +22,7 @@ async function main() {
     database: required('DB_DATABASE'),
     timezone: 'Z',
     synchronize: false,
-    entities: [User, Category, Account, Member],
+    entities: [User, Category, Account, Member, Merchant],
   }).initialize()
   try {
     const defaults = new DefaultUserDataService()
@@ -33,7 +34,9 @@ async function main() {
         defaults.initialize(user.id, manager),
       )
     }
-    console.log(`默认分类、账户和成员回填完成，共处理 ${users.length} 个用户`)
+    console.log(
+      `默认分类、账户、成员和商家回填完成，共处理 ${users.length} 个用户`,
+    )
   } finally {
     await dataSource.destroy()
   }

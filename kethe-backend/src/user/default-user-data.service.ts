@@ -1,8 +1,10 @@
+import { Merchant } from '../ledger/entities/merchant.entity'
 import { Member } from './entities/member.entity'
 import { DEFAULT_MEMBERS } from './member-options'
 import { Injectable } from '@nestjs/common'
 import type { EntityManager, Repository } from 'typeorm'
 import {
+  DEFAULT_MERCHANTS,
   DEFAULT_ACCOUNTS,
   DEFAULT_EXPENSE_CATEGORIES,
   DEFAULT_INCOME_CATEGORIES,
@@ -39,6 +41,25 @@ export class DefaultUserDataService {
           ],
     )
     if (missing.length) await members.save(missing)
+    const merchants = manager.getRepository(Merchant)
+    const existingMerchants = new Set(
+      (await merchants.find({ where: { userId } })).map(
+        (item) => item.systemKey,
+      ),
+    )
+    const missingMerchants = DEFAULT_MERCHANTS.flatMap((definition, index) =>
+      existingMerchants.has(definition.systemKey)
+        ? []
+        : [
+            merchants.create({
+              userId,
+              ...definition,
+              isSystemDefault: true,
+              sortOrder: index + 1,
+            }),
+          ],
+    )
+    if (missingMerchants.length) await merchants.save(missingMerchants)
   }
 
   private async createCategories(

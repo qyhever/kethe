@@ -1,3 +1,6 @@
+import { Merchant } from './entities/merchant.entity'
+import { MerchantController } from './merchant.controller'
+import { MerchantService } from './merchant.service'
 import { ExpenseProject } from './entities/expense-project.entity'
 import { ExpenseProjectController } from './expense-project.controller'
 import { ExpenseProjectService } from './expense-project.service'
@@ -26,6 +29,7 @@ import { TransactionController } from './transaction.controller'
 @Module({
   imports: [
     TypeOrmModule.forFeature([
+      Merchant,
       ExpenseProject,
       Account,
       Category,
@@ -39,6 +43,7 @@ import { TransactionController } from './transaction.controller'
     CategoryController,
     AccountController,
     MemberController,
+    MerchantController,
     ExpenseProjectController,
     TransactionController,
     DashboardController,
@@ -47,6 +52,7 @@ import { TransactionController } from './transaction.controller'
     ExportController,
   ],
   providers: [
+    MerchantService,
     ExpenseProjectService,
     LedgerService,
     ReportService,

@@ -1,3 +1,4 @@
+import { Merchant } from './entities/merchant.entity'
 import { ExpenseProject } from './entities/expense-project.entity'
 import {
   BadRequestException,
@@ -65,6 +66,9 @@ interface CategoryRow {
 }
 
 interface TransactionRow {
+  merchantId: string | null
+  merchantName: string | null
+  merchantIconKey: string | null
   expenseProjectId: string | null
   expenseProjectName: string | null
   expenseProjectIconKey: string | null
@@ -516,7 +520,9 @@ export class LedgerService {
         dto,
       )
       const memberId = await this.resolveMember(manager, userId, dto)
+      const merchantId = await this.resolveMerchant(manager, userId, dto)
       const entity = manager.getRepository(Transaction).create({
+        merchantId,
         expenseProjectId,
         memberId,
         userId,
@@ -574,8 +580,15 @@ export class LedgerService {
         dto,
         old.expenseProjectId,
       )
+      const merchantId = await this.resolveMerchant(
+        manager,
+        userId,
+        dto,
+        old.merchantId,
+      )
       this.applyBalance(accounts, old, -1)
       Object.assign(old, {
+        merchantId,
         expenseProjectId,
         memberId,
         transactionType: dto.transactionType,
@@ -786,7 +799,15 @@ export class LedgerService {
         'ep',
         'ep.id = t.expenseProjectId AND ep.userId = t.userId',
       )
+      .leftJoin(
+        Merchant,
+        'merchant',
+        'merchant.id = t.merchantId AND merchant.userId = t.userId',
+      )
       .select([
+        't.merchantId merchantId',
+        'merchant.name merchantName',
+        'merchant.iconKey merchantIconKey',
         't.expenseProjectId expenseProjectId',
         'ep.name expenseProjectName',
         'ep.iconKey expenseProjectIconKey',
@@ -836,6 +857,10 @@ export class LedgerService {
         '(t.accountId IN (:...accountIds) OR t.targetAccountId IN (:...accountIds))',
         { accountIds: query.accountIds },
       )
+    if (query.merchantIds?.length)
+      qb.andWhere('t.merchantId IN (:...merchantIds)', {
+        merchantIds: query.merchantIds,
+      })
     if (query.expenseProjectIds?.length)
       qb.andWhere('t.expenseProjectId IN (:...expenseProjectIds)', {
         expenseProjectIds: query.expenseProjectIds,
@@ -861,6 +886,27 @@ export class LedgerService {
       )
     }
     return qb
+  }
+
+  private async resolveMerchant(
+    manager: DataSource['manager'],
+    userId: number,
+    dto: CreateTransactionDto,
+    previous?: string | null,
+  ) {
+    if (dto.transactionType !== TransactionType.EXPENSE) {
+      if (dto.merchantId != null)
+        throw new BadRequestException('仅支出流水可关联商家')
+      return null
+    }
+    const id =
+      dto.merchantId === undefined ? (previous ?? null) : dto.merchantId
+    if (id === null) return null
+    const item = await manager
+      .getRepository(Merchant)
+      .findOne({ where: { id, userId }, lock: { mode: 'pessimistic_write' } })
+    if (!item) throw new BadRequestException('商家不存在或无权访问')
+    return String(item.id)
   }
 
   private async resolveExpenseProject(
@@ -1004,6 +1050,9 @@ export class LedgerService {
       timePrecision: Number(row.timePrecision),
       memberId: row.memberId == null ? null : String(row.memberId),
       memberDeleted: !!row.memberDeletedAt,
+      merchantId: row.merchantId == null ? null : String(row.merchantId),
+      merchantName: row.merchantName ?? null,
+      merchantIconKey: row.merchantIconKey ?? null,
       expenseProjectId:
         row.expenseProjectId == null ? null : String(row.expenseProjectId),
       expenseProjectArchived: !!row.expenseProjectArchived,

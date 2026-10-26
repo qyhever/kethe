@@ -1,3 +1,6 @@
+import { fetchMerchants, type Merchant } from '../api/merchants'
+import { MerchantIcon } from '../components/Merchant/MerchantIcon'
+import { MerchantSheet } from '../components/Merchant/MerchantSheet'
 import { Loading } from '../components/Loading'
 import {
   fetchExpenseProjects,
@@ -504,6 +507,30 @@ export function TallyPage() {
     returnTo === '/flow'
       ? returnTo + (routeState?.returnSearch ?? '')
       : returnTo
+  const [merchants, setMerchants] = useState<Merchant[]>([])
+  const [merchantId, setMerchantId] = useState<string | null>(null)
+  const [merchantOpen, setMerchantOpen] = useState(false)
+  const [merchantError, setMerchantError] = useState<string>()
+  const [merchantsLoading, setMerchantsLoading] = useState(true)
+  const [merchantsRetry, setMerchantsRetry] = useState(0)
+  useEffect(() => {
+    let active = true
+    setMerchantsLoading(true)
+    setMerchantError(undefined)
+    fetchMerchants()
+      .then((items) => {
+        if (active) setMerchants(items)
+      })
+      .catch((reason: unknown) => {
+        if (active) setMerchantError(getErrorMessage(reason, '商家加载失败'))
+      })
+      .finally(() => {
+        if (active) setMerchantsLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [merchantsRetry])
   const [projects, setProjects] = useState<ExpenseProject[]>([])
   const [expenseProjectId, setExpenseProjectId] = useState<string | null>(null)
   const [projectOpen, setProjectOpen] = useState(false)
@@ -681,6 +708,7 @@ export function TallyPage() {
 
     setType(nextType)
     setExpenseProjectId(transaction.expenseProjectId)
+    setMerchantId(transaction.merchantId)
     setMemberId(transaction.memberId)
     setAmount(centsToAmount(transaction.amount))
     setCategory(matchedCategory ?? fallbackCategory)
@@ -711,7 +739,10 @@ export function TallyPage() {
   ])
 
   const handleTypeChange = (nextType: TallyType) => {
-    if (nextType !== 'expense') setExpenseProjectId(null)
+    if (nextType !== 'expense') {
+      setExpenseProjectId(null)
+      setMerchantId(null)
+    }
     if (nextType === 'transfer') setMemberId(null)
     setType(nextType)
     setCategory(undefined)
@@ -777,6 +808,7 @@ export function TallyPage() {
           : { categoryId: category!.id }
       const payload: CreateTransactionPayload = {
         expenseProjectId: type === 'expense' ? expenseProjectId : null,
+        merchantId: type === 'expense' ? merchantId : null,
         memberId: type === 'transfer' ? null : memberId,
         transactionType: type === 'expense' ? 1 : type === 'income' ? 2 : 3,
         amount: cents,
@@ -978,6 +1010,28 @@ export function TallyPage() {
               onClick={() => setProjectOpen(true)}
             />
           )}
+          {type === 'expense' && (
+            <FormRow
+              icon={
+                <MerchantIcon
+                  iconKey={
+                    merchants.find((item) => item.id === merchantId)?.iconKey ??
+                    transaction?.merchantIconKey
+                  }
+                />
+              }
+              label="商家"
+              value={
+                merchantId === null
+                  ? '无'
+                  : (merchants.find((item) => item.id === merchantId)?.name ??
+                    transaction?.merchantName ??
+                    '未知商家')
+              }
+              disabled={isInteractionDisabled}
+              onClick={() => setMerchantOpen(true)}
+            />
+          )}
           {type === 'transfer' && (
             <FormRow
               icon={<WalletCards size={23} strokeWidth={1.8} />}
@@ -1055,6 +1109,19 @@ export function TallyPage() {
         </button>
       </footer>
 
+      <MerchantSheet
+        open={merchantOpen}
+        accounts={[{ name: '无' }, ...merchants]}
+        selectedId={merchantId ?? undefined}
+        loading={merchantsLoading}
+        error={merchantError}
+        onRetry={() => setMerchantsRetry((v) => v + 1)}
+        onClose={() => setMerchantOpen(false)}
+        onSelect={(item) => {
+          setMerchantId(item.id ?? null)
+          setMerchantOpen(false)
+        }}
+      />
       <ExpenseProjectSheet
         open={projectOpen}
         loading={projectsLoading}

@@ -26,6 +26,9 @@ export class Transaction {
   @Column({ type: 'bigint', unsigned: true, nullable: true })
   expenseProjectId!: string | null
 
+  @Column({ type: 'bigint', unsigned: true, nullable: true })
+  merchantId!: string | null
+
   @Column({ type: 'int' })
   userId!: number
 

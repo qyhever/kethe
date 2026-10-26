@@ -207,6 +207,7 @@ export interface CategoryRemovalResult {
 }
 
 export interface CreateTransactionPayload {
+  merchantId?: string | null
   expenseProjectId?: string | null
   memberId?: string | null
   transactionType: 1 | 2 | 3
@@ -242,6 +243,9 @@ export interface DashboardMonthSummary extends DashboardSummary {
 }
 
 export interface LedgerTransaction {
+  merchantId: string | null
+  merchantName: string | null
+  merchantIconKey: string | null
   expenseProjectId: string | null
   expenseProjectName: string | null
   expenseProjectIconKey: string | null
@@ -279,6 +283,7 @@ export interface TransactionQuery {
   transactionType?: 1 | 2 | 3
   categoryIds?: string[]
   accountIds?: string[]
+  merchantIds?: string[]
   expenseProjectIds?: string[]
   memberIds?: string[]
   minAmount?: string

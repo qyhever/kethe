@@ -1,3 +1,4 @@
+import { Store } from 'lucide-react'
 import {
   ChartNoAxesColumnIncreasing,
   ChevronRight,
@@ -33,6 +34,7 @@ const menuGroups: ProfileMenuItem[][] = [
     { label: '账户设置', path: '/profile/accounts', icon: WalletCards, tone: 'green' },
     { label: '成员设置', path: '/profile/members', icon: UsersRound, tone: 'purple' },
     { label: '项目设置', path: '/profile/expense-projects', icon: UsersRound, tone: 'blue' },
+    { label: '商家设置', path: '/profile/merchants', icon: Store, tone: 'blue' },
   ],
   [
     { label: '数据导出', path: '/profile/export', icon: ChartNoAxesColumnIncreasing, tone: 'purple' },

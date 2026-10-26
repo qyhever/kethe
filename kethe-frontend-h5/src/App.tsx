@@ -1,3 +1,4 @@
+import { MerchantListPage, MerchantEditPage } from './pages/MerchantPages'
 import { ExpenseProjectListPage, ExpenseProjectEditPage, ExpenseProjectDetailPage } from './pages/ExpenseProjectPages'
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
@@ -99,6 +100,9 @@ function App() {
           <Route path="/profile/settings/security" element={<AccountSecurityPage />} />
           <Route path="/profile/settings/security/reset-password" element={<ResetPasswordPage />} />
           <Route path="/profile/categories" element={<CategorySettingsPage />} />
+          <Route path="/profile/merchants" element={<MerchantListPage />} />
+          <Route path="/profile/merchants/new" element={<MerchantEditPage />} />
+          <Route path="/profile/merchants/:id/edit" element={<MerchantEditPage />} />
           <Route path="/profile/expense-projects" element={<ExpenseProjectListPage />} />
           <Route path="/profile/expense-projects/new" element={<ExpenseProjectEditPage />} />
           <Route path="/profile/expense-projects/:id" element={<ExpenseProjectDetailPage />} />

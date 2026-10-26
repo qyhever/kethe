@@ -1,5 +1,7 @@
+import { Merchant } from '../ledger/entities/merchant.entity'
 import type { EntityManager, Repository } from 'typeorm'
 import {
+  DEFAULT_MERCHANTS,
   DEFAULT_ACCOUNTS,
   DEFAULT_EXPENSE_CATEGORIES,
   DEFAULT_INCOME_CATEGORIES,
@@ -18,6 +20,7 @@ describe('DefaultUserDataService', () => {
   let service: DefaultUserDataService
   let categoryRecords: Category[]
   let accountRecords: Account[]
+  let merchantRecords: Merchant[]
   let memberRecords: Member[]
   let manager: EntityManager
   let iconIdByKey: Map<string, string>
@@ -27,6 +30,7 @@ describe('DefaultUserDataService', () => {
     categoryRecords = []
     accountRecords = []
     memberRecords = []
+    merchantRecords = []
     let nextCategoryId = 1
     iconIdByKey = new Map<string, string>()
     const resolveIconId = (iconKey: string) => {
@@ -73,14 +77,27 @@ describe('DefaultUserDataService', () => {
         return Promise.resolve(data)
       }),
     }
+    const merchantRepository = {
+      find: jest.fn(() => Promise.resolve([...merchantRecords])),
+      create: jest.fn((data: Partial<Merchant>) => data as Merchant),
+      save: jest.fn((data: Merchant[]) => {
+        merchantRecords.push(...data)
+        return Promise.resolve(data)
+      }),
+    }
     manager = {
       getRepository: jest.fn(
-        (entity: typeof Category | typeof Account | typeof Member) =>
-          entity === Member
-            ? memberRepository
-            : entity === Category
-              ? categoryRepository
-              : accountRepository,
+        (
+          entity:
+            typeof Category | typeof Account | typeof Member | typeof Merchant,
+        ) =>
+          entity === Merchant
+            ? merchantRepository
+            : entity === Member
+              ? memberRepository
+              : entity === Category
+                ? categoryRepository
+                : accountRepository,
       ),
     } as unknown as EntityManager
   })
@@ -319,6 +336,46 @@ describe('DefaultUserDataService', () => {
     expect(memberRecords).toHaveLength(6)
     expect(memberRecords[0].name).toBe('自己')
     expect(memberRecords[1].deletedAt).toBeInstanceOf(Date)
+  })
+
+  it('默认商家按顺序创建，重复初始化不重复，缺项补齐且保留修改', async () => {
+    await service.initialize(42, manager)
+    expect(merchantRecords.map((item) => item.name)).toEqual([
+      '超市',
+      '商场',
+      '亚马逊',
+      '淘宝',
+      '京东',
+      '拼多多',
+      '其他',
+    ])
+    expect(merchantRecords.map((item) => item.sortOrder)).toEqual([
+      1, 2, 3, 4, 5, 6, 7,
+    ])
+    expect(merchantRecords.map((item) => item.systemKey)).toEqual(
+      DEFAULT_MERCHANTS.map((item) => item.systemKey),
+    )
+    expect(
+      merchantRecords.every(
+        (item) => item.userId === 42 && item.isSystemDefault,
+      ),
+    ).toBe(true)
+    merchantRecords[0].name = '自定义超市'
+    merchantRecords[0].iconKey = 'gift'
+    await service.initialize(42, manager)
+    expect(merchantRecords).toHaveLength(7)
+    merchantRecords = merchantRecords.filter(
+      (item) => item.systemKey !== 'merchant_jd',
+    )
+    await service.initialize(42, manager)
+    expect(merchantRecords).toHaveLength(7)
+    expect(merchantRecords[0]).toMatchObject({
+      name: '自定义超市',
+      iconKey: 'gift',
+    })
+    expect(
+      merchantRecords.find((item) => item.systemKey === 'merchant_jd'),
+    ).toMatchObject({ name: '京东', sortOrder: 5 })
   })
 
   it('应该按顺序创建五个零余额人民币默认账户', async () => {

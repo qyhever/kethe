@@ -286,6 +286,10 @@ export class UpdateAccountDto {
 export class CreateTransactionDto {
   @IsOptional()
   @Matches(ID_PATTERN)
+  merchantId?: string | null
+
+  @IsOptional()
+  @Matches(ID_PATTERN)
   expenseProjectId?: string | null
 
   @IsOptional()
@@ -329,6 +333,11 @@ export class CreateTransactionDto {
 export class UpdateTransactionDto extends CreateTransactionDto {}
 
 export class TransactionQueryDto {
+  @IsOptional()
+  @IsArray()
+  @Matches(ID_PATTERN, { each: true })
+  merchantIds?: string[]
+
   @IsOptional()
   @IsArray()
   @Matches(ID_PATTERN, { each: true })

@@ -1,0 +1,25 @@
+.merchant-page .member-list,
+.merchant-page .member-form,
+.merchant-page .member-row {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+.merchant-page .member-row {
+  border-color: var(--color-separator);
+}
+.merchant-page .member-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.merchant-page .member-row input {
+  color: var(--color-text-primary);
+}
+.merchant-page .member-page__status {
+  color: var(--color-text-secondary);
+}
+.merchant-sheet .account-sheet__row {
+  grid-template-columns: 32px minmax(0, 1fr) minmax(24px, auto);
+}
+.merchant-sheet .account-sheet__row > span {
+  overflow-wrap: anywhere;
+}

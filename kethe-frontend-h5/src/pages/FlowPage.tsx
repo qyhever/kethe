@@ -1,3 +1,5 @@
+import { fetchMerchants, type Merchant } from '../api/merchants'
+import { MerchantIcon } from '../components/Merchant/MerchantIcon'
 import { Loading } from '../components/Loading'
 import {
   fetchExpenseProjects,
@@ -69,6 +71,7 @@ interface Filters {
   endDate: string
   categoryIds: string[]
   accountIds: string[]
+  merchantIds: string[]
   expenseProjectIds: string[]
   memberIds: string[]
   minimum: string
@@ -92,6 +95,7 @@ function filtersFromNavigation(value: FlowNavigationFilters): Filters {
     datePreset: value.startDate || value.endDate ? 'custom' : 'all',
     startDate: value.startDate,
     endDate: value.endDate,
+    merchantIds: [],
     expenseProjectIds: value.expenseProjectId ? [value.expenseProjectId] : [],
     memberIds: value.memberId ? [value.memberId] : [],
     accountIds: value.accountId ? [value.accountId] : [],
@@ -163,6 +167,7 @@ interface FlowPageCache {
   initialLoading: boolean
   initialError: string | null
   retryKey: number
+  merchants: Merchant[]
   projects: ExpenseProject[]
   members: LedgerMember[]
   accounts: LedgerAccount[]
@@ -184,6 +189,7 @@ const EMPTY_FILTERS: Filters = {
   startDate: '',
   endDate: '',
   categoryIds: [],
+  merchantIds: [],
   expenseProjectIds: [],
   memberIds: [],
   accountIds: [],
@@ -399,6 +405,7 @@ function buildQuery(filters: Filters, keyword: string): TransactionQuery {
       ?.apiValue,
     categoryIds: filters.categoryIds,
     accountIds: filters.accountIds,
+    merchantIds: filters.merchantIds,
     expenseProjectIds: filters.expenseProjectIds,
     memberIds: filters.memberIds,
     minAmount: filters.minimum ? yuanToCents(filters.minimum) : undefined,
@@ -506,12 +513,20 @@ function TransactionRow({
           {detail ? ` · ${detail}` : ''}
         </strong>
         <small className="flow-row__subject">
-          {transaction.remark?.trim() || '无备注'}
-        </small>
-        <small>
           {transaction.timePrecision === 1
             ? account
             : `${transactionTime(transaction.transactionTime)} · ${account}`}
+        </small>
+        <small>
+          {
+            [
+              transaction.memberName,
+              transaction.merchantName,
+              transaction.remark?.trim(),
+            ]
+              .filter((text) => text)
+              .join(' · ')
+          }
         </small>
       </span>
       <span className="flow-row__value">
@@ -536,6 +551,7 @@ function FilterSheet({
   categories,
   accounts,
   members,
+  merchants,
   projects,
   optionsLoading,
   optionsError,
@@ -549,6 +565,7 @@ function FilterSheet({
 }: {
   draft: Filters
   categories: LedgerCategory[]
+  merchants: Merchant[]
   projects: ExpenseProject[]
   members: LedgerMember[]
   accounts: LedgerAccount[]
@@ -564,7 +581,7 @@ function FilterSheet({
 }) {
   const sheetRef = useRef<HTMLElement>(null)
   const [drawer, setDrawer] = useState<
-    'date' | 'category' | 'account' | 'member' | 'project' | null
+    'date' | 'category' | 'account' | 'member' | 'project' | 'merchant' | null
   >(null)
   const [customDateSide, setCustomDateSide] = useState<'start' | 'end' | null>(
     null,
@@ -588,6 +605,12 @@ function FilterSheet({
   const accountNames = accounts
     .filter((account) => draft.accountIds.includes(account.id))
     .map((account) => account.name)
+  const merchantNames = draft.merchantIds.map(
+    (id) => merchants.find((item) => item.id === id)?.name ?? '未知商家',
+  )
+  const allMerchantsSelected =
+    merchants.length > 0 &&
+    merchants.every((item) => draft.merchantIds.includes(item.id))
   const projectNames = draft.expenseProjectIds.map(
     (id) => projects.find((item) => item.id === id)?.name ?? '未知项目',
   )
@@ -630,6 +653,8 @@ function FilterSheet({
     onChange({
       ...draft,
       type,
+      merchantIds:
+        type === 'income' || type === 'transfer' ? [] : draft.merchantIds,
       expenseProjectIds:
         type === 'income' || type === 'transfer' ? [] : draft.expenseProjectIds,
       categoryIds:
@@ -802,6 +827,26 @@ function FilterSheet({
             <ChevronRight size={18} />
           </span>
         </button>
+        <button
+          className="filter-field filter-field--select"
+          type="button"
+          disabled={
+            draft.type === 'income' ||
+            draft.type === 'transfer' ||
+            optionsLoading ||
+            !!optionsError
+          }
+          onClick={() => setDrawer('merchant')}
+        >
+          <span className="filter-field__title">
+            <MerchantIcon />
+            <strong>商家</strong>
+          </span>
+          <span className="filter-field__summary">
+            {selectionSummary(merchantNames, '不限')}
+            <ChevronRight size={18} />
+          </span>
+        </button>
         {optionsLoading && (
           <Loading variant="compact" text="正在加载分类、账户和成员…" />
         )}
@@ -870,11 +915,13 @@ function FilterSheet({
                   ? '日期范围'
                   : drawer === 'category'
                     ? '选择分类'
-                    : drawer === 'project'
-                      ? '选择消费项目'
-                      : drawer === 'member'
-                        ? '选择成员'
-                        : '选择账户'}
+                    : drawer === 'merchant'
+                      ? '选择商家'
+                      : drawer === 'project'
+                        ? '选择消费项目'
+                        : drawer === 'member'
+                          ? '选择成员'
+                          : '选择账户'}
               </h3>
               <span aria-hidden="true" />
             </header>
@@ -1004,26 +1051,32 @@ function FilterSheet({
                       ...draft,
                       [drawer === 'category'
                         ? 'categoryIds'
-                        : drawer === 'project'
-                          ? 'expenseProjectIds'
-                          : drawer === 'member'
-                            ? 'memberIds'
-                            : 'accountIds']:
+                        : drawer === 'merchant'
+                          ? 'merchantIds'
+                          : drawer === 'project'
+                            ? 'expenseProjectIds'
+                            : drawer === 'member'
+                              ? 'memberIds'
+                              : 'accountIds']:
                         drawer === 'category'
                           ? allCategoriesSelected
                             ? []
                             : allVisibleCategoryIds
-                          : drawer === 'project'
-                            ? allProjectsSelected
+                          : drawer === 'merchant'
+                            ? allMerchantsSelected
                               ? []
-                              : projects.map((item) => item.id)
-                            : drawer === 'member'
-                              ? allMembersSelected
+                              : merchants.map((item) => item.id)
+                            : drawer === 'project'
+                              ? allProjectsSelected
                                 ? []
-                                : members.map((item) => item.id)
-                              : allAccountsSelected
-                                ? []
-                                : accounts.map((account) => account.id),
+                                : projects.map((item) => item.id)
+                              : drawer === 'member'
+                                ? allMembersSelected
+                                  ? []
+                                  : members.map((item) => item.id)
+                                : allAccountsSelected
+                                  ? []
+                                  : accounts.map((account) => account.id),
                     })
                   }
                 >
@@ -1031,11 +1084,13 @@ function FilterSheet({
                   {renderMark(
                     drawer === 'category'
                       ? allCategoriesSelected
-                      : drawer === 'project'
-                        ? allProjectsSelected
-                        : drawer === 'member'
-                          ? allMembersSelected
-                          : allAccountsSelected,
+                      : drawer === 'merchant'
+                        ? allMerchantsSelected
+                        : drawer === 'project'
+                          ? allProjectsSelected
+                          : drawer === 'member'
+                            ? allMembersSelected
+                            : allAccountsSelected,
                   )}
                 </button>
                 {drawer === 'category' ? (
@@ -1113,6 +1168,41 @@ function FilterSheet({
                       </div>
                     )
                   })
+                ) : drawer === 'merchant' ? (
+                  <>
+                    <button
+                      className="filter-picker__row"
+                      type="button"
+                      onClick={() => onChange({ ...draft, merchantIds: [] })}
+                    >
+                      不限
+                    </button>
+                    {merchants.map((merchant) => (
+                      <button
+                        className="filter-picker__row"
+                        type="button"
+                        key={merchant.id}
+                        onClick={() =>
+                          onChange({
+                            ...draft,
+                            merchantIds: toggleId(
+                              [merchant.id],
+                              draft.merchantIds,
+                            ),
+                          })
+                        }
+                      >
+                        <div className="flex gap-1.5 items-center">
+                          <MerchantIcon iconKey={merchant.iconKey} />
+                          <span>{merchant.name}</span>
+                        </div>
+                        {renderMark(draft.merchantIds.includes(merchant.id))}
+                      </button>
+                    ))}
+                    {!merchants.length && (
+                      <p className="filter-options-state">暂无商家</p>
+                    )}
+                  </>
                 ) : drawer === 'project' ? (
                   <>
                     <button
@@ -1139,11 +1229,13 @@ function FilterSheet({
                           })
                         }
                       >
-                        <ExpenseProjectIcon iconKey={project.iconKey} />
-                        <span>
-                          {project.name}
-                          {project.isArchived ? '（已归档）' : ''}
-                        </span>
+                        <div className="flex gap-1.5 items-center">
+                          <ExpenseProjectIcon iconKey={project.iconKey} />
+                          <span>
+                            {project.name}
+                            {project.isArchived ? '（已归档）' : ''}
+                          </span>
+                        </div>
                         {renderMark(
                           draft.expenseProjectIds.includes(project.id),
                         )}
@@ -1155,13 +1247,6 @@ function FilterSheet({
                   </>
                 ) : drawer === 'member' ? (
                   <>
-                    <button
-                      className="filter-picker__row"
-                      type="button"
-                      onClick={() => onChange({ ...draft, memberIds: [] })}
-                    >
-                      清除成员条件
-                    </button>
                     {members.map((member) => (
                       <button
                         className="filter-picker__row"
@@ -1174,8 +1259,10 @@ function FilterSheet({
                           })
                         }
                       >
-                        <MemberIcon iconKey={member.iconKey} />
-                        <span>{member.name}</span>
+                        <div className="flex gap-1.5 items-center">
+                          <MemberIcon iconKey={member.iconKey} />
+                          <span>{member.name}</span>
+                        </div>
                         {renderMark(draft.memberIds.includes(member.id))}
                       </button>
                     ))}
@@ -1334,6 +1421,9 @@ export function FlowPage() {
     restoredCache?.initialError ?? null,
   )
   const [retryKey, setRetryKey] = useState(restoredCache?.retryKey ?? 0)
+  const [merchants, setMerchants] = useState<Merchant[]>(
+    restoredCache?.merchants ?? [],
+  )
   const [projects, setProjects] = useState<ExpenseProject[]>(
     restoredCache?.projects ?? [],
   )
@@ -1444,15 +1534,26 @@ export function FlowPage() {
       fetchAccounts(),
       fetchMembers(),
       fetchExpenseProjects('all'),
+      fetchMerchants(),
     ])
-      .then(([expense, income, accountList, memberList, projectList]) => {
-        if (active) {
-          setCategories([...expense, ...income])
-          setAccounts(accountList)
-          setMembers(memberList)
-          setProjects(projectList)
-        }
-      })
+      .then(
+        ([
+          expense,
+          income,
+          accountList,
+          memberList,
+          projectList,
+          merchantList,
+        ]) => {
+          if (active) {
+            setCategories([...expense, ...income])
+            setAccounts(accountList)
+            setMembers(memberList)
+            setProjects(projectList)
+            setMerchants(merchantList)
+          }
+        },
+      )
       .catch((reason: unknown) => {
         if (active)
           setOptionsError(
@@ -1548,6 +1649,7 @@ export function FlowPage() {
       initialLoading,
       initialError,
       retryKey,
+      merchants,
       projects,
       members,
       accounts,
@@ -1625,6 +1727,8 @@ export function FlowPage() {
       return {
         ...current,
         type,
+        merchantIds:
+          type === 'income' || type === 'transfer' ? [] : current.merchantIds,
         expenseProjectIds:
           type === 'income' || type === 'transfer'
             ? []
@@ -1977,6 +2081,7 @@ export function FlowPage() {
           draft={draft}
           categories={categories}
           accounts={accounts}
+          merchants={merchants}
           projects={projects}
           members={members}
           optionsLoading={optionsLoading}
