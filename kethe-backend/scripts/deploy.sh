@@ -5,7 +5,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
-REMOTE_HOST="${REMOTE_HOST:-kr}"
+REMOTE_HOST="${REMOTE_HOST:-qyhever}"
 DEPLOY_SSH_PORT="${DEPLOY_SSH_PORT:-}"
 REMOTE_DIR="${REMOTE_DIR:-/opt/apps/kethe-backend}"
 IMAGE_NAME="${IMAGE_NAME:-kethe-backend}"
