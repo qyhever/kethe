@@ -17,7 +17,6 @@ import {
   UpdateExpenseProjectDto,
   ExpenseProjectQueryDto,
   ExpenseProjectCategoriesDto,
-  EXPENSE_PROJECT_ICONS,
 } from './dto/expense-project.dto'
 import { ExpenseProjectService } from './expense-project.service'
 
@@ -32,7 +31,7 @@ export class ExpenseProjectController {
   }
   @Get('options')
   options() {
-    return EXPENSE_PROJECT_ICONS
+    return this.service.options()
   }
   @Get(':id/categories')
   categories(

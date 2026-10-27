@@ -1,3 +1,4 @@
+import type { BusinessIconOption } from '../api/icons'
 import { Loading } from '../components/Loading'
 import { SettingsHeader } from '../components/SettingsHeader'
 import { ChevronRight, Plus } from 'lucide-react'
@@ -17,7 +18,6 @@ import { useToast } from '../components/Toast'
 import './AccountSettingsPage.css'
 import './MemberSettingsPage.css'
 import './MerchantPages.css'
-import { merchantIconLabels } from '../components/Merchant/merchant-icons'
 const message = (reason: unknown) =>
   reason instanceof Error ? reason.message : '加载失败，请重试'
 export function MerchantListPage() {
@@ -100,8 +100,8 @@ export function MerchantEditPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const [name, setName] = useState('')
-  const [iconKey, setIconKey] = useState('store')
-  const [icons, setIcons] = useState<string[]>([])
+  const [iconKey, setIconKey] = useState('')
+  const [icons, setIcons] = useState<BusinessIconOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
@@ -119,6 +119,7 @@ export function MerchantEditPage() {
       .then(([options, merchant]) => {
         if (!active) return
         setIcons(options)
+        if (!id) setIconKey((options.find(option => option.isDefault) ?? options[0])?.iconKey ?? '')
         if (merchant) {
           setName(merchant.name)
           setIconKey(merchant.iconKey)
@@ -207,10 +208,10 @@ export function MerchantEditPage() {
       <MerchantSheet
         title="选择商家图标"
         open={picker}
-        accounts={icons.map((key) => ({
-          id: key,
-          name: merchantIconLabels[key] ?? key,
-          iconKey: key,
+        accounts={icons.map((item) => ({
+          id: item.iconKey,
+          name: item.iconName,
+          iconKey: item.iconKey,
         }))}
         selectedId={iconKey}
         onClose={() => setPicker(false)}

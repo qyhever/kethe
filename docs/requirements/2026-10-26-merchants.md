@@ -1,6 +1,6 @@
 # 商家管理与流水关联
 
-商家按用户独立管理，仅支出流水可关联一个商家，选填且默认“无”。本次提供列表、新增、编辑，不提供详情、统计、归档或删除。名称去除首尾空白后为 1～30 个字符，允许同名；图标限定购物相关白名单，默认 store。
+商家按用户独立管理，仅支出流水可关联一个商家，选填且默认“无”。本次提供列表、新增、编辑，不提供详情、统计、归档或删除。名称去除首尾空白后为 1～30 个字符，允许同名；图标由数据库商家场景目录维护，初始默认 store，后续可配置，见 [业务图标统一维护](2026-10-26-business-icons.md)。
 
 “我的”在项目设置之后增加商家设置。路由 /profile/merchants、/profile/merchants/new、/profile/merchants/:id/edit 均受登录守卫保护。保存后返回列表并重新加载。记一笔在项目之后增加商家行，编辑回显，切换收入或转账清空关联。底部选择面板提供“无”、加载、失败重试和空数据提示。
 
@@ -18,7 +18,7 @@
 | POST | /merchants | 新增，name 必填，iconKey 选填 |
 | PATCH | /merchants/:id | 编辑，name 和 iconKey 可省略，不接受 null |
 
-商家返回 id（字符串）、name、iconKey 及归属、默认标识、排序和时间字段。固定图标：store、shopping-cart、shopping-bag、package、globe、gift、tags、building。商家 ID 路径使用现有正整数 BIGINT 校验；不存在或不属于当前用户返回 404。
+商家返回 id（字符串）、name、iconKey 及归属、默认标识、排序和时间字段。初始图标：store、shopping-cart、shopping-bag、package、globe、gift、tags、building；后续可直接在数据库增加、排序或停用。商家 ID 路径使用现有正整数 BIGINT 校验；不存在或不属于当前用户返回 404。
 
 POST /transactions 与 PATCH /transactions/:id 增加 merchantId?: string | null。创建省略为空，更新省略保留，显式 null 清空；切换非支出时省略或 null 清空，传非空关联返回 400。不存在或其他用户的商家返回 400。流水查询、新增、更新响应增加 merchantId、merchantName、merchantIconKey，无关联均为 null。ID 始终使用字符串。
 

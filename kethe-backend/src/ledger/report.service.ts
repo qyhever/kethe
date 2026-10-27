@@ -279,8 +279,8 @@ export class ReportService {
       .createQueryBuilder('t')
       .innerJoin('categories', 'c', 'c.id = t.categoryId')
       .leftJoin('categories', 'p', 'p.id = c.parentId')
-      .leftJoin('category_icons', 'ci', 'ci.id = c.iconId')
-      .leftJoin('category_icons', 'pi', 'pi.id = p.iconId')
+      .leftJoin('category_icon_resources', 'ci', 'ci.id = c.iconId')
+      .leftJoin('category_icon_resources', 'pi', 'pi.id = p.iconId')
       .select(
         query.parentCategoryId ? 'c.id' : 'COALESCE(p.id, c.id)',
         'categoryId',

@@ -1,3 +1,4 @@
+import { selectableIcons } from '../stores/icons'
 import { del, get, patch, post } from '../utils/request'
 export interface ExpenseProject {
   id: string
@@ -33,8 +34,7 @@ export const fetchExpenseProjects = (status = 'active') =>
   get<ExpenseProject[]>('/expense-projects', { status })
 export const fetchExpenseProject = (id: string) =>
   get<ExpenseProject>('/expense-projects/' + id)
-export const fetchExpenseProjectOptions = () =>
-  get<string[]>('/expense-projects/options')
+export const fetchExpenseProjectOptions = () => selectableIcons('expense-project')
 export const createExpenseProject = (payload: ExpenseProjectPayload) =>
   post<ExpenseProject>('/expense-projects', payload)
 export const updateExpenseProject = (

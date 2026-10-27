@@ -1,3 +1,4 @@
+import { resetIconCatalog } from './icons'
 import { create } from 'zustand'
 import { fetchCurrentUser, updateCurrentUser, uploadCurrentAvatar, type ProfileUpdate } from '../api/user'
 import { clearTokens, hasTokens, setTokens } from '../api/token'
@@ -97,6 +98,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     ++profileVersion
     initializePromise = null
     clearTokens()
+    resetIconCatalog()
     set({ status: 'anonymous', user: null })
   },
 }))

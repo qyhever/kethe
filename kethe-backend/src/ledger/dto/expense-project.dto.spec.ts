@@ -37,7 +37,7 @@ describe('消费项目 DTO', () => {
   it.each([
     { name: null },
     { iconKey: null },
-    { iconKey: 'bad' },
+    { iconKey: 'bad_key' },
     { isArchived: null },
     { isArchived: 'true' },
     { startDate: '2026-02-30' },

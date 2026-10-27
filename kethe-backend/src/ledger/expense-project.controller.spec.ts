@@ -7,6 +7,7 @@ import { ExpenseProjectService } from './expense-project.service'
 describe('消费项目控制器', () => {
   let app: INestApplication
   const service = {
+    options: jest.fn().mockResolvedValue(['folder']),
     list: jest.fn().mockResolvedValue([]),
     get: jest.fn().mockResolvedValue({ id: '1' }),
     create: jest.fn().mockResolvedValue({ id: '1' }),
@@ -37,7 +38,7 @@ describe('消费项目控制器', () => {
       .get('/expense-projects/options')
       .expect(200)
     expect(response.body).toContain('folder')
-    expect(response.body).toHaveLength(8)
+    expect(service.options).toHaveBeenCalled()
   })
   it('列表状态与用户从请求上下文传入', async () => {
     await request(app.getHttpServer() as Server)

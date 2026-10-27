@@ -1,7 +1,6 @@
 import { Transform } from 'class-transformer'
-import { IsIn, IsString, Length } from 'class-validator'
+import { IsString, Length, Matches } from 'class-validator'
 import { PartialType } from '@nestjs/mapped-types'
-import { MEMBER_ICONS } from '../../user/member-options'
 export class CreateMemberDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
@@ -10,7 +9,9 @@ export class CreateMemberDto {
   @Length(1, 12)
   name!: string
 
-  @IsIn(MEMBER_ICONS)
+  @IsString()
+  @Length(1, 64)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   iconKey!: string
 }
 export class UpdateMemberDto extends PartialType(CreateMemberDto, {

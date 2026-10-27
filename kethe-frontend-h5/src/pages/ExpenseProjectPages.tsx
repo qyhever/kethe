@@ -1,6 +1,6 @@
+import type { BusinessIconOption } from '../api/icons'
 import { Loading } from '../components/Loading'
 import { SettingsHeader } from '../components/SettingsHeader'
-import { projectIconLabels } from '../components/ExpenseProject/project-icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Plus, Pencil, Archive, Trash2, ChevronRight } from 'lucide-react'
@@ -207,11 +207,11 @@ export function ExpenseProjectEditPage() {
     navigate = useNavigate(),
     toast = useToast()
   const [name, setName] = useState(''),
-    [iconKey, setIconKey] = useState('folder'),
+    [iconKey, setIconKey] = useState(''),
     [startDate, setStartDate] = useState(''),
     [endDate, setEndDate] = useState(''),
     [remark, setRemark] = useState('')
-  const [icons, setIcons] = useState<string[]>([]),
+  const [icons, setIcons] = useState<BusinessIconOption[]>([]),
     [picker, setPicker] = useState(false),
     [datePicker, setDatePicker] = useState<'start' | 'end' | null>(null),
     [loading, setLoading] = useState(true),
@@ -230,6 +230,7 @@ export function ExpenseProjectEditPage() {
       .then(([options, item]) => {
         if (!active) return
         setIcons(options)
+        if (!id) setIconKey((options.find(option => option.isDefault) ?? options[0])?.iconKey ?? '')
         if (item) {
           setName(item.name)
           setIconKey(item.iconKey)
@@ -346,10 +347,10 @@ export function ExpenseProjectEditPage() {
       <ExpenseProjectSheet
         title="选择场景图标"
         open={picker}
-        accounts={icons.map((key) => ({
-          id: key,
-          name: projectIconLabels[key] ?? key,
-          iconKey: key,
+        accounts={icons.map((item) => ({
+          id: item.iconKey,
+          name: item.iconName,
+          iconKey: item.iconKey,
         }))}
         selectedId={iconKey}
         onClose={() => setPicker(false)}

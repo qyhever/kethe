@@ -1,10 +1,17 @@
+import { IconService } from '../icons/icon.service'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { Merchant } from './entities/merchant.entity'
 import { CreateMerchantDto, UpdateMerchantDto } from './dto/merchant.dto'
 @Injectable()
 export class MerchantService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly icons: IconService,
+  ) {}
+  options() {
+    return this.icons.keys('merchant')
+  }
   async list(userId: number) {
     const items = await this.dataSource
       .getRepository(Merchant)
@@ -19,12 +26,14 @@ export class MerchantService {
     return { ...item, id: String(item.id) }
   }
   async create(userId: number, dto: CreateMerchantDto) {
+    const iconKey = dto.iconKey ?? (await this.icons.defaultKey('merchant'))
+    await this.icons.validate('merchant', iconKey)
     const repo = this.dataSource.getRepository(Merchant)
     const item = await repo.save(
       repo.create({
         userId,
         name: dto.name.trim(),
-        iconKey: dto.iconKey ?? 'store',
+        iconKey,
         systemKey: null,
         isSystemDefault: false,
         sortOrder: 100,
@@ -40,6 +49,13 @@ export class MerchantService {
         lock: { mode: 'pessimistic_write' },
       })
       if (!item) throw new NotFoundException('商家不存在')
+      if (dto.iconKey !== undefined)
+        await this.icons.validate(
+          'merchant',
+          dto.iconKey,
+          item.iconKey,
+          manager,
+        )
       if (dto.name !== undefined) item.name = dto.name.trim()
       if (dto.iconKey !== undefined) item.iconKey = dto.iconKey
       const saved = await repo.save(item)

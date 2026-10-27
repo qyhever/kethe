@@ -1,3 +1,4 @@
+import { createIconServiceMock } from '../icons/testing/icon-service.mock'
 import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { plainToInstance } from 'class-transformer'
 import { validate } from 'class-validator'
@@ -18,7 +19,7 @@ describe('成员校验', () => {
       ).not.toHaveLength(0)
     },
   )
-  it('名称去除首尾空格，限制图标，PATCH 不接受 null', async () => {
+  it('名称去除首尾空格，校验图标格式，PATCH 不接受 null', async () => {
     const dto = plainToInstance(CreateMemberDto, {
       name: '  本人  ',
       iconKey: 'user',
@@ -27,7 +28,10 @@ describe('成员校验', () => {
     expect(await validate(dto)).toHaveLength(0)
     expect(
       await validate(
-        plainToInstance(CreateMemberDto, { name: '成员', iconKey: 'invalid' }),
+        plainToInstance(CreateMemberDto, {
+          name: '成员',
+          iconKey: 'invalid_key',
+        }),
       ),
     ).not.toHaveLength(0)
     expect(
@@ -109,7 +113,7 @@ function setup() {
     item,
     repository,
     qb,
-    service: new MemberService(dataSource as never),
+    service: new MemberService(dataSource as never, createIconServiceMock()),
   }
 }
 
@@ -129,7 +133,7 @@ describe('成员管理', () => {
     expect(qb.andWhere).toHaveBeenCalledWith('t.transactionType = :type', {
       type: 1,
     })
-    expect(service.options()).toContain('family')
+    expect(await service.options()).toContain('family')
   })
   it('新增自定义成员并允许编辑默认成员', async () => {
     const { service, repository, item } = setup()
@@ -188,6 +192,7 @@ describe('流水成员关联', () => {
     {} as never,
     {} as never,
     {} as never,
+    createIconServiceMock(),
   )
   const memberLedger = ledger as unknown as {
     resolveMember: (

@@ -1,0 +1,14 @@
+@baseUrl = http://localhost:6308/api
+@token = REPLACE_WITH_ACCESS_TOKEN
+
+### 完整图标目录（含历史回显需要的停用项）
+GET {{baseUrl}}/icons
+Authorization: Bearer {{token}}
+
+### 商家可选图标
+GET {{baseUrl}}/icons?scene=merchant&selectableOnly=true
+Authorization: Bearer {{token}}
+
+### 账户适用类型与默认规则
+GET {{baseUrl}}/accounts/options
+Authorization: Bearer {{token}}

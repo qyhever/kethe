@@ -139,7 +139,9 @@ export interface AccountOptions {
 export interface AccountIconOption {
   key: string
   label: string
+  groupKey: string
   supportedTypes: number[]
+  defaultFor: { accountType: number; accountSubType: number | null }[]
 }
 
 export interface CreateAccountPayload {
@@ -181,6 +183,7 @@ export interface LedgerCategory {
 }
 
 export interface CategoryIconResource {
+  isDefault: boolean
   id: string
   iconKey: string
   iconName: string

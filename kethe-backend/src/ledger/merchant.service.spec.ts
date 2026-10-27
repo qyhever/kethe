@@ -1,3 +1,4 @@
+import { createIconServiceMock } from '../icons/testing/icon-service.mock'
 import { NotFoundException } from '@nestjs/common'
 import { MerchantService } from './merchant.service'
 import { Merchant } from './entities/merchant.entity'
@@ -24,7 +25,12 @@ function setup() {
       callback(manager),
     ),
   }
-  return { repo, item, manager, service: new MerchantService(source as never) }
+  return {
+    repo,
+    item,
+    manager,
+    service: new MerchantService(source as never, createIconServiceMock()),
+  }
 }
 describe('商家管理', () => {
   it('按用户隔离并按排序字段、ID展示，保留大ID字符串', async () => {

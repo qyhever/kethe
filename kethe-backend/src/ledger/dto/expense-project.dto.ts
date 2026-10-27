@@ -11,16 +11,6 @@ import {
   MaxLength,
   ValidateIf,
 } from 'class-validator'
-export const EXPENSE_PROJECT_ICONS = [
-  'folder',
-  'plane',
-  'luggage',
-  'house',
-  'hammer',
-  'heart',
-  'gift',
-  'shopping-bag',
-] as const
 export class CreateExpenseProjectDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
@@ -29,7 +19,9 @@ export class CreateExpenseProjectDto {
   @Length(1, 30)
   name!: string
   @ValidateIf((_object, value: unknown) => value !== undefined)
-  @IsIn(EXPENSE_PROJECT_ICONS)
+  @IsString()
+  @Length(1, 64)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   iconKey?: string
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)

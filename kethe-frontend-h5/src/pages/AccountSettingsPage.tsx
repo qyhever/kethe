@@ -12,13 +12,6 @@ import { useToast } from '../components/Toast'
 import './AccountSettingsPage.css'
 
 const CASH_VOUCHER = 402
-const ACCOUNT_TYPE_COLORS: Record<string, string> = {
-  cash: '#5BC982',
-  credit: '#EB3F46',
-  debit: '#F39A5A',
-  virtual: '#3B82F6',
-  other: '#F39A5A',
-}
 const errorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
 const optionFor = (options: AccountOptions | null, type: number) => options?.accountTypes.find((item) => item.value === type)
 const addMoney = (items: LedgerAccount[], selector: (item: LedgerAccount) => string) => items.reduce((total, item) => total + BigInt(selector(item)), 0n).toString()
@@ -116,7 +109,7 @@ export function AccountCreatePage({ details = false }: { details?: boolean }) {
             setSelectedSubType(type.subTypes[0]?.value ?? '')
             setExpanded(type.subTypes.length > 0 ? type.value : null)
           }}>
-            <AccountIcon iconKey={options.accountIcons.find((icon) => icon.supportedTypes.includes(type.value))?.key ?? null} nature={type.defaultNature ?? 1} color={ACCOUNT_TYPE_COLORS[type.code]} /><span><strong>{type.label}</strong><small>{type.remark ?? (type.value === 1 ? '用于记录纸币、硬币等现金资产' : '')}</small></span>{type.subTypes.length > 0 ? <ChevronDown className="account-type-list__chevron" /> : selected ? <Check className="account-type-list__check" /> : null}
+            <AccountIcon iconKey={options.accountIcons.find((icon) => icon.supportedTypes.includes(type.value))?.key ?? null} nature={type.defaultNature ?? 1} /><span><strong>{type.label}</strong><small>{type.remark ?? (type.value === 1 ? '用于记录纸币、硬币等现金资产' : '')}</small></span>{type.subTypes.length > 0 ? <ChevronDown className="account-type-list__chevron" /> : selected ? <Check className="account-type-list__check" /> : null}
           </button>
           {open && type.subTypes.length > 0 && <div className="account-type-list__subs">{type.subTypes.map((subType) => <button type="button" key={subType.value} onClick={() => setSelectedSubType(subType.value)}><span className={selectedSubType === subType.value ? 'is-selected' : ''}>{selectedSubType === subType.value ? <Check size={13} /> : <Circle size={13} />}</span><span><strong>{subType.label}</strong><small>{subType.supportsLast4 ? '支持设置账号后四位' : '适合无实体卡号的账户'}</small></span></button>)}</div>}
         </article>
@@ -183,9 +176,9 @@ function yuanToCents(value: string) { const match = /^(0|[1-9]\d*)(?:\.(\d{1,2})
 
 function AccountFormPage({ options, selectedType, initialSubType, account, onBack }: { options: AccountOptions; selectedType: AccountTypeOption; initialSubType: number | ''; account?: LedgerAccount; onBack: () => void }) {
   const navigate = useNavigate(); const toast = useToast(); const [saving, setSaving] = useState(false); const [iconOpen, setIconOpen] = useState(false)
-  const [form, setForm] = useState<FormState>(() => ({ name: account?.name ?? '', accountType: selectedType.value, accountSubType: account?.accountSubType ?? initialSubType, accountNature: account?.accountNature ?? selectedType.defaultNature ?? 1, initialAmount: account ? centsToYuan(account.initialBalance) : '', institutionName: account?.institutionName ?? '', accountNumberLast4: account?.accountNumberLast4 ?? '', creditLimit: account?.creditLimit ? centsToYuan(account.creditLimit) : '', iconKey: account?.iconKey ?? options.accountIcons.find((icon) => icon.supportedTypes.includes(selectedType.value))?.key ?? '', includeInNetWorth: account?.includeInNetWorth ?? initialSubType !== CASH_VOUCHER, remark: account?.remark ?? '' }))
+  const [form, setForm] = useState<FormState>(() => ({ name: account?.name ?? '', accountType: selectedType.value, accountSubType: account?.accountSubType ?? initialSubType, accountNature: account?.accountNature ?? selectedType.defaultNature ?? 1, initialAmount: account ? centsToYuan(account.initialBalance) : '', institutionName: account?.institutionName ?? '', accountNumberLast4: account?.accountNumberLast4 ?? '', creditLimit: account?.creditLimit ? centsToYuan(account.creditLimit) : '', iconKey: account?.iconKey ?? defaultIconKey(options, selectedType.value, initialSubType) ?? '', includeInNetWorth: account?.includeInNetWorth ?? initialSubType !== CASH_VOUCHER, remark: account?.remark ?? '' }))
   const type = optionFor(options, form.accountType)!; const subType = type.subTypes.find((item) => item.value === form.accountSubType); const locked = Boolean(account?.hasTransactions); const icons = options.accountIcons.filter((icon) => icon.supportedTypes.includes(form.accountType)); const submitLock = useRef(false)
-  const changeType = (value: number) => { const next = optionFor(options, value); if (!next) return; const subtype = next.subTypes[0]?.value ?? ''; setForm((current) => ({ ...current, accountType: value, accountSubType: subtype, accountNature: next.defaultNature ?? current.accountNature, institutionName: next.supportsInstitution ? current.institutionName : '', accountNumberLast4: '', creditLimit: next.supportsCreditLimit ? current.creditLimit : '', iconKey: options.accountIcons.find((icon) => icon.supportedTypes.includes(value))?.key ?? '', includeInNetWorth: subtype !== CASH_VOUCHER })) }
+  const changeType = (value: number) => { const next = optionFor(options, value); if (!next) return; const subtype = next.subTypes[0]?.value ?? ''; setForm((current) => ({ ...current, accountType: value, accountSubType: subtype, accountNature: next.defaultNature ?? current.accountNature, institutionName: next.supportsInstitution ? current.institutionName : '', accountNumberLast4: '', creditLimit: next.supportsCreditLimit ? current.creditLimit : '', iconKey: defaultIconKey(options, value, subtype) ?? '', includeInNetWorth: subtype !== CASH_VOUCHER })) }
   const save = async () => {
     if (submitLock.current) return
     if (!form.name.trim()) return void toast.warning('请输入账户名称')
@@ -229,3 +222,8 @@ function FormField({ label, required, hint, count, children }: { label: string; 
 function MoneyField({ value, placeholder, disabled, onChange }: { value: string; placeholder: string; disabled?: boolean; onChange: (value: string) => void }) { return <span className="account-form__money">¥<input disabled={disabled} inputMode="decimal" value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value.replace(/[^\d.]/g, ''))} /></span> }
 function PageStatus({ text, secondary, retry }: { text: string; secondary?: string; retry?: () => void | Promise<void> }) { return <div className="account-status"><strong>{text}</strong>{secondary && <span>{secondary}</span>}{retry && <button type="button" onClick={() => void retry()}><RotateCcw />重新加载</button>}</div> }
 function BottomAction({ children, onClick, disabled }: { children: ReactNode; onClick: () => void; disabled?: boolean }) { return <div className="account-bottom"><button type="button" disabled={disabled} onClick={onClick}>{children}</button></div> }
+
+function defaultIconKey(options: AccountOptions, accountType: number, accountSubType: number | '') {
+ const icons = options.accountIcons.filter(icon => icon.supportedTypes.includes(accountType))
+ return (icons.find(icon => icon.defaultFor.some(rule => rule.accountType === accountType && rule.accountSubType === accountSubType)) ?? icons.find(icon => icon.defaultFor.some(rule => rule.accountType === accountType && rule.accountSubType === null)))?.key
+}

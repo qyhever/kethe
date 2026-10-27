@@ -1,3 +1,4 @@
+import { createIconServiceMock } from '../icons/testing/icon-service.mock'
 import { BadRequestException } from '@nestjs/common'
 import { LedgerService } from './ledger.service'
 import { CreateTransactionDto } from './dto/ledger.dto'
@@ -11,6 +12,7 @@ function setup(item: object | null = { id: '1', isArchived: false }) {
     {} as never,
     {} as never,
     {} as never,
+    createIconServiceMock(),
   ) as unknown as {
     resolveExpenseProject(
       manager: unknown,

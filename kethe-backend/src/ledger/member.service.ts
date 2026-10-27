@@ -1,3 +1,4 @@
+import { IconService } from '../icons/icon.service'
 import {
   BadRequestException,
   Injectable,
@@ -5,16 +6,18 @@ import {
 } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { Member } from '../user/entities/member.entity'
-import { MEMBER_ICONS } from '../user/member-options'
 import { Transaction, TransactionType } from './entities/transaction.entity'
 import { CreateMemberDto, UpdateMemberDto } from './dto/member.dto'
 
 @Injectable()
 export class MemberService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly icons: IconService,
+  ) {}
 
   options() {
-    return MEMBER_ICONS
+    return this.icons.keys('member')
   }
 
   async list(userId: number) {
@@ -57,21 +60,18 @@ export class MemberService {
         [...dto.name.trim()].length > 12)
     )
       throw new BadRequestException('成员名称须为 1 至 12 个字符')
-    if (
-      dto.iconKey !== undefined &&
-      !MEMBER_ICONS.includes(dto.iconKey as (typeof MEMBER_ICONS)[number])
-    )
-      throw new BadRequestException('成员图标无效')
   }
 
   async create(userId: number, dto: CreateMemberDto) {
+    const iconKey = dto.iconKey ?? (await this.icons.defaultKey('member'))
+    await this.icons.validate('member', iconKey)
     this.validate(dto)
     const repository = this.dataSource.getRepository(Member)
     return repository.save(
       repository.create({
         userId,
         name: dto.name.trim(),
-        iconKey: dto.iconKey,
+        iconKey,
         systemKey: null,
         isSystemDefault: false,
         sortOrder: 1000,
@@ -82,6 +82,8 @@ export class MemberService {
   async update(userId: number, id: string, dto: UpdateMemberDto) {
     this.validate(dto)
     return this.mutate(userId, id, async (item, repository) => {
+      if (dto.iconKey !== undefined)
+        await this.icons.validate('member', dto.iconKey, item.iconKey)
       if (dto.name !== undefined) item.name = dto.name.trim()
       if (dto.iconKey !== undefined) item.iconKey = dto.iconKey
       return repository.save(item)

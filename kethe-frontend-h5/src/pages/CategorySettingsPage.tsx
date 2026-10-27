@@ -1,3 +1,4 @@
+import { useIconStore } from '../stores/icons'
 import { Loading } from '../components/Loading'
 import { SettingsHeader } from '../components/SettingsHeader'
 import {
@@ -143,7 +144,8 @@ export function CategorySettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type])
 
-  const selectedIcon = icons.find((item) => item.id === form?.iconId) ?? icons[0]
+  const catalogIcon = useIconStore(state => state.items.find(item => item.scene === 'category' && item.id === form?.iconId))
+  const selectedIcon = icons.find((item) => item.id === form?.iconId) ?? catalogIcon ?? icons[0]
   const parentOptions = categories.filter(
     (item) => !form?.id || (item.id !== form.id && item.parentId === null),
   )
@@ -157,7 +159,7 @@ export function CategorySettingsPage() {
       categoryType: type,
       parentId: null,
       name: '',
-      iconId: icons[0]?.id ?? '',
+      iconId: (icons.find(item => item.isDefault) ?? icons[0])?.id ?? '',
       sortOrder: siblings.length ? Math.max(...siblings.map((item) => item.sortOrder)) + 1 : 0,
       remark: '',
     })

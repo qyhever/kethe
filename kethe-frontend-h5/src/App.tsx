@@ -1,3 +1,4 @@
+import { loadIconCatalog } from './stores/icons'
 import { MerchantListPage, MerchantEditPage } from './pages/MerchantPages'
 import { ExpenseProjectListPage, ExpenseProjectEditPage, ExpenseProjectDetailPage } from './pages/ExpenseProjectPages'
 import { useEffect, useLayoutEffect, useRef } from 'react'
@@ -46,7 +47,19 @@ import './styles/tailwind.css'
 function App() {
   const { pathname } = useLocation()
   const versionNotificationRef = useRef<VersionUpdateNotificationRef>(null)
+  const authStatus = useAuthStore(state => state.status)
   const initializeAuth = useAuthStore((state) => state.initialize)
+
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return
+    const refresh = () => { void loadIconCatalog().catch(() => { /* 保留已加载目录，下一次恢复可见时重试。 */ }) }
+    refresh()
+    const visible = () => { if (document.visibilityState === 'visible') refresh() }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', visible)
+    const timer = window.setInterval(visible, 60_000)
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', visible) }
+  }, [authStatus])
 
   useLayoutEffect(() => {
     // 由应用控制滚动，避免浏览器在前进、后退时覆盖页面的滚动策略。

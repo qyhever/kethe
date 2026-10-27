@@ -1,3 +1,4 @@
+import { IconService } from '../icons/icon.service'
 import { DataSource } from 'typeorm'
 import { DefaultUserDataService } from '../user/default-user-data.service'
 import { Merchant } from '../ledger/entities/merchant.entity'
@@ -25,7 +26,7 @@ async function main() {
     entities: [User, Category, Account, Member, Merchant],
   }).initialize()
   try {
-    const defaults = new DefaultUserDataService()
+    const defaults = new DefaultUserDataService(new IconService(dataSource))
     const users = await dataSource
       .getRepository(User)
       .find({ select: { id: true } })

@@ -11,14 +11,18 @@ describe('商家 DTO', () => {
       ).not.toHaveLength(0)
     },
   )
-  it('名称去空白，图标必须在白名单内，编辑不允许空值', async () => {
+  it('名称去空白，图标校验格式，编辑不允许空值', async () => {
     const dto = plainToInstance(CreateMerchantDto, {
       name: ' 超市 ',
       iconKey: 'store',
     })
     expect(dto.name).toBe('超市')
     expect(await validate(dto)).toHaveLength(0)
-    for (const input of [{ name: null }, { iconKey: null }, { iconKey: 'bad' }])
+    for (const input of [
+      { name: null },
+      { iconKey: null },
+      { iconKey: 'bad_key' },
+    ])
       expect(
         await validate(plainToInstance(UpdateMerchantDto, input)),
       ).not.toHaveLength(0)

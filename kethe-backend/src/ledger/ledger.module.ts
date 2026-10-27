@@ -1,3 +1,4 @@
+import { IconModule } from '../icons/icon.module'
 import { Merchant } from './entities/merchant.entity'
 import { MerchantController } from './merchant.controller'
 import { MerchantService } from './merchant.service'
@@ -28,6 +29,7 @@ import { TransactionController } from './transaction.controller'
 
 @Module({
   imports: [
+    IconModule,
     TypeOrmModule.forFeature([
       Merchant,
       ExpenseProject,

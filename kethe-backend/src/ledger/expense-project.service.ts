@@ -1,3 +1,4 @@
+import { IconService } from '../icons/icon.service'
 import {
   BadRequestException,
   ConflictException,
@@ -13,7 +14,13 @@ import {
 } from './dto/expense-project.dto'
 @Injectable()
 export class ExpenseProjectService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly icons: IconService,
+  ) {}
+  options() {
+    return this.icons.keys('expense-project')
+  }
   async list(userId: number, status = 'active') {
     const items = await this.dataSource.getRepository(ExpenseProject).find({
       where: {
@@ -73,6 +80,9 @@ export class ExpenseProjectService {
       throw new BadRequestException('结束日期不得早于开始日期')
   }
   async create(userId: number, dto: CreateExpenseProjectDto) {
+    const iconKey =
+      dto.iconKey ?? (await this.icons.defaultKey('expense-project'))
+    await this.icons.validate('expense-project', iconKey)
     this.validateDates(dto)
     const repo = this.dataSource.getRepository(ExpenseProject)
     const item = await repo.save(
@@ -80,7 +90,7 @@ export class ExpenseProjectService {
         ...dto,
         name: dto.name.trim(),
         userId,
-        iconKey: dto.iconKey ?? 'folder',
+        iconKey,
         startDate: dto.startDate ?? null,
         endDate: dto.endDate ?? null,
         remark: dto.remark ?? null,
@@ -97,6 +107,13 @@ export class ExpenseProjectService {
         lock: { mode: 'pessimistic_write' },
       })
       if (!item) throw new NotFoundException('消费项目不存在')
+      if (dto.iconKey !== undefined)
+        await this.icons.validate(
+          'expense-project',
+          dto.iconKey,
+          item.iconKey,
+          manager,
+        )
       Object.assign(
         item,
         Object.fromEntries(

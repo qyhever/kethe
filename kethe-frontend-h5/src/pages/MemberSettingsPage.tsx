@@ -1,3 +1,4 @@
+import type { BusinessIconOption } from '../api/icons'
 import { Loading } from '../components/Loading'
 import { SettingsHeader } from '../components/SettingsHeader'
 import { ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -7,7 +8,6 @@ import { createMember, fetchMember, fetchMemberOptions, fetchMembers, removeMemb
 import { Money } from '../components/Account/AccountUI'
 import { Dialog } from '../components/Dialog'
 import { MemberIcon } from '../components/Member/MemberIcon'
-import { memberIconLabels } from '../components/Member/member-icons'
 import { MemberSheet } from '../components/Member/MemberSheet'
 import { SwipeCell } from '../components/SwipeCell'
 import { useToast } from '../components/Toast'
@@ -62,8 +62,8 @@ export function MemberEditPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const [name, setName] = useState('')
-  const [iconKey, setIconKey] = useState('user')
-  const [icons, setIcons] = useState<string[]>([])
+  const [iconKey, setIconKey] = useState('')
+  const [icons, setIcons] = useState<BusinessIconOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
@@ -77,6 +77,7 @@ export function MemberEditPage() {
     Promise.all([fetchMemberOptions(), id ? fetchMember(id) : Promise.resolve(null)]).then(([options, member]) => {
       if (!active) return
       setIcons(options)
+        if (!id) setIconKey((options.find(option => option.isDefault) ?? options[0])?.iconKey ?? '')
       if (member) { setName(member.name); setIconKey(member.iconKey) }
     }).catch((reason: unknown) => { if (active) setError(message(reason)) }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
@@ -102,6 +103,6 @@ export function MemberEditPage() {
       <button className="member-row" type="button" disabled={saving} onClick={() => setPicker(true)}><strong>成员图标</strong><span className="member-icon"><MemberIcon iconKey={iconKey} /></span><ChevronRight size={18} /></button>
       <button className="member-save" type="submit" disabled={saving}>{saving ? '保存中…' : '保存'}</button>
     </form>}
-    <MemberSheet title="选择成员图标" open={picker} accounts={icons.map(key => ({ id: key, name: memberIconLabels[key] ?? key, iconKey: key }))} selectedId={iconKey} onClose={() => setPicker(false)} onSelect={item => { if (item.id) setIconKey(item.id); setPicker(false) }} />
+    <MemberSheet title="选择成员图标" open={picker} accounts={icons.map(item => ({ id: item.iconKey, name: item.iconName, iconKey: item.iconKey }))} selectedId={iconKey} onClose={() => setPicker(false)} onSelect={item => { if (item.id) setIconKey(item.id); setPicker(false) }} />
   </main>
 }

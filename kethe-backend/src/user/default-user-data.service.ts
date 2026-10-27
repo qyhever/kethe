@@ -1,3 +1,4 @@
+import { IconService, type IconScene } from '../icons/icon.service'
 import { Merchant } from '../ledger/entities/merchant.entity'
 import { Member } from './entities/member.entity'
 import { DEFAULT_MEMBERS } from './member-options'
@@ -16,29 +17,35 @@ import { Category } from './entities/category.entity'
 
 @Injectable()
 export class DefaultUserDataService {
+  constructor(private readonly icons: IconService) {}
   async initialize(userId: number, manager: EntityManager): Promise<void> {
     const categoryRepository = manager.getRepository(Category)
     const accountRepository = manager.getRepository(Account)
 
     await this.createCategories(userId, categoryRepository)
-    await this.createAccounts(userId, accountRepository)
+    await this.createAccounts(userId, accountRepository, manager)
     const members = manager.getRepository(Member)
     const existing = new Set(
       (await members.find({ where: { userId }, withDeleted: true })).map(
         (item) => item.systemKey,
       ),
     )
-    const missing = DEFAULT_MEMBERS.flatMap((definition, index) =>
-      existing.has(definition.systemKey)
-        ? []
-        : [
-            members.create({
-              userId,
-              ...definition,
-              isSystemDefault: true,
-              sortOrder: index + 1,
-            }),
-          ],
+    const missing = await Promise.all(
+      DEFAULT_MEMBERS.map((definition, index) => ({ definition, index }))
+        .filter(({ definition }) => !existing.has(definition.systemKey))
+        .map(async ({ definition, index }) =>
+          members.create({
+            userId,
+            ...definition,
+            iconKey: await this.initialIcon(
+              'member',
+              definition.iconKey,
+              manager,
+            ),
+            isSystemDefault: true,
+            sortOrder: index + 1,
+          }),
+        ),
     )
     if (missing.length) await members.save(missing)
     const merchants = manager.getRepository(Merchant)
@@ -47,17 +54,24 @@ export class DefaultUserDataService {
         (item) => item.systemKey,
       ),
     )
-    const missingMerchants = DEFAULT_MERCHANTS.flatMap((definition, index) =>
-      existingMerchants.has(definition.systemKey)
-        ? []
-        : [
-            merchants.create({
-              userId,
-              ...definition,
-              isSystemDefault: true,
-              sortOrder: index + 1,
-            }),
-          ],
+    const missingMerchants = await Promise.all(
+      DEFAULT_MERCHANTS.map((definition, index) => ({ definition, index }))
+        .filter(
+          ({ definition }) => !existingMerchants.has(definition.systemKey),
+        )
+        .map(async ({ definition, index }) =>
+          merchants.create({
+            userId,
+            ...definition,
+            iconKey: await this.initialIcon(
+              'merchant',
+              definition.iconKey,
+              manager,
+            ),
+            isSystemDefault: true,
+            sortOrder: index + 1,
+          }),
+        ),
     )
     if (missingMerchants.length) await merchants.save(missingMerchants)
   }
@@ -153,35 +167,76 @@ export class DefaultUserDataService {
   private async createAccounts(
     userId: number,
     repository: Repository<Account>,
+    manager: EntityManager,
   ): Promise<void> {
     const existingKeys = new Set(
       (await repository.find({ where: { userId }, withDeleted: true })).map(
         (account) => account.systemKey,
       ),
     )
-    const accounts = DEFAULT_ACCOUNTS.map((definition, index) => ({
-      definition,
-      index,
-    }))
-      .filter(({ definition }) => !existingKeys.has(definition.systemKey))
-      .map(({ definition, index }) =>
-        repository.create({
-          userId,
-          ...definition,
-          isSystemDefault: true,
-          currency: 'CNY',
-          initialBalance: '0',
-          currentBalance: '0',
-          institutionName: null,
-          accountNumberLast4: null,
-          creditLimit: null,
-          includeInNetWorth: true,
-          sortOrder: index + 1,
-          isEnabled: true,
-          remark: null,
-        }),
-      )
+    const accounts = await Promise.all(
+      DEFAULT_ACCOUNTS.map((definition, index) => ({
+        definition,
+        index,
+      }))
+        .filter(({ definition }) => !existingKeys.has(definition.systemKey))
+        .map(async ({ definition, index }) =>
+          repository.create({
+            userId,
+            ...definition,
+            iconKey: await this.initialAccountIcon(definition, manager),
+            isSystemDefault: true,
+            currency: 'CNY',
+            initialBalance: '0',
+            currentBalance: '0',
+            institutionName: null,
+            accountNumberLast4: null,
+            creditLimit: null,
+            includeInNetWorth: true,
+            sortOrder: index + 1,
+            isEnabled: true,
+            remark: null,
+          }),
+        ),
+    )
     if (accounts.length) await repository.save(accounts)
+  }
+
+  private async initialIcon(
+    scene: IconScene,
+    key: string,
+    manager: EntityManager,
+  ) {
+    const match = (await this.icons.list(scene, true, manager)).find(
+      (item) => item.iconKey === key,
+    )
+    return match?.iconKey ?? this.icons.defaultKey(scene, manager)
+  }
+
+  private async initialAccountIcon(
+    definition: {
+      iconKey: string
+      accountType: number
+      accountSubType: number | null
+    },
+    manager: EntityManager,
+  ) {
+    const items = await this.icons.list('account', true, manager)
+    const rules = await this.icons.accountRules(manager)
+    if (
+      items.some((item) => item.iconKey === definition.iconKey) &&
+      rules.some(
+        (rule) =>
+          rule.iconKey === definition.iconKey &&
+          rule.accountType === definition.accountType,
+      )
+    )
+      return definition.iconKey
+    return this.icons.defaultAccountKey(
+      definition.accountType,
+      definition.accountSubType,
+      manager,
+    )
   }
 
   private async findIconId(
@@ -197,7 +252,7 @@ export class DefaultUserDataService {
     iconKey: string,
   ): Promise<string | null> {
     const rows = await repository.manager.query<Array<{ id: string }>>(
-      'SELECT id FROM category_icons WHERE iconKey = ? AND isEnabled = 1 LIMIT 1',
+      'SELECT id FROM category_icon_resources WHERE iconKey = ? AND isEnabled = 1 LIMIT 1',
       [iconKey],
     )
     return rows[0]?.id ?? null

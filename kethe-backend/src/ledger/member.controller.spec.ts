@@ -75,7 +75,7 @@ describe('成员 HTTP 接口', () => {
       .expect(400)
     await request(server)
       .post('/members')
-      .send({ name: '本人', iconKey: 'invalid' })
+      .send({ name: '本人', iconKey: 'invalid_key' })
       .expect(400)
     await request(server).patch('/members/1').send({ name: null }).expect(400)
     await request(server)

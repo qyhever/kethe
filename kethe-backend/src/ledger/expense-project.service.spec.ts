@@ -1,3 +1,4 @@
+import { createIconServiceMock } from '../icons/testing/icon-service.mock'
 import {
   BadRequestException,
   ConflictException,
@@ -56,7 +57,10 @@ function setup() {
       ),
   }
   return {
-    service: new ExpenseProjectService(source as unknown as DataSource),
+    service: new ExpenseProjectService(
+      source as unknown as DataSource,
+      createIconServiceMock(),
+    ),
     projects,
     transactions,
     builder,

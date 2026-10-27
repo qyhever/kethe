@@ -24,59 +24,6 @@ export interface AccountTypeOption {
   subTypes: ReadonlyArray<AccountSubTypeOption>
 }
 
-export interface AccountIconOption {
-  key: string
-  label: string
-  supportedTypes: ReadonlyArray<AccountType>
-}
-
-export const ACCOUNT_ICON_OPTIONS: ReadonlyArray<AccountIconOption> = [
-  { key: 'cash', label: '现金', supportedTypes: [AccountType.CASH] },
-  {
-    key: 'credit-card',
-    label: '信用卡',
-    supportedTypes: [AccountType.CREDIT],
-  },
-  {
-    key: 'consumer-credit',
-    label: '消费信贷',
-    supportedTypes: [AccountType.CREDIT],
-  },
-  {
-    key: 'bank-card',
-    label: '银行卡',
-    supportedTypes: [AccountType.DEBIT],
-  },
-  {
-    key: 'savings',
-    label: '储蓄',
-    supportedTypes: [AccountType.DEBIT, AccountType.OTHER],
-  },
-  {
-    key: 'wallet',
-    label: '钱包',
-    supportedTypes: [AccountType.VIRTUAL, AccountType.OTHER],
-  },
-  { key: 'wechat', label: '微信', supportedTypes: [AccountType.VIRTUAL] },
-  { key: 'alipay', label: '支付宝', supportedTypes: [AccountType.VIRTUAL] },
-  { key: 'paypal', label: 'PayPal', supportedTypes: [AccountType.VIRTUAL] },
-  {
-    key: 'stored-value-card',
-    label: '储值卡',
-    supportedTypes: [AccountType.VIRTUAL],
-  },
-  {
-    key: 'voucher',
-    label: '现金券',
-    supportedTypes: [AccountType.VIRTUAL],
-  },
-  {
-    key: 'coins',
-    label: '其他资金',
-    supportedTypes: [AccountType.OTHER],
-  },
-]
-
 export const ACCOUNT_OPTIONS: ReadonlyArray<AccountTypeOption> = [
   {
     value: AccountType.CASH,
@@ -198,28 +145,4 @@ export function isValidAccountSubType(
   if (!option) return false
   if (option.subTypes.length === 0) return accountSubType === null
   return option.subTypes.some((item) => item.value === accountSubType)
-}
-
-export function isValidAccountIcon(iconKey: string, accountType: AccountType) {
-  return ACCOUNT_ICON_OPTIONS.some(
-    (option) =>
-      option.key === iconKey && option.supportedTypes.includes(accountType),
-  )
-}
-
-export function defaultAccountIconKey(
-  accountType: AccountType,
-  accountSubType: AccountSubType | null,
-) {
-  if (accountSubType === AccountSubType.CREDIT_CARD) return 'credit-card'
-  if (accountSubType === AccountSubType.CONSUMER_CREDIT)
-    return 'consumer-credit'
-  if (accountSubType === AccountSubType.DEBIT_CARD) return 'bank-card'
-  if (accountSubType === AccountSubType.PASSBOOK) return 'savings'
-  if (accountSubType === AccountSubType.STORED_VALUE_CARD)
-    return 'stored-value-card'
-  if (accountSubType === AccountSubType.CASH_VOUCHER) return 'voucher'
-  if (accountType === AccountType.CASH) return 'cash'
-  if (accountType === AccountType.VIRTUAL) return 'wallet'
-  return 'coins'
 }

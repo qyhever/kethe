@@ -1,3 +1,4 @@
+import { createIconServiceMock } from '../icons/testing/icon-service.mock'
 import {
   BadRequestException,
   ConflictException,
@@ -57,6 +58,7 @@ describe('LedgerService 流水视图', () => {
       {} as never,
       {} as never,
       {} as never,
+      createIconServiceMock(),
     )
     const [result] = await service.listCategories(42, 1)
     expect(result.children[0]).toMatchObject(own)
@@ -70,6 +72,7 @@ describe('LedgerService 流水视图', () => {
       {} as never,
       {} as never,
       {} as never,
+      createIconServiceMock(),
     )
   }
 
@@ -270,6 +273,7 @@ describe('LedgerService 流水视图', () => {
       {} as never,
       {} as never,
       {} as never,
+      createIconServiceMock(),
     )
     const query = {
       currentPage: 3,
@@ -452,6 +456,7 @@ describe('LedgerService 分类设置', () => {
       {} as never,
       icons as never,
       transactions as never,
+      createIconServiceMock(),
     )
     return { service, categories, icons, transactions }
   }
@@ -629,6 +634,7 @@ describe('LedgerService 账户分类', () => {
       accounts as never,
       {} as never,
       {} as never,
+      createIconServiceMock(),
     )
     return { service, accounts }
   }
@@ -663,9 +669,9 @@ describe('LedgerService 账户分类', () => {
     },
   )
 
-  it('返回账户类型和图标选项', () => {
+  it('返回账户类型和图标选项', async () => {
     const { service } = setupAccounts()
-    const options = service.accountOptions()
+    const options = await service.accountOptions()
 
     expect(options.accountTypes.length).toBeGreaterThan(0)
     expect(options.accountIcons).toEqual(
@@ -745,6 +751,7 @@ describe('LedgerService 账户分类', () => {
       {} as never,
       {} as never,
       {} as never,
+      createIconServiceMock(),
     )
     return { service, entity, accountRepository, transactionRepository }
   }
@@ -904,6 +911,7 @@ describe('LedgerService 账户分类', () => {
       accounts as never,
       {} as never,
       transactions as never,
+      createIconServiceMock(),
     )
 
     await expect(service.listAccounts(14)).resolves.toEqual([
@@ -933,6 +941,7 @@ describe('LedgerService 账户分类', () => {
       accounts as never,
       {} as never,
       transactions as never,
+      createIconServiceMock(),
     )
 
     await expect(service.getAccount(14, '1')).resolves.toEqual(
@@ -956,6 +965,7 @@ describe('LedgerService 账户分类', () => {
       accounts as never,
       {} as never,
       transactions as never,
+      createIconServiceMock(),
     )
 
     await expect(service.deleteAccount(14, '1')).resolves.toBeNull()
@@ -979,6 +989,7 @@ describe('LedgerService 账户分类', () => {
       accounts as never,
       {} as never,
       transactions as never,
+      createIconServiceMock(),
     )
 
     await expect(service.deleteAccount(14, '1')).rejects.toBeInstanceOf(
@@ -1029,6 +1040,7 @@ describe('LedgerService 删除流水', () => {
       {} as never,
       {} as never,
       {} as never,
+      createIconServiceMock(),
     )
     return { service, transactionRepository, accountRepository, manager }
   }

@@ -1,3 +1,4 @@
+import { createIconServiceMock } from '../icons/testing/icon-service.mock'
 import { LedgerService } from './ledger.service'
 import { Merchant } from './entities/merchant.entity'
 import { Transaction } from './entities/transaction.entity'
@@ -86,6 +87,7 @@ describe('商家关联流水保存与响应', () => {
       {} as never,
       {} as never,
       {} as never,
+      createIconServiceMock(),
     )
     const dto: CreateTransactionDto = {
       transactionType: 1,

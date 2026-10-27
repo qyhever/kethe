@@ -2,11 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { PositiveBigIntIdPipe } from '../common/pipes/positive-bigint-id.pipe'
 import type { RequestWithContext } from '../common/types/request-with-context'
-import {
-  CreateMerchantDto,
-  UpdateMerchantDto,
-  MERCHANT_ICONS,
-} from './dto/merchant.dto'
+import { CreateMerchantDto, UpdateMerchantDto } from './dto/merchant.dto'
 import { MerchantService } from './merchant.service'
 
 @ApiTags('商家')
@@ -20,7 +16,7 @@ export class MerchantController {
   }
   @Get('options')
   options() {
-    return MERCHANT_ICONS
+    return this.service.options()
   }
   @Get(':id')
   get(

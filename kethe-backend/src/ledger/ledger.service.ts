@@ -1,3 +1,4 @@
+import { IconService } from '../icons/icon.service'
 import { Merchant } from './entities/merchant.entity'
 import { ExpenseProject } from './entities/expense-project.entity'
 import {
@@ -15,12 +16,9 @@ import { Member } from '../user/entities/member.entity'
 import { Account } from '../user/entities/account.entity'
 import { Category } from '../user/entities/category.entity'
 import {
-  ACCOUNT_ICON_OPTIONS,
   ACCOUNT_OPTIONS,
   accountTypeOption,
-  defaultAccountIconKey,
   defaultAccountNature,
-  isValidAccountIcon,
   isValidAccountSubType,
 } from '../user/account-options'
 import {
@@ -118,12 +116,13 @@ export class LedgerService {
     private readonly icons: Repository<CategoryIcon>,
     @InjectRepository(Transaction)
     private readonly transactions: Repository<Transaction>,
+    private readonly iconCatalog: IconService,
   ) {}
 
   async listIcons() {
     const items = await this.icons.find({
       where: { isEnabled: true },
-      order: { id: 'ASC' },
+      order: { sortOrder: 'ASC', id: 'ASC' },
     })
     return items.map((item) => ({ ...item, id: String(item.id) }))
   }
@@ -223,6 +222,7 @@ export class LedgerService {
     if (!entity) throw new NotFoundException('分类不存在')
     if (
       dto.iconId &&
+      dto.iconId !== entity.iconId &&
       !(await this.icons.existsBy({ id: dto.iconId, isEnabled: true }))
     ) {
       throw new BadRequestException('分类图标不存在或已停用')
@@ -324,10 +324,10 @@ export class LedgerService {
     )
   }
 
-  accountOptions() {
+  async accountOptions() {
     return {
       accountTypes: ACCOUNT_OPTIONS,
-      accountIcons: ACCOUNT_ICON_OPTIONS,
+      accountIcons: await this.iconCatalog.accountOptions(),
     }
   }
 
@@ -343,6 +343,8 @@ export class LedgerService {
 
   async createAccount(userId: number, dto: CreateAccountDto) {
     const attributes = this.validateAccountAttributes(dto)
+    if (dto.iconKey !== undefined)
+      await this.iconCatalog.validateAccount(dto.iconKey, dto.accountType)
     const entity = this.accounts.create({
       userId,
       name: dto.name.trim(),
@@ -350,7 +352,10 @@ export class LedgerService {
       ...attributes,
       iconKey:
         dto.iconKey ??
-        defaultAccountIconKey(dto.accountType, attributes.accountSubType),
+        (await this.iconCatalog.defaultAccountKey(
+          dto.accountType,
+          attributes.accountSubType,
+        )),
       systemKey: null,
       isSystemDefault: false,
       currency: dto.currency,
@@ -451,15 +456,21 @@ export class LedgerService {
       entity.institutionName = attributes.institutionName
       entity.accountNumberLast4 = attributes.accountNumberLast4
       entity.creditLimit = attributes.creditLimit
-      if (dto.iconKey !== undefined) entity.iconKey = dto.iconKey
-      else if (
-        !entity.iconKey ||
-        !isValidAccountIcon(entity.iconKey, accountType)
-      )
-        entity.iconKey = defaultAccountIconKey(
+      if (dto.iconKey !== undefined) {
+        await this.iconCatalog.validateAccount(
+          dto.iconKey,
+          accountType,
+          typeChanged ? undefined : entity.iconKey,
+          manager,
+        )
+        entity.iconKey = dto.iconKey
+      } else if (typeChanged || !entity.iconKey) {
+        entity.iconKey = await this.iconCatalog.defaultAccountKey(
           accountType,
           attributes.accountSubType,
+          manager,
         )
+      }
       if (dto.includeInNetWorth !== undefined)
         entity.includeInNetWorth = dto.includeInNetWorth
       if (dto.sortOrder !== undefined) entity.sortOrder = dto.sortOrder
@@ -1108,12 +1119,6 @@ export class LedgerService {
     const accountSubType = input.accountSubType ?? null
     if (!isValidAccountSubType(input.accountType, accountSubType)) {
       throw new BadRequestException('账户子类型与一级类型不匹配')
-    }
-    if (
-      input.iconKey !== undefined &&
-      !isValidAccountIcon(input.iconKey, input.accountType)
-    ) {
-      throw new BadRequestException('账户图标不存在或不适用于当前账户类型')
     }
     const fixedNature = defaultAccountNature(input.accountType)
     if (

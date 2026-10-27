@@ -1,3 +1,5 @@
+import type { IconService } from '../icons/icon.service'
+import { createIconServiceMock } from '../icons/testing/icon-service.mock'
 import { Merchant } from '../ledger/entities/merchant.entity'
 import type { EntityManager, Repository } from 'typeorm'
 import {
@@ -17,6 +19,7 @@ import {
 } from './enums/account-type.enum'
 
 describe('DefaultUserDataService', () => {
+  let icons: IconService
   let service: DefaultUserDataService
   let categoryRecords: Category[]
   let accountRecords: Account[]
@@ -26,7 +29,8 @@ describe('DefaultUserDataService', () => {
   let iconIdByKey: Map<string, string>
 
   beforeEach(() => {
-    service = new DefaultUserDataService()
+    icons = createIconServiceMock()
+    service = new DefaultUserDataService(icons)
     categoryRecords = []
     accountRecords = []
     memberRecords = []
@@ -100,6 +104,26 @@ describe('DefaultUserDataService', () => {
                 : accountRepository,
       ),
     } as unknown as EntityManager
+  })
+
+  it('初始图标停用时使用数据库配置的默认项', async () => {
+    jest.spyOn(icons, 'list').mockResolvedValue([])
+    jest.spyOn(icons, 'defaultKey').mockResolvedValue('database-default')
+    jest
+      .spyOn(icons, 'defaultAccountKey')
+      .mockResolvedValue('database-account-default')
+    await service.initialize(42, manager)
+    expect(
+      memberRecords.every((item) => item.iconKey === 'database-default'),
+    ).toBe(true)
+    expect(
+      merchantRecords.every((item) => item.iconKey === 'database-default'),
+    ).toBe(true)
+    expect(
+      accountRecords.every(
+        (item) => item.iconKey === 'database-account-default',
+      ),
+    ).toBe(true)
   })
 
   it('应该按定义顺序创建 86 条默认分类并建立父子关系', async () => {

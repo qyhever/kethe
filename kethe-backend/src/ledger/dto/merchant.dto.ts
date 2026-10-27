@@ -1,16 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types'
 import { Transform } from 'class-transformer'
-import { IsIn, IsString, Length, ValidateIf } from 'class-validator'
-export const MERCHANT_ICONS = [
-  'store',
-  'shopping-cart',
-  'shopping-bag',
-  'package',
-  'globe',
-  'gift',
-  'tags',
-  'building',
-] as const
+import { IsString, Length, Matches, ValidateIf } from 'class-validator'
 export class CreateMerchantDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
@@ -19,7 +9,9 @@ export class CreateMerchantDto {
   @Length(1, 30)
   name!: string
   @ValidateIf((_object, value: unknown) => value !== undefined)
-  @IsIn(MERCHANT_ICONS)
+  @IsString()
+  @Length(1, 64)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   iconKey?: string
 }
 export class UpdateMerchantDto extends PartialType(CreateMerchantDto, {

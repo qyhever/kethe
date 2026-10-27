@@ -1,3 +1,4 @@
+import { IconModule } from '../icons/icon.module'
 import { AttachModule } from '../attach/attach.module'
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -14,6 +15,7 @@ import { DefaultUserDataService } from './default-user-data.service'
 
 @Module({
   imports: [
+    IconModule,
     AttachModule,
     TypeOrmModule.forFeature([User, Category, Account, Member, Merchant]),
   ],

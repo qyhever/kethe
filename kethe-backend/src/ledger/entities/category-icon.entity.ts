@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
 
-@Entity({ name: 'category_icons', synchronize: false })
+@Entity({ name: 'category_icon_resources', synchronize: false })
 export class CategoryIcon {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id!: string
@@ -25,4 +25,10 @@ export class CategoryIcon {
 
   @Column({ type: 'boolean', default: true })
   isEnabled!: boolean
+
+  @Column({ type: 'boolean', default: false })
+  isDefault!: boolean
+
+  @Column({ type: 'int', unsigned: true })
+  sortOrder!: number
 }

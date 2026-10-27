@@ -1,14 +1,3 @@
-export const MEMBER_ICONS = [
-  'user',
-  'woman',
-  'man',
-  'child',
-  'parents',
-  'family',
-  'heart',
-  'baby',
-  'friend',
-] as const
 export const DEFAULT_MEMBERS = [
   { name: '本人', iconKey: 'user', systemKey: 'self' },
   { name: '老婆', iconKey: 'woman', systemKey: 'wife' },

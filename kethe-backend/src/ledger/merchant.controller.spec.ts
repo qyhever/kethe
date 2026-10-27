@@ -7,6 +7,7 @@ import { MerchantService } from './merchant.service'
 describe('商家控制器', () => {
   let app: INestApplication
   const service = {
+    options: jest.fn().mockResolvedValue(['store']),
     list: jest.fn().mockResolvedValue([]),
     get: jest.fn().mockResolvedValue({ id: '1' }),
     create: jest.fn().mockResolvedValue({ id: '1' }),
@@ -35,7 +36,7 @@ describe('商家控制器', () => {
       .get('/merchants/options')
       .expect(200)
     expect(response.body).toContain('store')
-    expect(response.body).toHaveLength(8)
+    expect(service.options).toHaveBeenCalled()
   })
   it.each(['0', 'abc', '-1', '01', '18446744073709551616'])(
     '非法商家ID %s 返回400',
@@ -76,7 +77,7 @@ describe('商家控制器', () => {
     for (const input of [
       { name: ' ' },
       { name: null },
-      { iconKey: 'invalid' },
+      { iconKey: 'invalid_key' },
       { iconKey: null },
     ])
       await request(app.getHttpServer() as Server)
