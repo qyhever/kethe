@@ -283,11 +283,19 @@ function TransactionRow({
           <span className="transaction-row__name">
             {category}{detail ? ` · ${detail}` : ''}
           </span>
-          <span className="transaction-row__remark">
-            {transaction.remark?.trim() || '无备注'}
-          </span>
           <span className="transaction-row__account">
             {transaction.timePrecision === 1 ? account : `${transactionTime(transaction.transactionTime)} · ${account}`}
+          </span>
+          <span className="transaction-row__remark">
+            {
+              [
+                transaction.memberName,
+                transaction.merchantName,
+                transaction.remark?.trim(),
+              ]
+                .filter((text) => text)
+                .join(' · ')
+            }
           </span>
         </span>
         <span className={`transaction-row__amount transaction-row__amount--${isTransfer ? 'transfer' : transaction.transactionType === 2 ? 'income' : 'expense'}`}>

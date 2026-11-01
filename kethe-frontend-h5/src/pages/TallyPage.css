@@ -226,7 +226,7 @@ button.tally-form-row:disabled {
 }
 
 .tally-entry-page {
-  --tally-key-height: 57px;
+  --tally-key-height: 78px;
   --tally-save-height: 64px;
   --tally-footer-height: calc(var(--tally-save-height) + 30px + var(--safe-bottom));
   display: flex;
