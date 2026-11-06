@@ -101,7 +101,7 @@
 .icon-sheet__tabs { display: flex; margin: 8px 0 15px; gap: 7px; }
 .icon-sheet__tabs button { min-height: 30px; padding: 0 14px; border-radius: 8px; background: var(--color-fill-tertiary); color: var(--color-text-secondary); font-size: 12px; }
 .icon-sheet__tabs button.is-selected { background: var(--color-brand); color: var(--color-on-brand); }
-.icon-sheet__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.icon-sheet__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 12px; }
 .icon-sheet__grid > button { display: grid; min-width: 0; padding: 0; justify-items: center; gap: 5px; background: transparent; color: var(--color-text-secondary); }
 .icon-sheet__tile { display: grid; width: 52px; height: 52px; place-items: center; border: 2px solid transparent; border-radius: 11px; background: color-mix(in srgb, var(--color-brand) 8%, var(--color-fill-tertiary)); color: var(--color-brand); }
 .icon-sheet__tile--liability { background: color-mix(in srgb, var(--color-danger) 8%, var(--color-fill-tertiary)); color: var(--color-danger); }

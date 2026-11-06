@@ -159,7 +159,7 @@ export function AccountIconSheet({
             return (
               <button key={item.key} type="button" role="radio" aria-checked={selected === item.key} className={selected === item.key ? 'is-selected' : ''} onClick={() => setSelected(item.key)}>
                 <span className={`icon-sheet__tile icon-sheet__tile--${nature === 2 ? 'liability' : 'asset'}${iconColor ? ' icon-sheet__tile--branded' : ''}`} style={iconColor ? { '--account-icon-color': iconColor } as CSSProperties : undefined}><BusinessIcon scene="account" iconKey={item.key} color={iconColor ?? undefined} /></span>
-                <small>{item.label}</small>
+                {/* <small>{item.label}</small> */}
               </button>
             )
           })}
