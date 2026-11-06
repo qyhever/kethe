@@ -46,6 +46,10 @@ SVG 在统一目录响应和前端渲染时按绘图标签、属性白名单清�
 
 ## 维护示例
 
+账户专属图标增量脚本为 `kethe-backend/sql/2026-11-06-account-specific-icons.sql`，同步包含在 `init.sql` 中。它补充 19 个图标及适用类型规则，保留原有默认、启停和资源配置；现金、微信、支付宝、PayPal 继续复用原目录。`personal-bank-card` 对应设计资源中的 `bank-card.svg`，与原通用 `bank-card` 分开维护。
+
+可选绑定脚本为 `kethe-backend/sql/2026-11-06-bind-account-icons.sql`。执行前将脚本内的 `@account_icon_user_id` 从 NULL 改为目标用户 ID；它按账户原始名称精确匹配，并检查性质、适用类型、软删除状态及图标启用状态，仅更新匹配账户的 `iconKey`，执行整个脚本会提交变更。
+
 新增商家图标（示例 key、名称、SVG 和颜色可替换）：
 
 ```sql
