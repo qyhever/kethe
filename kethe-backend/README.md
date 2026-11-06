@@ -117,3 +117,36 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## sql 导出数据
+服务器需要 MySQL 8.x 客户端，包含 mysql、mysqldump 和 mysql_config_editor。脚本使用 MySQL 专有参数，请勿直接使用 MariaDB 客户端。
+
+首次配置数据库连接，密码按提示输入：
+
+mysql_config_editor set \
+  --login-path=kethe-prod \
+  --host=127.0.0.1 \
+  --port=3306 \
+  --user=EXPORT_USER \
+  --password
+
+确认用户 ID：
+
+mysql --login-path=kethe-prod --database=kethe \
+  --execute="SELECT id, username, nickname FROM users WHERE email='target@example.com';"
+
+暂停该用户写入，并避免表结构、公共字典变更，直到导出完成。 多次导出使用独立快照，脚本的行数检查无法发现原记录被修改。
+
+以用户 14 为例：
+
+chmod 700 ~/export-user.sh
+
+bash ~/export-user.sh \
+  14 \
+  "$HOME/kethe-user-14-export" \
+  kethe \
+  kethe-prod
+
+四个参数分别为：用户 ID、输出目录、生产数据库名、连接配置名。输出目录必须尚不存在。
+
+成功后显示 Export complete，目录中应包含四个 SQL 文件、行数记录、用户 ID 和 SHA256SUMS 校验清单
