@@ -283,10 +283,10 @@ function TransactionRow({
           <span className="transaction-row__name">
             {category}{detail ? ` · ${detail}` : ''}
           </span>
-          <span className="transaction-row__account">
+          <span className="transaction-row__remark">
             {transaction.timePrecision === 1 ? account : `${transactionTime(transaction.transactionTime)} · ${account}`}
           </span>
-          <span className="transaction-row__remark">
+          <span className="transaction-row__account">
             {
               [
                 transaction.memberName,

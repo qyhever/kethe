@@ -522,7 +522,6 @@ button.tally-form-row:disabled {
   }
 
   .tally-entry-page {
-    --tally-key-height: 54px;
     --tally-save-height: 61px;
   }
 
@@ -545,7 +544,6 @@ button.tally-form-row:disabled {
   }
 
   .tally-entry-page {
-    --tally-key-height: 51px;
     --tally-save-height: 60px;
   }
 }
@@ -564,7 +562,6 @@ button.tally-form-row:disabled {
   }
 
   .tally-entry-page {
-    --tally-key-height: 47px;
     --tally-save-height: 52px;
   }
 }
