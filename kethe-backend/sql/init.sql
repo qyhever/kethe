@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS `category_icons`;
 DROP TABLE IF EXISTS `projects`;
 DROP TABLE IF EXISTS `email_verification_codes`;
 DROP TABLE IF EXISTS `feedbacks`;
+DROP TABLE IF EXISTS `auth_sessions`;
 DROP TABLE IF EXISTS `users`;
 SET FOREIGN_KEY_CHECKS = 1;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -34,6 +35,20 @@ CREATE TABLE `users` (
   UNIQUE KEY `uk_user_email` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+CREATE TABLE auth_sessions (
+  id CHAR(36) NOT NULL,
+  user_id INT NOT NULL,
+  refresh_jti CHAR(36) NOT NULL,
+  device_label VARCHAR(64) NOT NULL,
+  created_at DATETIME NOT NULL,
+  last_active_at DATETIME NOT NULL,
+  expires_at DATETIME NOT NULL,
+  revoked_at DATETIME NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY idx_auth_sessions_user_active (user_id, revoked_at, expires_at),
+  CONSTRAINT fk_auth_sessions_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE feedbacks (
   id INT NOT NULL AUTO_INCREMENT COMMENT 'Unique identifier',

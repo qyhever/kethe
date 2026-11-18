@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { LoginDevicesPage } from './pages/LoginDevicesPage'
 import { SettingsPage, AccountSecurityPage } from './pages/SettingsPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { HomePage } from './pages/HomePage'
@@ -111,6 +112,7 @@ function App() {
           <Route path="/profile/user/avatar" element={<UserProfileAvatarPage />} />
           <Route path="/profile/settings" element={<SettingsPage />} />
           <Route path="/profile/settings/security" element={<AccountSecurityPage />} />
+          <Route path="/profile/settings/security/devices" element={<LoginDevicesPage />} />
           <Route path="/profile/settings/security/reset-password" element={<ResetPasswordPage />} />
           <Route path="/profile/categories" element={<CategorySettingsPage />} />
           <Route path="/profile/merchants" element={<MerchantListPage />} />

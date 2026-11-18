@@ -16,6 +16,7 @@ import {
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import fallbackAvatar from '../assets/avatar.svg'
+import { useToast } from '../components/Toast'
 import { Tabbar, type TabId } from '../components/Tarbar'
 import { APP_VERSION } from '../constants/app'
 import { useAuthStore } from '../stores/auth'
@@ -50,7 +51,20 @@ const menuGroups: ProfileMenuItem[][] = [
 export function ProfilePage() {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
-  const signOut = useAuthStore((state) => state.signOut)
+  const logout = useAuthStore((state) => state.logout)
+  const toast = useToast()
+  const [signingOut, setSigningOut] = useState(false)
+
+  const handleSignOut = async () => {
+    setSigningOut(true)
+    try {
+      await logout()
+    } catch {
+      toast.error('退出登录失败，请重试')
+    } finally {
+      setSigningOut(false)
+    }
+  }
   const [avatarFailed, setAvatarFailed] = useState(false)
   const avatar = !avatarFailed && user?.avatar ? user.avatar : fallbackAvatar
 
@@ -106,9 +120,9 @@ export function ProfilePage() {
           ))}
         </div>
 
-        <button className="profile-sign-out" type="button" onClick={signOut}>
+        <button className="profile-sign-out" type="button" onClick={handleSignOut} disabled={signingOut}>
           <LogOut aria-hidden="true" size={18} />
-          退出登录
+          {signingOut ? '正在退出…' : '退出登录'}
         </button>
         <p className="profile-version">{APP_VERSION}</p>
       </main>

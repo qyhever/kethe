@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { request as http } from './fetch'
 import type { RequestOptions } from './fetch'
-import { clearTokens, getAccessToken, getRefreshToken, setTokens } from '../api/token'
+import { clearTokens, getSessionIdentity, getTokens, setTokens } from '../api/token'
 import type { ApiResponse, AuthTokens } from '../api/types'
 import { notifyUnauthorized } from './auth-session'
 
@@ -33,20 +33,14 @@ export class ApiError extends Error {
   }
 }
 
-let refreshPromise: Promise<AuthTokens> | null = null
+const refreshes = new Map<string, Promise<void>>()
+const refreshHandoffMs = 1500
 
-function expireSession() {
+function expireSession(expected: AuthTokens) {
+  const current = getTokens()
+  if (current?.refreshToken !== expected.refreshToken || current.accessToken !== expected.accessToken) return
   clearTokens()
   notifyUnauthorized()
-}
-
-function withAuthHeader(headers?: RequestOptions['headers']) {
-  const nextHeaders = { ...(headers || {}) }
-  const token = getAccessToken()
-  if (token) {
-    nextHeaders.Authorization = `Bearer ${token}`
-  }
-  return nextHeaders
 }
 
 function withNoCache(params?: RequestOptions['params']) {
@@ -56,46 +50,70 @@ function withNoCache(params?: RequestOptions['params']) {
   }
 }
 
-async function refreshTokens() {
-  if (!refreshPromise) {
-    const refreshToken = getRefreshToken()
-    if (!refreshToken) {
-      expireSession()
-      throw new ApiError('登录已过期，请重新登录', 401)
-    }
+function requireSameSession(expected: AuthTokens) {
+  const current = getTokens()
+  if (!current || getSessionIdentity(current) !== getSessionIdentity(expected)) {
+    throw new ApiError('登录状态已改变，请重试', 401)
+  }
+  return current
+}
 
-    refreshPromise = http<ApiResponse<AuthTokens>>({
+function tokensChanged(current: AuthTokens, expected: AuthTokens) {
+  return current.refreshToken !== expected.refreshToken || current.accessToken !== expected.accessToken
+}
+
+async function waitForRefresh(expected: AuthTokens) {
+  const deadline = Date.now() + refreshHandoffMs
+  while (Date.now() < deadline) {
+    const current = requireSameSession(expected)
+    if (tokensChanged(current, expected)) return current
+    await new Promise((resolve) => window.setTimeout(resolve, 100))
+  }
+  return requireSameSession(expected)
+}
+
+async function rotateTokens(expected: AuthTokens) {
+  const before = requireSameSession(expected)
+  if (tokensChanged(before, expected)) return
+
+  let response: ApiResponse<AuthTokens>
+  try {
+    response = await http<ApiResponse<AuthTokens>>({
       ...defaultOptions,
       method: 'POST',
       url: '/auth/refresh',
-      data: { refreshToken },
+      data: { refreshToken: before.refreshToken },
     })
-      .then((response) => {
-        if (!response.success) {
-          expireSession()
-          throw new ApiError(response.message || '登录已过期，请重新登录', 401, response)
-        }
-        setTokens(response.data)
-        return response.data
-      })
-      .catch((error: any) => {
-        if (error instanceof ApiError) throw error
-
-        const status = error?.response?.status
-        if (status >= 400 && status < 500) expireSession()
-
-        throw new ApiError(
-          codeMessage[status] || getErrorMessage(error),
-          status,
-          error?.data,
-        )
-      })
-      .finally(() => {
-        refreshPromise = null
-      })
+    if (!response.success) {
+      throw new ApiError(response.message || '登录已过期，请重新登录', 401, response)
+    }
+  } catch (error: any) {
+    const status = error instanceof ApiError ? error.status : error?.response?.status
+    const invalid = status === 401 || status === 403
+    // 其他标签页可能已完成轮换，但本页还没有读到共享存储里的新令牌。
+    const current = invalid ? await waitForRefresh(before) : requireSameSession(before)
+    if (tokensChanged(current, before)) return
+    if (invalid) expireSession(before)
+    throw new ApiError(codeMessage[status] || getErrorMessage(error), status, error?.data)
   }
 
-  return refreshPromise
+  const current = requireSameSession(before)
+  if (tokensChanged(current, before)) return
+  setTokens(response.data)
+}
+
+function refreshTokens(expected: AuthTokens) {
+  const key = expected.accessToken
+  const pending = refreshes.get(key)
+  if (pending) return pending
+
+  const refresh = () => rotateTokens(expected)
+  const task = (navigator.locks
+    ? navigator.locks.request('kethe.auth.refresh', refresh)
+    : refresh()
+  ).finally(() => refreshes.delete(key))
+  refreshes.set(key, task)
+  return task
 }
 
 function getErrorMessage(error: unknown) {
@@ -117,13 +135,16 @@ function getServerErrorMessage(data: unknown) {
   return undefined
 }
 
-async function requestRaw<T>(opts: RequestOptions): Promise<ApiResponse<T>> {
+async function requestRaw<T>(opts: RequestOptions, tokens: AuthTokens | null): Promise<ApiResponse<T>> {
   const method = opts.method || 'GET'
   const options: RequestOptions = {
     ...defaultOptions,
     ...opts,
     method,
-    headers: withAuthHeader(opts.headers),
+    headers: {
+      ...opts.headers,
+      ...(tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {}),
+    },
     params: method === 'GET' ? withNoCache(opts.params) : opts.params,
   }
 
@@ -139,21 +160,30 @@ async function requestRaw<T>(opts: RequestOptions): Promise<ApiResponse<T>> {
   }
 }
 
-export async function request<T = any>(opts: RequestOptions, retried = false): Promise<T> {
-  try {
-    const response = await requestRaw<T>(opts)
+export async function request<T = any>(opts: RequestOptions): Promise<T> {
+  const original = getTokens()
+  let sent = original
+
+  async function send() {
+    const response = await requestRaw<T>(opts, sent)
     if (response.success) return response.data
     throw new ApiError(response.message || '操作失败', undefined, response)
+  }
+
+  try {
+    return await send()
   } catch (error) {
-    if (error instanceof ApiError && error.status === 401 && !retried && !opts.url.includes('/auth/refresh')) {
-      await refreshTokens()
-      return request<T>(opts, true)
+    if (!(error instanceof ApiError) || error.status !== 401 || !original || opts.url === '/auth/refresh') {
+      throw error
     }
+  }
 
-    if (error instanceof ApiError && error.status === 401) {
-      expireSession()
-    }
-
+  await refreshTokens(original)
+  sent = requireSameSession(original)
+  try {
+    return await send()
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) expireSession(sent)
     throw error
   }
 }

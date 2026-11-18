@@ -43,3 +43,5 @@
 .settings-page__copy > span { color: var(--color-text-secondary); font-size: 13px; line-height: 1.5; }
 .settings-page__item > svg { flex-shrink: 0; color: var(--color-text-tertiary); }
 .settings-page__item:active { background: var(--color-fill-secondary); }
+
+.settings-page__item + .settings-page__item { border-top: 1px solid var(--color-fill-secondary); }

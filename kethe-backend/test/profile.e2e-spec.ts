@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt'
 import { DataSource } from 'typeorm'
 import request from 'supertest'
 import { App } from 'supertest/types'
+import { AuthSessionService } from '../src/auth/auth-session.service'
 import { AccessTokenGuard } from '../src/auth/guards/access-token.guard'
 import { UserController } from '../src/user/user.controller'
 import { UserService } from '../src/user/user.service'
@@ -47,6 +48,7 @@ describe('个人资料接口 (e2e)', () => {
                 : Promise.reject(new Error('invalid')),
           },
         },
+        { provide: AuthSessionService, useValue: {} },
         { provide: APP_GUARD, useClass: AccessTokenGuard },
       ],
     }).compile()

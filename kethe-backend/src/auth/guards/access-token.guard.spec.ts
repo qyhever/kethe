@@ -12,6 +12,7 @@ import { Public } from '../../common/decorators/public.decorator'
 import { ResponseMessageEnum } from '../../common/enums/response-message.enum'
 import type { RequestWithContext } from '../../common/types/request-with-context'
 import type { EnvironmentVariables } from '../../config/environment.validation'
+import { AuthSessionService } from '../auth-session.service'
 import { AccessTokenGuard } from './access-token.guard'
 
 @Controller('public-controller')
@@ -32,6 +33,8 @@ class MixedController {
 }
 
 describe('AccessTokenGuard', () => {
+  const checkAccess = jest.fn()
+  const sid = '239531b4-a2ea-4ffc-92af-67a4de25e2c1'
   let guard: AccessTokenGuard
   let jwtService: { verifyAsync: jest.Mock }
   let request: Pick<Request, 'headers'> & Partial<RequestWithContext>
@@ -48,6 +51,7 @@ describe('AccessTokenGuard', () => {
     }) as unknown as ExecutionContext
 
   beforeEach(() => {
+    checkAccess.mockReset()
     jwtService = { verifyAsync: jest.fn() }
     request = { headers: {} }
     guard = new AccessTokenGuard(
@@ -56,6 +60,7 @@ describe('AccessTokenGuard', () => {
       {
         get: jest.fn().mockReturnValue('kethe-test'),
       } as unknown as ConfigService<EnvironmentVariables, true>,
+      { checkAccess } as unknown as AuthSessionService,
     )
   })
 
@@ -87,6 +92,34 @@ describe('AccessTokenGuard', () => {
       issuer: 'kethe-test',
     })
     expect(request.user).toEqual({ id: 7 })
+  })
+
+  it.each([true, false])('按用户检查会话有效性 %s', async (active) => {
+    request.headers.authorization = 'Bearer managed-token'
+    jwtService.verifyAsync.mockResolvedValue({ sub: 7, type: 'access', sid })
+    checkAccess.mockResolvedValue(active)
+
+    const activation = guard.canActivate(createContext())
+    if (active) {
+      await expect(activation).resolves.toBe(true)
+      expect(request.user).toEqual({ id: 7, sessionId: sid })
+    } else {
+      await expect(activation).rejects.toBeInstanceOf(UnauthorizedException)
+    }
+    expect(checkAccess).toHaveBeenCalledWith(7, sid)
+  })
+
+  it('拒绝格式错误的 sid', async () => {
+    request.headers.authorization = 'Bearer malformed-token'
+    jwtService.verifyAsync.mockResolvedValue({
+      sub: 7,
+      type: 'access',
+      sid: null,
+    })
+    await expect(guard.canActivate(createContext())).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    )
+    expect(checkAccess).not.toHaveBeenCalled()
   })
 
   it.each([

@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import request from 'supertest'
 import type { App } from 'supertest/types'
+import { AuthSessionService } from '../src/auth/auth-session.service'
 import { AccessTokenGuard } from '../src/auth/guards/access-token.guard'
 import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter'
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor'
@@ -38,6 +39,7 @@ describe('Feedback (e2e)', () => {
           provide: ConfigService,
           useValue: { get: () => 'kethe-test' },
         },
+        { provide: AuthSessionService, useValue: {} },
         { provide: APP_GUARD, useClass: AccessTokenGuard },
       ],
     }).compile()

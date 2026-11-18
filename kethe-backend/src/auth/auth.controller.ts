@@ -1,14 +1,18 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Logger,
+  Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Req,
 } from '@nestjs/common'
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 import {
   ApiAccessTokenErrorResponse,
   ApiValidationErrorResponse,
@@ -19,6 +23,8 @@ import { SuccessMessage } from '../common/decorators/success-message.decorator'
 import { Public } from '../common/decorators/public.decorator'
 import { ResponseMessageEnum } from '../common/enums/response-message.enum'
 import type { RequestWithContext } from '../common/types/request-with-context'
+import { AuthSessionService } from './auth-session.service'
+import { AuthSessionsDto } from './dto/auth-sessions.dto'
 import { AuthService } from './auth.service'
 import { AuthTokensDto } from './dto/auth-tokens.dto'
 import { LoginDto } from './dto/login.dto'
@@ -38,6 +44,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly verificationCodeService: VerificationCodeService,
+    private readonly sessions: AuthSessionService,
   ) {}
 
   @Post('registration-code')
@@ -149,7 +156,8 @@ export class AuthController {
   })
   @ApiValidationErrorResponse()
   async login(@Body() dto: LoginDto, @Req() request: RequestWithContext) {
-    const result = await this.authService.login(dto)
+    const userAgent = request.get('user-agent')
+    const result = await this.authService.login(dto, userAgent)
 
     if (!('error' in result)) {
       const loginContext = {
@@ -158,7 +166,7 @@ export class AuthController {
         ip: request.ip,
         message: '用户登录成功',
         requestId: request.requestId,
-        userAgent: request.get('user-agent'),
+        userAgent,
       }
 
       this.logger.log(loginContext)
@@ -166,6 +174,61 @@ export class AuthController {
     }
 
     return result
+  }
+
+  @Get('sessions')
+  @ApiBearerAuth()
+  @ApiAccessTokenErrorResponse()
+  @ApiOperation({ summary: '查询有效登录设备' })
+  @ApiWrappedOkResponse({
+    description: '返回当前会话和有效登录设备',
+    message: '请求成功',
+    data: { model: AuthSessionsDto },
+  })
+  listSessions(@Req() request: RequestWithContext) {
+    const { id, sessionId } = request.user!
+    return this.sessions.list(id, sessionId)
+  }
+
+  @Delete('sessions/:id')
+  @ApiBearerAuth()
+  @ApiAccessTokenErrorResponse()
+  @ApiValidationErrorResponse()
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOperation({
+    summary: '退出指定登录设备',
+    description: '当前设备请通过登出接口退出',
+  })
+  @ApiWrappedOkResponse({
+    description: '退出指定设备请求已处理',
+    message: '请求成功',
+    data: { type: 'null' },
+  })
+  revokeSession(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() request: RequestWithContext,
+  ) {
+    const user = request.user!
+    const sessionId = id.toLowerCase()
+    if (sessionId === user.sessionId) {
+      return { error: true as const, message: '请使用退出登录退出当前设备' }
+    }
+    return this.sessions.revoke(user.id, sessionId)
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiAccessTokenErrorResponse()
+  @ApiOperation({ summary: '退出当前登录会话' })
+  @ApiWrappedOkResponse({
+    description: '退出登录请求已处理',
+    message: '请求成功',
+    data: { type: 'null' },
+  })
+  logout(@Req() request: RequestWithContext) {
+    const { id, sessionId } = request.user!
+    return sessionId ? this.sessions.revoke(id, sessionId) : null
   }
 
   @Post('refresh')

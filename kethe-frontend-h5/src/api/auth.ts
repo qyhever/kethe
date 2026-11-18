@@ -1,7 +1,8 @@
-import { post } from '../utils/request'
+import { del, get, post } from '../utils/request'
 import type {
   AuthTokens,
   LoginPayload,
+  LoginSessions,
   PasswordResetPayload,
   RegisterPayload,
 } from './types'
@@ -24,4 +25,16 @@ export function sendPasswordResetCode(email: string) {
 
 export function resetPassword(payload: PasswordResetPayload) {
   return post<null>('/auth/reset-password', payload)
+}
+
+export function fetchLoginSessions(signal?: AbortSignal) {
+  return get<LoginSessions>('/auth/sessions', undefined, { signal })
+}
+
+export function revokeLoginSession(id: string) {
+  return del<null>(`/auth/sessions/${id}`)
+}
+
+export function logout() {
+  return post<null>('/auth/logout')
 }

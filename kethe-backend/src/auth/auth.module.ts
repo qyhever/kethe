@@ -7,6 +7,8 @@ import type { EnvironmentVariables } from '../config/environment.validation'
 import { MailModule } from '../mail/mail.module'
 import { UserModule } from '../user/user.module'
 import { AuthController } from './auth.controller'
+import { AuthSessionService } from './auth-session.service'
+import { AuthSession } from './entities/auth-session.entity'
 import { AuthService } from './auth.service'
 import { EmailVerificationCode } from './entities/email-verification-code.entity'
 import { TypeOrmVerificationCodeRepository } from './repositories/typeorm-verification-code.repository'
@@ -16,7 +18,7 @@ import { AccessTokenGuard } from './guards/access-token.guard'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EmailVerificationCode]),
+    TypeOrmModule.forFeature([EmailVerificationCode, AuthSession]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (
@@ -34,6 +36,7 @@ import { AccessTokenGuard } from './guards/access-token.guard'
   controllers: [AuthController],
   providers: [
     AuthService,
+    AuthSessionService,
     VerificationCodeService,
     {
       provide: APP_GUARD,

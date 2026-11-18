@@ -409,3 +409,15 @@ export interface AccountTransactionsReport {
     totalCount: number
   }>
 }
+
+export interface LoginSession {
+  id: string
+  deviceLabel: string
+  createdAt: string
+  lastActiveAt: string
+}
+
+export interface LoginSessions {
+  currentSessionId: string | null
+  sessions: LoginSession[]
+}

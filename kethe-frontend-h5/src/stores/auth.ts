@@ -1,7 +1,8 @@
 import { resetIconCatalog } from './icons'
 import { create } from 'zustand'
 import { fetchCurrentUser, updateCurrentUser, uploadCurrentAvatar, type ProfileUpdate } from '../api/user'
-import { clearTokens, hasTokens, setTokens } from '../api/token'
+import { logout } from '../api/auth'
+import { clearTokens, getSessionIdentity, getTokens, hasTokens, setTokens, TOKENS_KEY } from '../api/token'
 import type { AuthTokens, CurrentUser } from '../api/types'
 import { registerUnauthorizedHandler } from '../utils/auth-session'
 
@@ -16,8 +17,10 @@ interface AuthState {
   saveProfile: (payload: ProfileUpdate) => Promise<void>
   saveAvatar: (file: File) => Promise<void>
   signOut: () => void
+  logout: () => Promise<void>
 }
 
+let sessionIdentity: string | null = null
 let sessionVersion = 0
 let profileVersion = 0
 let initializePromise: Promise<void> | null = null
@@ -30,6 +33,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (initializePromise) return initializePromise
 
     const session = sessionVersion
+    sessionIdentity = getSessionIdentity(getTokens())
     initializePromise = (async () => {
       if (!hasTokens()) {
         set({ status: 'anonymous', user: null })
@@ -54,6 +58,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signIn: async (tokens) => {
     const session = ++sessionVersion
     setTokens(tokens)
+    sessionIdentity = getSessionIdentity(tokens)
 
     try {
       const user = await fetchCurrentUser()
@@ -93,7 +98,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user })
   },
 
+  logout: async () => {
+    const expected = getSessionIdentity(getTokens())
+    if (!expected) {
+      get().signOut()
+      return
+    }
+
+    try {
+      await logout()
+    } catch (error) {
+      // 请求层已经处理被动失效。网络与服务端错误交给页面提示。
+      if (getSessionIdentity(getTokens()) !== expected) return
+      throw error
+    }
+
+    if (getSessionIdentity(getTokens()) === expected) get().signOut()
+  },
+
   signOut: () => {
+    sessionIdentity = null
     ++sessionVersion
     ++profileVersion
     initializePromise = null
@@ -104,5 +128,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 }))
 
 registerUnauthorizedHandler(() => {
-  useAuthStore.getState().signOut()
+  if (!getTokens()) useAuthStore.getState().signOut()
+})
+
+window.addEventListener('storage', (event) => {
+  if (event.storageArea !== window.localStorage || (event.key !== TOKENS_KEY && event.key !== null)) return
+  const current = getSessionIdentity(getTokens())
+  if (current === sessionIdentity) return
+
+  ++sessionVersion
+  ++profileVersion
+  initializePromise = null
+  sessionIdentity = current
+  resetIconCatalog()
+  useAuthStore.setState({ status: current ? 'checking' : 'anonymous', user: null })
+  if (current) void useAuthStore.getState().initialize()
 })

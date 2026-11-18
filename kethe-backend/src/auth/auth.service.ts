@@ -20,6 +20,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
 import { VerificationCodeService } from './verification-code.service'
 
+import { AuthSessionService, isSessionId } from './auth-session.service'
+
 export interface LoginSuccessNotificationContext {
   email: string
   event: 'user_login'
@@ -40,10 +42,12 @@ export class AuthService {
     private readonly verificationCodeService: VerificationCodeService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<EnvironmentVariables, true>,
+    private readonly sessions: AuthSessionService,
   ) {}
 
   async login(
     dto: LoginDto,
+    userAgent?: string,
   ): Promise<
     { accessToken: string; refreshToken: string } | ServiceErrorResult
   > {
@@ -67,7 +71,13 @@ export class AuthService {
       }
     }
 
-    return this.issueTokens(user.id)
+    const sid = randomUUID()
+    const { tokens, refreshJti, expiresAt } = await this.issueTokens(
+      user.id,
+      sid,
+    )
+    await this.sessions.create(sid, user.id, refreshJti, expiresAt, userAgent)
+    return tokens
   }
 
   async notifyLoginSuccess(
@@ -172,36 +182,88 @@ export class AuthService {
       throw new ForbiddenException(ResponseMessageEnum.USER_DISABLED)
     }
 
-    return this.issueTokens(user.id)
+    if (payload.sid === undefined) {
+      return {
+        accessToken: await this.issueAccessToken(
+          user.id,
+          undefined,
+          payload.exp,
+        ),
+        refreshToken,
+      }
+    }
+
+    const { tokens, refreshJti, expiresAt } = await this.issueTokens(
+      user.id,
+      payload.sid,
+    )
+    if (
+      !(await this.sessions.rotate(
+        user.id,
+        payload.sid,
+        payload.jti,
+        refreshJti,
+        expiresAt,
+      ))
+    ) {
+      throw new UnauthorizedException(
+        ResponseMessageEnum.REFRESH_TOKEN_INVALID_OR_EXPIRED,
+      )
+    }
+    return tokens
   }
 
-  private async issueTokens(
+  private async issueAccessToken(
     userId: number,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
-    const accessExpiresIn = this.configService.get('JWT_ACCESS_EXPIRE', {
-      infer: true,
+    sid?: string,
+    legacyExpiresAt?: number,
+  ) {
+    const payload = {
+      sub: userId,
+      type: 'access',
+      jti: randomUUID(),
+      ...(sid ? { sid } : {}),
+    }
+    const token = await this.jwtService.signAsync(payload, {
+      expiresIn: this.configService.get('JWT_ACCESS_EXPIRE', { infer: true }),
     })
-    const refreshExpiresIn = this.configService.get('JWT_REFRESH_EXPIRE', {
-      infer: true,
-    })
+    if (
+      legacyExpiresAt !== undefined &&
+      this.jwtService.decode<{ exp: number }>(token).exp > legacyExpiresAt
+    ) {
+      return this.jwtService.signAsync({ ...payload, exp: legacyExpiresAt })
+    }
+    return token
+  }
 
+  private async issueTokens(userId: number, sid: string) {
+    const refreshJti = randomUUID()
     const [accessToken, refreshToken] = await Promise.all([
+      this.issueAccessToken(userId, sid),
       this.jwtService.signAsync(
-        { sub: userId, type: 'access', jti: randomUUID() },
-        { expiresIn: accessExpiresIn },
-      ),
-      this.jwtService.signAsync(
-        { sub: userId, type: 'refresh', jti: randomUUID() },
-        { expiresIn: refreshExpiresIn },
+        { sub: userId, type: 'refresh', jti: refreshJti, sid },
+        {
+          expiresIn: this.configService.get('JWT_REFRESH_EXPIRE', {
+            infer: true,
+          }),
+        },
       ),
     ])
 
-    return { accessToken, refreshToken }
+    return {
+      tokens: { accessToken, refreshToken },
+      refreshJti,
+      expiresAt: new Date(
+        this.jwtService.decode<{ exp: number }>(refreshToken).exp * 1000,
+      ),
+    }
   }
 
   private isRefreshTokenPayload(
     payload: unknown,
-  ): payload is { sub: number; type: 'refresh' } {
+  ): payload is
+    | { sub: number; type: 'refresh'; exp: number; sid?: never }
+    | { sub: number; type: 'refresh'; exp: number; sid: string; jti: string } {
     if (typeof payload !== 'object' || payload === null) return false
 
     const tokenPayload = payload as Record<string, unknown>
@@ -210,7 +272,11 @@ export class AuthService {
       tokenPayload.type === 'refresh' &&
       typeof tokenPayload.sub === 'number' &&
       Number.isSafeInteger(tokenPayload.sub) &&
-      tokenPayload.sub > 0
+      tokenPayload.sub > 0 &&
+      typeof tokenPayload.exp === 'number' &&
+      Number.isFinite(tokenPayload.exp) &&
+      (!('sid' in tokenPayload) ||
+        (isSessionId(tokenPayload.sid) && isSessionId(tokenPayload.jti)))
     )
   }
 

@@ -12,12 +12,15 @@ import { ResponseMessageEnum } from '../../common/enums/response-message.enum'
 import type { RequestWithContext } from '../../common/types/request-with-context'
 import type { EnvironmentVariables } from '../../config/environment.validation'
 
+import { AuthSessionService, isSessionId } from '../auth-session.service'
+
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<EnvironmentVariables, true>,
+    private readonly sessions: AuthSessionService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -43,7 +46,17 @@ export class AccessTokenGuard implements CanActivate {
 
     if (!this.isAccessTokenPayload(payload)) this.throwUnauthorized(true)
 
-    request.user = { id: payload.sub }
+    if ('sid' in payload) {
+      if (
+        !isSessionId(payload.sid) ||
+        !(await this.sessions.checkAccess(payload.sub, payload.sid))
+      ) {
+        this.throwUnauthorized(true)
+      }
+      request.user = { id: payload.sub, sessionId: payload.sid }
+    } else {
+      request.user = { id: payload.sub }
+    }
     return true
   }
 
@@ -56,7 +69,7 @@ export class AccessTokenGuard implements CanActivate {
 
   private isAccessTokenPayload(
     payload: unknown,
-  ): payload is { sub: number; type: 'access' } {
+  ): payload is { sub: number; type: 'access'; sid?: unknown } {
     if (typeof payload !== 'object' || payload === null) return false
 
     const tokenPayload = payload as Record<string, unknown>

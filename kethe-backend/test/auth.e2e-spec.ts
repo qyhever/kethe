@@ -19,6 +19,7 @@ import { VerificationCodeService } from '../src/auth/verification-code.service'
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor'
 import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter'
 import { ResponseMessageEnum } from '../src/common/enums/response-message.enum'
+import { AuthSessionService } from '../src/auth/auth-session.service'
 import { AccessTokenGuard } from '../src/auth/guards/access-token.guard'
 import { RequestContextMiddleware } from '../src/common/middleware/request-context.middleware'
 import { UserController } from '../src/user/user.controller'
@@ -26,6 +27,11 @@ import { UserService } from '../src/user/user.service'
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication<App>
+  const sessions = {
+    checkAccess: jest.fn(),
+    list: jest.fn(),
+    revoke: jest.fn(),
+  }
   const authService = {
     login: jest.fn(),
     notifyLoginSuccess: jest
@@ -67,6 +73,7 @@ describe('AuthController (e2e)', () => {
           useValue: { get: jest.fn().mockReturnValue('kethe-test') },
         },
         { provide: UserService, useValue: userService },
+        { provide: AuthSessionService, useValue: sessions },
         { provide: APP_GUARD, useClass: AccessTokenGuard },
       ],
     }).compile()
@@ -247,10 +254,13 @@ describe('AuthController (e2e)', () => {
         message: ResponseMessageEnum.LOGIN_SUCCESS,
       })
 
-    expect(authService.login).toHaveBeenCalledWith({
-      email: 'user@example.com',
-      password: 'password123',
-    })
+    expect(authService.login).toHaveBeenCalledWith(
+      {
+        email: 'user@example.com',
+        password: 'password123',
+      },
+      'kethe-e2e-agent',
+    )
     const anyString: unknown = expect.any(String)
     const uuid: unknown = expect.stringMatching(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
@@ -431,6 +441,85 @@ describe('AuthController (e2e)', () => {
       })
 
     expect(userService.findAll).not.toHaveBeenCalled()
+  })
+
+  describe('登录会话', () => {
+    const sid = '239531b4-a2ea-4ffc-92af-67a4de25e2c1'
+    const otherSid = '118fa3cf-b3aa-473b-82be-3cb08023c91e'
+    const authorization = 'Bearer valid-access-token'
+
+    beforeEach(() => {
+      jwtService.verifyAsync.mockResolvedValue({ sub: 7, type: 'access', sid })
+      sessions.checkAccess.mockResolvedValue(true)
+      sessions.revoke.mockResolvedValue(null)
+    })
+
+    it('列出会话并传递当前设备标记', async () => {
+      const data = { currentSessionId: sid, sessions: [] }
+      sessions.list.mockResolvedValue(data)
+
+      await request(app.getHttpServer())
+        .get('/api/auth/sessions')
+        .set('Authorization', authorization)
+        .expect(200)
+        .expect({ success: true, data, message: '请求成功' })
+      expect(sessions.list).toHaveBeenCalledWith(7, sid)
+    })
+
+    it('已失效会话不能读取设备列表', async () => {
+      sessions.checkAccess.mockResolvedValue(false)
+
+      await request(app.getHttpServer())
+        .get('/api/auth/sessions')
+        .set('Authorization', authorization)
+        .expect(401)
+      expect(sessions.list).not.toHaveBeenCalled()
+    })
+
+    it('只按当前账号撤销指定设备并返回包装后的 null', async () => {
+      await request(app.getHttpServer())
+        .delete(`/api/auth/sessions/${otherSid}`)
+        .set('Authorization', authorization)
+        .expect(200)
+        .expect({ success: true, data: null, message: '请求成功' })
+      expect(sessions.revoke).toHaveBeenCalledWith(7, otherSid)
+    })
+
+    it.each([sid.toUpperCase(), 'invalid'])(
+      '拒绝删除当前设备或无效 UUID %s',
+      async (id) => {
+        await request(app.getHttpServer())
+          .delete(`/api/auth/sessions/${id}`)
+          .set('Authorization', authorization)
+          .expect(200)
+          .expect(({ body }: { body: unknown }) => {
+            expect(body).toMatchObject({ success: false, data: null })
+          })
+        expect(sessions.revoke).not.toHaveBeenCalled()
+      },
+    )
+
+    it.each([true, false])(
+      '登出支持有无 sid 的访问令牌 %s',
+      async (managed) => {
+        jwtService.verifyAsync.mockResolvedValue({
+          sub: 7,
+          type: 'access',
+          ...(managed ? { sid } : {}),
+        })
+
+        await request(app.getHttpServer())
+          .post('/api/auth/logout')
+          .set('Authorization', authorization)
+          .expect(200)
+          .expect({ success: true, data: null, message: '请求成功' })
+        if (managed) {
+          expect(sessions.revoke).toHaveBeenCalledWith(7, sid)
+        } else {
+          expect(sessions.revoke).not.toHaveBeenCalled()
+        }
+      },
+    )
   })
 
   it('GET /user 携带有效 access token 应该继续执行', async () => {

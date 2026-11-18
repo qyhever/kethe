@@ -13,6 +13,7 @@ import type {
   MergeLargeFileUploadResult,
   VerifyLargeFileUploadResult,
 } from '../src/attach/attach.types'
+import { AuthSessionService } from '../src/auth/auth-session.service'
 import { AccessTokenGuard } from '../src/auth/guards/access-token.guard'
 import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter'
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor'
@@ -65,6 +66,7 @@ describe('AttachController (e2e)', () => {
           provide: ConfigService,
           useValue: { get: jest.fn().mockReturnValue('kethe-test') },
         },
+        { provide: AuthSessionService, useValue: {} },
         { provide: APP_GUARD, useClass: AccessTokenGuard },
       ],
     }).compile()

@@ -8,6 +8,7 @@ import { ResponseMessageEnum } from '../common/enums/response-message.enum'
 import { User } from '../user/entities/user.entity'
 import { UserService } from '../user/user.service'
 import { DefaultUserDataService } from '../user/default-user-data.service'
+import { AuthSessionService } from './auth-session.service'
 import { AuthService } from './auth.service'
 import { RegisterDto } from './dto/register.dto'
 import { EmailVerificationCode } from './entities/email-verification-code.entity'
@@ -17,11 +18,13 @@ type TokenPayload = {
   sub: number
   type: 'access' | 'refresh'
   jti: string
+  sid?: string
+  exp?: number
 }
 
 type SignToken = (
   payload: TokenPayload,
-  options: { expiresIn: string },
+  options?: { expiresIn: string },
 ) => Promise<string>
 
 type VerifyToken = (
@@ -29,7 +32,12 @@ type VerifyToken = (
   options: { issuer: string },
 ) => Promise<unknown>
 
+const sid = '239531b4-a2ea-4ffc-92af-67a4de25e2c1'
+const jti = '118fa3cf-b3aa-473b-82be-3cb08023c91e'
+const exp = 2_000_000_000
+
 describe('AuthService', () => {
+  let sessions: { create: jest.Mock; rotate: jest.Mock }
   let service: AuthService
   let userService: {
     existsByUsername: jest.Mock
@@ -44,6 +52,7 @@ describe('AuthService', () => {
   let jwtService: {
     signAsync: jest.MockedFunction<SignToken>
     verifyAsync: jest.MockedFunction<VerifyToken>
+    decode: jest.Mock
   }
   let verificationCodeService: {
     normalizeEmail: jest.Mock
@@ -88,13 +97,16 @@ describe('AuthService', () => {
     signAsync
       .mockResolvedValueOnce('access-token')
       .mockResolvedValueOnce('refresh-token')
+    sessions = { create: jest.fn(), rotate: jest.fn().mockResolvedValue(true) }
     jwtService = {
+      decode: jest.fn().mockReturnValue({ exp }),
       signAsync,
       verifyAsync: jest.fn() as jest.MockedFunction<VerifyToken>,
     }
     const module = await Test.createTestingModule({
       providers: [
         AuthService,
+        { provide: AuthSessionService, useValue: sessions },
         { provide: DataSource, useValue: dataSource },
         { provide: UserService, useValue: userService },
         {
@@ -158,6 +170,14 @@ describe('AuthService', () => {
       expect(accessPayload.jti).not.toBe(refreshPayload.jti)
       expect(accessOptions).toEqual({ expiresIn: '10m' })
       expect(refreshOptions).toEqual({ expiresIn: '7d' })
+      expect(accessPayload.sid).toBe(refreshPayload.sid)
+      expect(sessions.create).toHaveBeenCalledWith(
+        refreshPayload.sid,
+        7,
+        refreshPayload.jti,
+        new Date(exp * 1000),
+        undefined,
+      )
     })
 
     it('邮箱不存在时应该返回逻辑错误且不签发令牌', async () => {
@@ -317,7 +337,13 @@ describe('AuthService', () => {
 
   describe('refresh', () => {
     it('有效 Refresh Token 应该校验 issuer、查询用户并签发新的双令牌', async () => {
-      jwtService.verifyAsync.mockResolvedValue({ sub: 7, type: 'refresh' })
+      jwtService.verifyAsync.mockResolvedValue({
+        sub: 7,
+        type: 'refresh',
+        exp,
+        sid,
+        jti,
+      })
       userService.findOne.mockResolvedValue({ id: 7, isEnabled: true })
 
       await expect(service.refresh('valid-refresh-token')).resolves.toEqual({
@@ -337,7 +363,60 @@ describe('AuthService', () => {
       expect(accessPayload.jti).not.toBe(refreshPayload.jti)
       expect(accessOptions).toEqual({ expiresIn: '10m' })
       expect(refreshOptions).toEqual({ expiresIn: '7d' })
+      expect(accessPayload.sid).toBe(sid)
+      expect(refreshPayload.sid).toBe(sid)
+      expect(sessions.rotate).toHaveBeenCalledWith(
+        7,
+        sid,
+        jti,
+        refreshPayload.jti,
+        new Date(exp * 1000),
+      )
     })
+
+    it('轮换条件不再匹配时返回 401', async () => {
+      jwtService.verifyAsync.mockResolvedValue({
+        sub: 7,
+        type: 'refresh',
+        exp,
+        sid,
+        jti,
+      })
+      userService.findOne.mockResolvedValue({ id: 7, isEnabled: true })
+      sessions.rotate.mockResolvedValue(false)
+
+      await expect(service.refresh('used-token')).rejects.toMatchObject({
+        status: 401,
+      })
+    })
+
+    it.each([exp - 1, exp + 1])(
+      '旧刷新令牌限制访问期限并原样返回，旧期限 %s',
+      async (legacyExp) => {
+        jwtService.verifyAsync.mockResolvedValue({
+          sub: 7,
+          type: 'refresh',
+          exp: legacyExp,
+        })
+        jwtService.signAsync
+          .mockReset()
+          .mockResolvedValueOnce('configured-access')
+          .mockResolvedValueOnce('capped-access')
+        userService.findOne.mockResolvedValue({ id: 7, isEnabled: true })
+
+        await expect(service.refresh('legacy-token')).resolves.toEqual({
+          accessToken: legacyExp < exp ? 'capped-access' : 'configured-access',
+          refreshToken: 'legacy-token',
+        })
+        expect(jwtService.signAsync.mock.calls[0][0]).not.toHaveProperty('sid')
+        if (legacyExp < exp) {
+          expect(jwtService.signAsync.mock.calls[1][0].exp).toBe(legacyExp)
+        } else {
+          expect(jwtService.signAsync).toHaveBeenCalledTimes(1)
+        }
+        expect(sessions.rotate).not.toHaveBeenCalled()
+      },
+    )
 
     it.each(['令牌过期', '签名伪造', '格式错误'])(
       '%s时应该返回 401',
@@ -359,6 +438,8 @@ describe('AuthService', () => {
       ['用户 ID 为字符串', { sub: '7', type: 'refresh' }],
       ['用户 ID 为零', { sub: 0, type: 'refresh' }],
       ['用户 ID 为小数', { sub: 1.5, type: 'refresh' }],
+      ['sid 无效', { sub: 7, type: 'refresh', exp, sid: null, jti }],
+      ['缺少轮换凭据', { sub: 7, type: 'refresh', exp, sid }],
     ])('%s时应该返回 401', async (_case, payload) => {
       jwtService.verifyAsync.mockResolvedValue(payload)
 
@@ -373,7 +454,7 @@ describe('AuthService', () => {
     })
 
     it('用户不存在或已删除时应该返回 401', async () => {
-      jwtService.verifyAsync.mockResolvedValue({ sub: 7, type: 'refresh' })
+      jwtService.verifyAsync.mockResolvedValue({ sub: 7, type: 'refresh', exp })
       userService.findOne.mockResolvedValue({
         error: true,
         message: ResponseMessageEnum.USER_NOT_FOUND,
@@ -389,7 +470,7 @@ describe('AuthService', () => {
     })
 
     it('用户被禁用时应该返回 403', async () => {
-      jwtService.verifyAsync.mockResolvedValue({ sub: 7, type: 'refresh' })
+      jwtService.verifyAsync.mockResolvedValue({ sub: 7, type: 'refresh', exp })
       userService.findOne.mockResolvedValue({ id: 7, isEnabled: false })
 
       await expect(
